@@ -1,0 +1,31 @@
+.quick-actions {
+  background: white;
+  padding: 20px;
+  border-radius: 16px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.04);
+}
+
+.quick-actions h3 {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 16px;
+}
+
+.quick-btn {
+  width: 100%;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  padding: 12px;
+  margin-bottom: 10px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.quick-btn:hover {
+  background: #eef2ff;
+  border-color: #c7d2fe;
+}

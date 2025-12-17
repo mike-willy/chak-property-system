@@ -11,12 +11,7 @@
   top: 0;
 }
 
-.sidebar-logo {
-  padding: 20px;
-  font-size: 18px;
-  font-weight: bold;
-  color: #2563eb;
-}
+
 
 .sidebar-menu,
 .sidebar-bottom {
@@ -54,4 +49,41 @@
   font-size: 12px;
   padding: 2px 8px;
   border-radius: 12px;
+}
+
+/* SECTION TITLES */
+.sidebar-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: #9ca3af;
+  margin: 20px 0 10px;
+  letter-spacing: 0.05em;
+}
+
+/* Push SYSTEM section to bottom visually */
+.system-title {
+  margin-top: auto;
+}
+
+/* MENU LISTS */
+.sidebar-menu li,
+.sidebar-bottom li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.sidebar-menu li:hover,
+.sidebar-bottom li:hover {
+  background-color: #f3f4f6;
+}
+
+.sidebar-menu li.active {
+  background-color: #eef2ff;
+  color: #4338ca;
+  font-weight: 600;
 }
