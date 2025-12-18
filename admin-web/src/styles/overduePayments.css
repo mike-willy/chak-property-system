@@ -2,15 +2,29 @@
   background: white;
   padding: 20px;
   border-radius: 16px;
-  box-shadow:  0 1px 3px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
 }
 
-.overdue-card h3 {
-  font-size: 16px;
-  font-weight: 600;
+/* Header */
+.overdue-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   margin-bottom: 16px;
 }
 
+.overdue-header h3 {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.view-all {
+  font-size: 13px;
+  color: #2563eb;
+  cursor: pointer;
+}
+
+/* Table */
 .overdue-table {
   width: 100%;
   border-collapse: collapse;
@@ -18,17 +32,23 @@
 
 .overdue-table th {
   text-align: left;
-  font-size: 13px;
+  font-size: 12px;
+  font-weight: 500;
   color: #6b7280;
   padding-bottom: 10px;
 }
 
 .overdue-table td {
-  padding: 12px 0;
+  padding: 14px 0;
   font-size: 14px;
   border-top: 1px solid #e5e7eb;
 }
 
+.amount {
+  font-weight: 500;
+}
+
+/* Status */
 .status.overdue {
   background: #fee2e2;
   color: #b91c1c;
@@ -37,6 +57,7 @@
   font-size: 12px;
 }
 
+/* Button */
 .reminder-btn {
   background: #2563eb;
   color: white;

@@ -17,12 +17,6 @@
   gap: 24px;
 }
 
-.dashboard-charts {
-  display: grid;
-  grid-template-columns: 2fr 1fr;
-  gap: 20px;
-}
-
 .dashboard-right {
   display: flex;
   flex-direction: column;
@@ -36,8 +30,12 @@
 }
 
 .charts-left {
+  display: flex;
+  flex-direction: column;
+  gap: 50px; /* space between chart and overdue table */
   width: 100%;
 }
+
 
 .charts-right {
   display: flex;

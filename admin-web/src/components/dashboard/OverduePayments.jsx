@@ -7,28 +7,31 @@ const overduePayments = [
     property: "Greenview A12",
     dueDate: "10 Jun 2025",
     amount: "KSh 25,000",
-    status: "Overdue"
+    status: "Overdue",
   },
   {
     tenant: "Mary Wanjiru",
     property: "Sunrise B04",
     dueDate: "05 Jun 2025",
     amount: "KSh 18,000",
-    status: "Overdue"
+    status: "Overdue",
   },
   {
     tenant: "Peter Otieno",
     property: "Palm Court C07",
     dueDate: "08 Jun 2025",
     amount: "KSh 30,000",
-    status: "Overdue"
-  }
+    status: "Overdue",
+  },
 ];
 
 const OverduePayments = () => {
   return (
     <div className="overdue-card">
-      <h3>Overdue Payments</h3>
+      <div className="overdue-header">
+        <h3>Overdue Payments</h3>
+        <span className="view-all">View All</span>
+      </div>
 
       <table className="overdue-table">
         <thead>
@@ -48,12 +51,12 @@ const OverduePayments = () => {
               <td>{item.tenant}</td>
               <td>{item.property}</td>
               <td>{item.dueDate}</td>
-              <td>{item.amount}</td>
+              <td className="amount">{item.amount}</td>
               <td>
                 <span className="status overdue">{item.status}</span>
               </td>
               <td>
-                <button className="reminder-btn">Send Reminder</button>
+                <button className="reminder-btn">Remind</button>
               </td>
             </tr>
           ))}

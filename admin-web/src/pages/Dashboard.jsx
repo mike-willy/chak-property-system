@@ -6,30 +6,37 @@ import FinancialChart from "../components/dashboard/FinancialChart";
 import PropertyStatusChart from "../components/dashboard/PropertyStatusChart";
 import QuickActions from "../components/dashboard/QuickActions";
 import OverduePayments from "../components/dashboard/OverduePayments";
+import RecentActivity from "../components/dashboard/RecentActivity";
 import "../styles/dashboard.css";
 
 const Dashboard = () => {
   return (
     <DashboardLayout>
       <DashboardHeader />
-
       <StatsGrid />
-      
-      {/* Charts Section */}
+
+      {/* Charts & Tables Section */}
       <div className="dashboard-charts-layout">
-        {/* LEFT: Financial Chart */}
+        {/* ROW 1 - Financial Chart */}
         <div className="charts-left">
           <FinancialChart />
-          <OverduePayments />
-
         </div>
 
-        {/* RIGHT: Quick Actions + Status */}
+        {/* ROW 1 - Quick Actions + Status */}
         <div className="charts-right">
           <QuickActions />
           <PropertyStatusChart />
         </div>
-        
+
+        {/* ROW 2 - Overdue Payments */}
+        <div className="charts-left">
+          <OverduePayments />
+        </div>
+
+        {/* ROW 2 - Recent Activity */}
+        <div className="charts-right">
+          <RecentActivity />
+        </div>
       </div>
     </DashboardLayout>
   );
