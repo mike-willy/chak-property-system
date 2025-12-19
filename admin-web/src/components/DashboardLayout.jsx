@@ -8,7 +8,7 @@ const DashboardLayout = ({ children }) => {
       <Sidebar />
       <div style={{ marginLeft: "250px", width: "100%" }}>
         <TopNavbar />
-        <div style={{ padding: "20px" }}>{children}</div>
+        <div style={{ padding: "20px",backgroundColor: "#f5f5f5" }}>{children}</div>
   
       </div>
     </div>

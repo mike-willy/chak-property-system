@@ -3,6 +3,9 @@
   padding: 20px;
   border-radius: 16px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  height: 100%; /* Add this */
+  display: flex;
+  flex-direction: column; /* Add this */
 }
 
 /* Header */
@@ -10,12 +13,13 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 16px;
+  margin-bottom: 20px; /* Increased from 16px */
 }
 
 .overdue-header h3 {
-  font-size: 16px;
+  font-size: 18px; /* Increased from 16px */
   font-weight: 600;
+  color: #1e293b; /* Match RecentActivity color */
 }
 
 .view-all {
@@ -28,6 +32,7 @@
 .overdue-table {
   width: 100%;
   border-collapse: collapse;
+  flex: 1; /* Add this to fill remaining space */
 }
 
 .overdue-table th {

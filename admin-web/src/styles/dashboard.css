@@ -1,44 +1,59 @@
-.dashboard-charts {
-  display: grid;
-  grid-template-columns: 2fr 1fr;
-  gap: 20px;
-  margin-top: 20px;
-}
-
-.dashboard-main {
-  display: grid;
-  grid-template-columns: 3fr 1fr;
-  gap: 24px;
-}
-
-.dashboard-left {
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
-}
-
-.dashboard-right {
-  display: flex;
-  flex-direction: column;
-}
+/* Replace everything in your dashboard.css with this: */
 
 .dashboard-charts-layout {
   display: grid;
-  grid-template-columns: 3fr 1.3fr;
+  grid-template-columns: 2fr 1fr;
   gap: 24px;
   margin-top: 24px;
 }
 
+/* Make the left column stack vertically */
 .charts-left {
   display: flex;
   flex-direction: column;
-  gap: 50px; /* space between chart and overdue table */
-  width: 100%;
+  gap: 24px;
 }
 
-
+/* Make the right column stack vertically */
 .charts-right {
   display: flex;
   flex-direction: column;
   gap: 24px;
+}
+
+/* Ensure all cards take full height of their grid cell */
+.charts-left > *,
+.charts-right > * {
+  min-height: 0; /* Important for flex children */
+}
+
+/* Specific height adjustments for alignment */
+.financial-chart-card,
+.quick-actions-card,
+.property-status-card {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Make FinancialChart and (QuickActions + PropertyStatus) the same height */
+.financial-chart-card {
+  flex: 1;
+  min-height: 350px; /* Adjust as needed */
+}
+
+/* Make QuickActions and PropertyStatus share the height */
+.charts-right {
+  flex: 1;
+}
+
+.quick-actions-card,
+.property-status-card {
+  flex: 1;
+  min-height: 0; /* Allow them to shrink/grow */
+}
+
+/* For the bottom row */
+.overdue-payments-card,
+.recent-activity-card {
+  min-height: 350px; /* Adjust as needed */
 }

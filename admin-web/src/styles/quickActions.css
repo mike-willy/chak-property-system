@@ -1,31 +1,54 @@
-.quick-actions {
+.quick-actions-card {
   background: white;
+  border-radius: 12px;
   padding: 20px;
-  border-radius: 16px;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  height: fit-content;
 }
 
-.quick-actions h3 {
-  font-size: 16px;
+.quick-actions-title {
+  font-size: 14px;
   font-weight: 600;
+  color: #333;
   margin-bottom: 16px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
-.quick-btn {
-  width: 100%;
-  background: #f9fafb;
-  border: 1px solid #e5e7eb;
-  padding: 12px;
-  margin-bottom: 10px;
-  border-radius: 10px;
+.quick-actions-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+.quick-action-btn {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 10px;
+  justify-content: center;
+  padding: 16px 8px;
+  background: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
   cursor: pointer;
+  transition: all 0.2s ease;
   font-size: 14px;
 }
 
-.quick-btn:hover {
-  background: #eef2ff;
-  border-color: #c7d2fe;
+.quick-action-btn:hover {
+  background: #e9ecef;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.action-icon {
+  font-size: 20px;
+  margin-bottom: 8px;
+  color: #4361ee;
+}
+
+.action-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: #495057;
 }
