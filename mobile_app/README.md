@@ -6,6 +6,9 @@ A new Flutter project.
 
 ## PROJECTED FIREBASE DATABASE
 
+## Firestore Schema
+
+```text
 // Firestore Collections Structure
 firestore/
 ├── users/
