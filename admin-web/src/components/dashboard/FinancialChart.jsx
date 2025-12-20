@@ -12,12 +12,12 @@ import "../../styles/financialChart.css";
 
 const FinancialChart = () => {
   const data = [
-    { month: "Jan", amount: 30 },
-    { month: "Feb", amount: 50 },
-    { month: "Mar", amount: 80 },
-    { month: "Apr", amount: 60 },
-    { month: "May", amount: 90 },
-    { month: "Jun", amount: 70 },
+    // { month: "Jan", amount: 30 },
+    // { month: "Feb", amount: 50 },
+    // { month: "Mar", amount: 80 },
+    // { month: "Apr", amount: 60 },
+    // { month: "May", amount: 90 },
+    // { month: "Jun", amount: 70 },
   ];
 
   return (
