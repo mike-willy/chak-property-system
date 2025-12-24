@@ -43,3 +43,26 @@
   border-radius: 20px;
   font-size: 14px;
 }
+ 
+.logout-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background-color: #2563eb;
+  color: white;
+  border: none;
+  padding: 6px 12px 6px 10px; /* Slightly more left padding for icon */
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.logout-btn:hover {
+  background-color: #1d4ed8;
+}
+
+.logout-btn svg {
+  font-size: 12px; /* Slightly smaller icon */
+}

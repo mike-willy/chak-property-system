@@ -1,8 +1,23 @@
 import React from "react";
-import { FaBell, FaSearch } from "react-icons/fa";
+import { FaBell, FaSearch, FaSignOutAlt } from "react-icons/fa";
+import { useNavigate } from "react-router-dom";
+import { auth } from "../pages/firebase/firebase"; // Adjust path as needed
+import { signOut } from "firebase/auth";
 import "../styles/topNavbar.css";
 
 const TopNavbar = () => {
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      console.log("Logged out successfully");
+      navigate("/login");
+    } catch (error) {
+      console.error("Logout error:", error);
+    }
+  };
+
   return (
     <div className="top-navbar">
       <div className="search-box">
@@ -12,9 +27,15 @@ const TopNavbar = () => {
 
       <div className="navbar-actions">
         <FaBell className="icon" />
+        
         <div className="admin-profile">
           <span>Admin</span>
         </div>
+
+        <button onClick={handleLogout} className="logout-btn">
+          <FaSignOutAlt />
+          <span>Logout</span>
+        </button>
       </div>
     </div>
   );

@@ -60,7 +60,7 @@ class AuthProvider extends ChangeNotifier {
 
     final account = await _googleSignIn.authenticate();
 
-    final auth = await account.authentication;
+    final auth = account.authentication;
     final credential = fb.GoogleAuthProvider.credential(
         idToken: auth.idToken,
       );
