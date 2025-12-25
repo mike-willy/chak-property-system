@@ -25,7 +25,10 @@ import {
   FaTv, 
   FaSnowflake,
   FaSwimmingPool,
-  FaDumbbell
+  FaDumbbell,
+  FaBuilding,
+  FaDoorClosed,
+  FaCheckCircle
 } from "react-icons/fa";
 
 const AddProperty = () => {
@@ -89,6 +92,15 @@ const AddProperty = () => {
       oneBedroom: "",
       twoBedroom: "",
       threeBedroom: ""
+    },
+    // NEW: Unit tracking fields
+    unitDetails: {
+      totalUnits: 1,
+      vacantCount: 1,
+      leasedCount: 0,
+      maintenanceCount: 0,
+      occupancyRate: 0,
+      units: []
     }
   });
 
@@ -96,6 +108,41 @@ const AddProperty = () => {
   useEffect(() => {
     fetchLandlords();
   }, []);
+
+  // Function to generate units based on total units count
+  const generateUnits = (totalUnits, propertyName, rentAmount) => {
+    const units = [];
+    const propertyPrefix = propertyName 
+      ? propertyName.replace(/\s+/g, '').substring(0, 3).toUpperCase() 
+      : 'APT';
+    
+    const baseRent = Number(rentAmount) || 0;
+    
+    for (let i = 1; i <= totalUnits; i++) {
+      const unitNumber = i.toString().padStart(3, '0');
+      units.push({
+        unitId: `${propertyPrefix}-${unitNumber}`,
+        unitNumber: unitNumber,
+        unitName: `${propertyName || 'Property'} - Unit ${unitNumber}`,
+        status: "vacant",
+        rentAmount: baseRent,
+        size: form.size || "",
+        amenities: [...form.amenities],
+        tenantId: null,
+        tenantName: "",
+        tenantPhone: "",
+        tenantEmail: "",
+        leaseStart: null,
+        leaseEnd: null,
+        rentPaidUntil: null,
+        notes: "",
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      });
+    }
+    
+    return units;
+  };
 
   const fetchLandlords = async () => {
     try {
@@ -144,6 +191,23 @@ const AddProperty = () => {
           [pricingField]: value
         }
       });
+    } else if (name === "units") {
+      // Handle units change - generate units automatically
+      const totalUnits = parseInt(value) || 1;
+      const generatedUnits = generateUnits(totalUnits, form.name, getPriceForType());
+      
+      setForm(prev => ({
+        ...prev,
+        units: totalUnits,
+        unitDetails: {
+          totalUnits: totalUnits,
+          vacantCount: totalUnits,
+          leasedCount: 0,
+          maintenanceCount: 0,
+          occupancyRate: 0,
+          units: generatedUnits
+        }
+      }));
     } else {
       setForm({ ...form, [name]: value });
     }
@@ -212,16 +276,41 @@ const AddProperty = () => {
 
   // Handle property type selection
   const handlePropertyTypeSelect = (type) => {
-    setForm({ ...form, propertyType: type });
+    // When property type changes, regenerate units if name exists
+    if (form.name && form.units > 0) {
+      const generatedUnits = generateUnits(form.units, form.name, getPriceForType());
+      setForm(prev => ({
+        ...prev,
+        propertyType: type,
+        unitDetails: {
+          ...prev.unitDetails,
+          units: generatedUnits
+        }
+      }));
+    } else {
+      setForm(prev => ({ ...prev, propertyType: type }));
+    }
   };
 
   // Handle amenities toggle
   const toggleAmenity = (amenityId) => {
+    const newAmenities = form.amenities.includes(amenityId)
+      ? form.amenities.filter(id => id !== amenityId)
+      : [...form.amenities, amenityId];
+    
+    // Update amenities in all units if they exist
+    const updatedUnits = form.unitDetails.units.map(unit => ({
+      ...unit,
+      amenities: newAmenities
+    }));
+    
     setForm(prev => ({
       ...prev,
-      amenities: prev.amenities.includes(amenityId)
-        ? prev.amenities.filter(id => id !== amenityId)
-        : [...prev.amenities, amenityId]
+      amenities: newAmenities,
+      unitDetails: {
+        ...prev.unitDetails,
+        units: updatedUnits
+      }
     }));
   };
 
@@ -255,26 +344,60 @@ const AddProperty = () => {
     setLoading(true);
     
     try {
-      // 1. Create the property document
+      // Generate units if not already generated
+      const unitsArray = form.unitDetails.units.length > 0 
+        ? form.unitDetails.units 
+        : generateUnits(form.units, form.name, selectedPrice);
+      
+      // Calculate monthly revenue from leased units
+      const leasedUnits = unitsArray.filter(unit => unit.status === "leased");
+      const monthlyRevenue = leasedUnits.reduce((total, unit) => total + (unit.rentAmount || 0), 0);
+      
+      // Create property data with unit details
       const propertyData = {
-        ...form,
+        // Basic info
+        name: form.name,
+        address: form.address,
+        city: form.city,
+        country: form.country,
         rentAmount: Number(selectedPrice),
         units: Number(form.units),
-        landlordId: form.landlordId,
-        landlordName: form.landlordName,
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-        occupancy: 0,
-        totalTenants: 0,
-        monthlyRevenue: Number(selectedPrice) * Number(form.units),
-        isActive: true,
         propertyType: form.propertyType,
         bedrooms: Number(form.bedrooms),
         bathrooms: Number(form.bathrooms),
         size: form.size,
+        description: form.description,
+        amenities: form.amenities,
         images: form.images,
-        pricing: form.pricing
+        
+        // Landlord info
+        landlordId: form.landlordId,
+        landlordName: form.landlordName,
+        
+        // Unit details (NEW)
+        unitDetails: {
+          totalUnits: Number(form.units),
+          vacantCount: Number(form.units),
+          leasedCount: 0,
+          maintenanceCount: 0,
+          occupancyRate: 0,
+          units: unitsArray
+        },
+        
+        // Status and timestamps
+        status: "available",
+        isActive: true,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+        monthlyRevenue: monthlyRevenue,
+        totalTenants: leasedUnits.length,
+        occupancy: 0
       };
+      
+      // Add pricing if exists
+      if (form.pricing) {
+        propertyData.pricing = form.pricing;
+      }
       
       // Remove empty arrays/strings
       Object.keys(propertyData).forEach(key => {
@@ -283,13 +406,13 @@ const AddProperty = () => {
         }
       });
       
-      // Add property to properties collection
+      // Save to Firestore
       const propertyRef = await addDoc(collection(db, "properties"), propertyData);
       const propertyId = propertyRef.id;
       
-      console.log("✅ Property created with ID:", propertyId);
+      console.log("✅ Property created with ID:", propertyId, "with", form.units, "units");
       
-      // 2. Update the landlord's document
+      // Update the landlord's document
       const landlordRef = doc(db, "users", form.landlordId);
       const currentTime = new Date().toISOString();
       
@@ -300,6 +423,8 @@ const AddProperty = () => {
           address: form.address,
           rentAmount: Number(selectedPrice),
           units: Number(form.units),
+          vacantUnits: Number(form.units),
+          leasedUnits: 0,
           status: "active",
           addedAt: currentTime,
           propertyType: form.propertyType
@@ -310,7 +435,7 @@ const AddProperty = () => {
       
       console.log("✅ Updated landlord in users collection");
       
-      // 3. Try to update landlords collection
+      // Try to update landlords collection
       try {
         const landlordProfileRef = doc(db, "landlords", form.landlordId);
         await updateDoc(landlordProfileRef, {
@@ -323,7 +448,7 @@ const AddProperty = () => {
         console.log("⚠️ Landlord profile doesn't exist in landlords collection, skipping...");
       }
       
-      alert("✅ Property added successfully!");
+      alert(`✅ Property added successfully with ${form.units} units!`);
       navigate("/properties");
       
     } catch (error) {
@@ -587,6 +712,11 @@ const AddProperty = () => {
                 required
                 disabled={loading}
               />
+              {form.name && form.units > 0 && (
+                <p className="form-hint">
+                  Units will be named: {form.name.replace(/\s+/g, '').substring(0, 3).toUpperCase()}-001 to {form.name.replace(/\s+/g, '').substring(0, 3).toUpperCase()}-{form.units.toString().padStart(3, '0')}
+                </p>
+              )}
             </div>
             
             <div className="form-group">
@@ -674,6 +804,7 @@ const AddProperty = () => {
               </div>
             </div>
             
+            {/* UNITS INPUT WITH PREVIEW */}
             <div className="form-group">
               <label className="required">Number of Units</label>
               <input
@@ -682,9 +813,60 @@ const AddProperty = () => {
                 value={form.units}
                 onChange={handleChange}
                 min="1"
+                max="500"
                 required
                 disabled={loading}
+                className="units-input"
               />
+              <small className="form-hint">
+                {form.units} unit(s) will be created. Each can be managed individually.
+              </small>
+              
+              {/* Unit Preview */}
+              {form.units > 0 && (
+                <div className="units-preview">
+                  <div className="units-stats-preview">
+                    <div className="stat-item">
+                      <FaBuilding />
+                      <span className="stat-value">{form.units}</span>
+                      <span className="stat-label">Total</span>
+                    </div>
+                    <div className="stat-item vacant">
+                      <FaDoorClosed />
+                      <span className="stat-value">{form.units}</span>
+                      <span className="stat-label">Vacant</span>
+                    </div>
+                    <div className="stat-item leased">
+                      <FaCheckCircle />
+                      <span className="stat-value">0</span>
+                      <span className="stat-label">Leased</span>
+                    </div>
+                    <div className="stat-item maintenance">
+                      <FaHome />
+                      <span className="stat-value">0</span>
+                      <span className="stat-label">Maintenance</span>
+                    </div>
+                  </div>
+                  
+                  {form.units <= 10 && form.unitDetails.units.length > 0 && (
+                    <div className="units-list-preview">
+                      <p className="preview-title">First 10 Unit Numbers:</p>
+                      <div className="unit-numbers-grid">
+                        {form.unitDetails.units.slice(0, 10).map((unit, index) => (
+                          <span key={index} className="unit-number-badge">
+                            {unit.unitNumber}
+                          </span>
+                        ))}
+                        {form.units > 10 && (
+                          <span className="unit-number-badge more">
+                            +{form.units - 10} more
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
             
             <div className="form-group">
@@ -764,7 +946,7 @@ const AddProperty = () => {
                   <span className="spinner-small"></span>
                   Adding Property...
                 </>
-              ) : "Add Property"}
+              ) : `Add Property with ${form.units} Units`}
             </button>
           </div>
         </form>

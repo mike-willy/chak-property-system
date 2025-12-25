@@ -15,7 +15,8 @@ import Maintenance from "./pages/Maintenance";
 import Finance from "./pages/Finance";
 import Settings from "./pages/Settings";
 import Support from "./pages/Support";
-
+import PropertyUnits from "./pages/PropertyUnits";
+import EditProperty from "./pages/EditProperty";
 function App() {
   return (
     <Routes>
@@ -49,6 +50,9 @@ function App() {
           </AdminRoute>
         }
       />
+      
+<Route path="/property/:id/units" element={<PropertyUnits />} />
+<Route path="/properties/edit/:id" element={<EditProperty />} />
 
       <Route
         path="/tenants"

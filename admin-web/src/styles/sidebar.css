@@ -1,3 +1,4 @@
+/* In sidebar.css */
 .sidebar {
   width: 250px;
   height: 100vh;
@@ -7,29 +8,28 @@
   flex-direction: column;
   position: fixed;
   left: 0;
-  top: 0;
-  overflow: hidden; /* Prevent overall scrolling */
+  top: 0; /* Changed back to 0 to align with top navbar */
+  overflow: hidden;
+  z-index: 101; /* Lower than top navbar */
+  padding-top: 60px; /* Push content down below navbar */
 }
 
-/* LOGO SECTION */
-.sidebar-logo {
-  padding: 24px 20px 16px;
-  border-bottom: 1px solid #e5e7eb;
-}
-
-.sidebar-logo h2 {
-  margin: 0;
-  font-size: 20px;
-  font-weight: 700;
-  color: #1f2937;
-}
-
-/* USER PROFILE SECTION */
+/* Remove the old .sidebar-logo styles and add this: */
 .sidebar-profile {
-  padding: 20px 16px;
+  padding: 20px 16px; /* Reduced top padding */
   border-bottom: 1px solid #e5e7eb;
   background: #f9fafb;
-  flex-shrink: 0; /* Prevent shrinking */
+  flex-shrink: 0;
+}
+
+.sidebar::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 1px;
+  height: 60px; /* Same as navbar height */
+  background-color: #e5e7eb;
 }
 
 .profile-avatar {

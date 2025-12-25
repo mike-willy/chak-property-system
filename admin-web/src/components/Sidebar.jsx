@@ -135,10 +135,6 @@ const Sidebar = () => {
 
   return (
     <div className="sidebar">
-      {/* BRAND / LOGO */}
-      <div className="sidebar-logo">
-        <h2>CHAK Estates</h2>
-      </div>
 
       {/* USER PROFILE SECTION */}
       <div className="sidebar-profile">

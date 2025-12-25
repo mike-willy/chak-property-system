@@ -1,7 +1,7 @@
 import React from "react";
 import { FaBell, FaSearch, FaSignOutAlt } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
-import { auth } from "../pages/firebase/firebase"; // Adjust path as needed
+import { auth } from "../pages/firebase/firebase";
 import { signOut } from "firebase/auth";
 import "../styles/topNavbar.css";
 
@@ -20,6 +20,11 @@ const TopNavbar = () => {
 
   return (
     <div className="top-navbar">
+      {/* ADDED: Brand/Logo on left */}
+      <div className="navbar-brand">
+        <h2>CHAK Estates</h2>
+      </div>
+
       <div className="search-box">
         <FaSearch />
         <input type="text" placeholder="Search properties, tenants..." />
