@@ -7,6 +7,7 @@ import AdminRoute from "./routes/AdminRoute";
 
 // Admin pages
 import Properties from "./pages/Properties";
+import AddProperty from "./pages/AddProperty";
 import Tenants from "./pages/Tenants";
 import Landlords from "./pages/Landlords";
 import AddLandlord from "./pages/AddLandlord"; // Add this import
@@ -28,6 +29,15 @@ function App() {
           <AdminRoute>
             <Dashboard />
           </AdminRoute>
+        }
+      />
+
+      <Route
+        path="/properties/add"
+        element={
+         <AdminRoute>
+           <AddProperty />
+         </AdminRoute>
         }
       />
 
