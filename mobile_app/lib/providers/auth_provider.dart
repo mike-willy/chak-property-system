@@ -3,7 +3,8 @@ import 'package:firebase_auth/firebase_auth.dart' as fb;
 import 'package:google_sign_in/google_sign_in.dart';
 
 class AuthProvider extends ChangeNotifier {
-  final fb.FirebaseAuth _auth = fb.FirebaseAuth.instance;
+  fb.FirebaseAuth? _auth;
+  bool _firebaseAvailable = false;
 
   // v7.x: singleton only
   final GoogleSignIn _googleSignIn = GoogleSignIn.instance;
@@ -11,11 +12,24 @@ class AuthProvider extends ChangeNotifier {
   fb.User? firebaseUser;
 
   AuthProvider() {
-    _auth.authStateChanges().listen((u) {
-      firebaseUser = u;
-      notifyListeners();
-    });
+    _initializeFirebase();
   }
+
+  void _initializeFirebase() {
+    try {
+      _auth = fb.FirebaseAuth.instance;
+      _firebaseAvailable = true;
+      _auth!.authStateChanges().listen((u) {
+        firebaseUser = u;
+        notifyListeners();
+      });
+    } catch (e) {
+      debugPrint('Firebase Auth not available: $e');
+      _firebaseAvailable = false;
+    }
+  }
+
+  bool get isFirebaseAvailable => _firebaseAvailable;
 
   bool get loggedIn => firebaseUser != null;
   String? get userEmail => firebaseUser?.email;
@@ -23,8 +37,12 @@ class AuthProvider extends ChangeNotifier {
 
   Future<bool> signUpWithEmail(
       String name, String email, String password) async {
+    if (!_firebaseAvailable || _auth == null) {
+      debugPrint('Firebase Auth not available');
+      return false;
+    }
     try {
-      final cred = await _auth.createUserWithEmailAndPassword(
+      final cred = await _auth!.createUserWithEmailAndPassword(
         email: email,
         password: password,
       );
@@ -35,12 +53,19 @@ class AuthProvider extends ChangeNotifier {
     } on fb.FirebaseAuthException catch (e) {
       debugPrint('signUpWithEmail error: ${e.code} ${e.message}');
       return false;
+    } catch (e) {
+      debugPrint('signUpWithEmail error: $e');
+      return false;
     }
   }
 
   Future<bool> signInWithEmail(String email, String password) async {
+    if (!_firebaseAvailable || _auth == null) {
+      debugPrint('Firebase Auth not available');
+      return false;
+    }
     try {
-      final cred = await _auth.signInWithEmailAndPassword(
+      final cred = await _auth!.signInWithEmailAndPassword(
         email: email,
         password: password,
       );
@@ -50,36 +75,59 @@ class AuthProvider extends ChangeNotifier {
     } on fb.FirebaseAuthException catch (e) {
       debugPrint('signInWithEmail error: ${e.code} ${e.message}');
       return false;
+    } catch (e) {
+      debugPrint('signInWithEmail error: $e');
+      return false;
     }
   }
 
   /// Google Sign-In (v7.x)
   Future<bool> signInWithGoogle() async {
-  try {
-    await _googleSignIn.initialize();
+    if (!_firebaseAvailable || _auth == null) {
+      debugPrint('Firebase Auth not available');
+      return false;
+    }
+    try {
+      // Initialize Google Sign-In if needed
+      await _googleSignIn.initialize();
+      
+      // Authenticate with Google (throws exception if user cancels)
+      final GoogleSignInAccount googleUser = await _googleSignIn.authenticate();
 
-    final account = await _googleSignIn.authenticate();
-
-    final auth = await account.authentication;
-    final credential = fb.GoogleAuthProvider.credential(
-        idToken: auth.idToken,
+      // Get authentication details (idToken only in v7.x)
+      final GoogleSignInAuthentication googleAuth = googleUser.authentication;
+      
+      // Create Firebase credential with idToken only
+      // Firebase Auth can work with just idToken
+      final credential = fb.GoogleAuthProvider.credential(
+        idToken: googleAuth.idToken,
       );
 
-    
-
-    final cred = await _auth.signInWithCredential(credential);
-    firebaseUser = cred.user;
-    notifyListeners();
-    return true;
-  } catch (e) {
-    debugPrint('signInWithGoogle error: $e');
-    return false;
+      // Sign in to Firebase
+      final cred = await _auth!.signInWithCredential(credential);
+      firebaseUser = cred.user;
+      notifyListeners();
+      return true;
+    } catch (e) {
+      // User cancelled or sign-in failed
+      debugPrint('signInWithGoogle error: $e');
+      return false;
+    }
   }
-}
 
   Future<void> signOut() async {
-    await _auth.signOut();
-    await _googleSignIn.signOut();
+    if (_firebaseAvailable && _auth != null) {
+      try {
+        await _auth!.signOut();
+      } catch (e) {
+        debugPrint('Firebase signOut error: $e');
+      }
+    }
+    try {
+      await _googleSignIn.signOut();
+    } catch (e) {
+      debugPrint('Google signOut error: $e');
+    }
     firebaseUser = null;
     notifyListeners();
   }
