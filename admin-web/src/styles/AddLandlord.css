@@ -1,0 +1,336 @@
+/* src/pages/AddLandlord.css */
+
+.add-landlord-container {
+  padding: 2rem;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.add-landlord-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+
+.add-landlord-header h1 {
+  font-size: 1.875rem;
+  font-weight: 700;
+  color: #111827;
+  margin: 0;
+}
+
+.back-button {
+  padding: 0.75rem 1.5rem;
+  background: #f3f4f6;
+  border: 1px solid #d1d5db;
+  border-radius: 0.5rem;
+  color: #374151;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.back-button:hover {
+  background: #e5e7eb;
+}
+
+.add-landlord-card {
+  background: white;
+  border-radius: 0.75rem;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+  padding: 2rem;
+}
+
+.add-landlord-card h2 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #111827;
+  margin-bottom: 0.5rem;
+}
+
+.form-subtitle {
+  color: #6b7280;
+  font-size: 0.875rem;
+  margin-bottom: 2rem;
+}
+
+.add-landlord-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.form-group label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #374151;
+}
+
+.required::after {
+  content: "*";
+  color: #ef4444;
+  margin-left: 0.25rem;
+}
+
+.form-input {
+  padding: 0.75rem 1rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  color: #111827;
+  transition: all 0.2s;
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.form-input:disabled {
+  background-color: #f9fafb;
+  cursor: not-allowed;
+}
+
+.helper-text {
+  font-size: 0.75rem;
+  color: #6b7280;
+}
+
+.password-helper {
+  font-size: 0.75rem;
+  color: #6b7280;
+}
+
+.strength-text {
+  font-weight: 500;
+}
+
+.strength-weak {
+  color: #ef4444;
+}
+
+.strength-medium {
+  color: #f59e0b;
+}
+
+.strength-strong {
+  color: #10b981;
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+  margin-top: 1rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid #e5e7eb;
+}
+
+.cancel-button {
+  padding: 0.75rem 1.5rem;
+  background: #f3f4f6;
+  border: 1px solid #d1d5db;
+  border-radius: 0.5rem;
+  color: #374151;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  min-width: 100px;
+}
+
+.cancel-button:hover {
+  background: #e5e7eb;
+}
+
+.cancel-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.submit-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  background: #3b82f6;
+  border: 1px solid #3b82f6;
+  border-radius: 0.5rem;
+  color: white;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  min-width: 150px;
+}
+
+.submit-button:hover:not(:disabled) {
+  background: #2563eb;
+  border-color: #2563eb;
+}
+
+.submit-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.loading-spinner {
+  animation: spin 1s linear infinite;
+  width: 16px;
+  height: 16px;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.success-message {
+  padding: 1rem;
+  background: #d1fae5;
+  color: #065f46;
+  border: 1px solid #a7f3d0;
+  border-radius: 0.5rem;
+  margin-bottom: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+}
+
+.error-message {
+  padding: 1rem;
+  background: #fee2e2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+  border-radius: 0.5rem;
+  margin-bottom: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+}
+
+.info-section {
+  margin-top: 2rem;
+  padding: 1.5rem;
+  background: #f9fafb;
+  border-radius: 0.5rem;
+  border: 1px solid #e5e7eb;
+}
+
+.info-section h3 {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #111827;
+  margin-bottom: 1rem;
+}
+
+.info-section ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.info-section li {
+  font-size: 0.875rem;
+  color: #4b5563;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+
+.info-section li::before {
+  content: "•";
+  color: #3b82f6;
+  font-size: 1.25rem;
+  line-height: 1;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .add-landlord-container {
+    padding: 1rem;
+  }
+  
+  .add-landlord-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+  
+  .add-landlord-card {
+    padding: 1.5rem;
+  }
+  
+  .form-actions {
+    flex-direction: column;
+  }
+  
+  .cancel-button,
+  .submit-button {
+    width: 100%;
+  }
+}
+
+/* Add to your existing AddLandlord.css */
+
+.success-message, .error-message {
+  padding: 1rem;
+  border-radius: 0.5rem;
+  margin-bottom: 1.5rem;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  font-size: 0.875rem;
+  line-height: 1.4;
+}
+
+.success-message {
+  background-color: #d1fae5;
+  color: #065f46;
+  border: 1px solid #a7f3d0;
+}
+
+.error-message {
+  background-color: #fee2e2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+}
+
+.success-content, .error-content {
+  flex: 1;
+}
+
+.success-icon, .error-icon {
+  font-size: 1.25rem;
+  flex-shrink: 0;
+}
+
+.note-box {
+  margin-top: 1.5rem;
+  padding: 1rem;
+  background: #f0f9ff;
+  border: 1px solid #bae6fd;
+  border-radius: 0.5rem;
+  color: #0369a1;
+  font-size: 0.875rem;
+}
+
+.note-box strong {
+  color: #0c4a6e;
+}

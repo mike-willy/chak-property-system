@@ -18,7 +18,7 @@
 .quick-actions-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 12px;
+  gap: 1px;
 }
 
 .quick-action-btn {
@@ -33,6 +33,7 @@
   cursor: pointer;
   transition: all 0.2s ease;
   font-size: 14px;
+  
 }
 
 .quick-action-btn:hover {

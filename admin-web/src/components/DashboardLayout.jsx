@@ -4,12 +4,18 @@ import TopNavbar from "./TopNavbar";
 
 const DashboardLayout = ({ children }) => {
   return (
-    <div style={{ display: "flex"}}>
+    <div style={{ display: "flex", minHeight: "100vh" }}>
       <Sidebar />
-      <div style={{ marginLeft: "250px", width: "100%" }}>
+      <div style={{ flex: 1, marginLeft: "250px", position: "relative" }}>
         <TopNavbar />
-        <div style={{ padding: "20px",backgroundColor: "#f5f5f5" }}>{children}</div>
-  
+        <div style={{ 
+          padding: "24px", 
+          backgroundColor: "#f9fafb",
+          marginTop: "60px", // Add this - navbar height
+          minHeight: "calc(100vh - 60px)"
+        }}>
+          {children}
+        </div>
       </div>
     </div>
   );
