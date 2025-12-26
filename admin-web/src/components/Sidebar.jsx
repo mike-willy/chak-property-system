@@ -10,7 +10,7 @@ import {
   FaLifeRing,
   FaCamera,
 } from "react-icons/fa";
-import { useNavigate, useLocation } from "react-router-dom"; // Add these hooks
+import { useNavigate, useLocation } from "react-router-dom";
 import { auth, db, storage } from "../pages/firebase/firebase";
 import { onAuthStateChanged } from "firebase/auth";
 import { doc, getDoc, setDoc } from "firebase/firestore";
@@ -23,8 +23,7 @@ const Sidebar = () => {
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef(null);
-  
-  // Navigation hooks
+
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -36,7 +35,7 @@ const Sidebar = () => {
       }
       setLoading(false);
     });
-    
+
     return () => unsubscribe();
   }, []);
 
@@ -59,53 +58,47 @@ const Sidebar = () => {
     const file = e.target.files[0];
     if (!file || !user) return;
 
-    // Check file type and size
-    if (!file.type.startsWith('image/')) {
-      alert('Please upload an image file');
+    if (!file.type.startsWith("image/")) {
+      alert("Please upload an image file");
       return;
     }
-    if (file.size > 5 * 1024 * 1024) { // 5MB limit
-      alert('File size should be less than 5MB');
+
+    if (file.size > 5 * 1024 * 1024) {
+      alert("File size should be less than 5MB");
       return;
     }
 
     setUploading(true);
+
     try {
-      // Create storage reference
       const storageRef = ref(storage, `profile-pictures/${user.uid}`);
-      
-      // Upload file
       await uploadBytes(storageRef, file);
-      
-      // Get download URL
       const photoURL = await getDownloadURL(storageRef);
-      
-      // Update Firestore user document
-      await setDoc(doc(db, "users", user.uid), {
-        ...userData,
-        photoURL,
-        updatedAt: new Date()
-      }, { merge: true });
-      
-      // Update local state
-      setUserData(prev => ({ ...prev, photoURL }));
-      
-      console.log("Profile picture updated successfully");
+
+      await setDoc(
+        doc(db, "users", user.uid),
+        {
+          ...userData,
+          photoURL,
+          updatedAt: new Date(),
+        },
+        { merge: true }
+      );
+
+      setUserData((prev) => ({ ...prev, photoURL }));
     } catch (error) {
       console.error("Error uploading profile picture:", error);
-      alert('Failed to upload profile picture');
+      alert("Failed to upload profile picture");
     } finally {
       setUploading(false);
-      // Clear file input
-      e.target.value = '';
+      e.target.value = "";
     }
   };
 
   const getUserName = () => {
     if (userData?.displayName) return userData.displayName;
     if (!user || !user.email) return "Admin";
-    const email = user.email;
-    const namePart = email.split('@')[0];
+    const namePart = user.email.split("@")[0];
     return namePart.charAt(0).toUpperCase() + namePart.slice(1);
   };
 
@@ -113,7 +106,6 @@ const Sidebar = () => {
     return getUserName().charAt(0).toUpperCase();
   };
 
-  // Navigation menu items with paths
   const menuItems = [
     { icon: <FaTachometerAlt />, label: "Dashboard", path: "/dashboard" },
     { icon: <FaHome />, label: "Properties", path: "/properties" },
@@ -128,68 +120,75 @@ const Sidebar = () => {
     { icon: <FaLifeRing />, label: "Support", path: "/support" },
   ];
 
-  // Check if current path is active
   const isActive = (path) => {
-    return location.pathname === path || location.pathname.startsWith(path + '/');
+    return (
+      location.pathname === path ||
+      location.pathname.startsWith(path + "/")
+    );
   };
 
   return (
     <div className="sidebar">
-
-      {/* USER PROFILE SECTION */}
+      {/* PROFILE */}
       <div className="sidebar-profile">
         {loading ? (
           <div className="profile-loading">Loading...</div>
         ) : (
           <>
             <div className="profile-avatar-container">
-              <div 
-                className="profile-avatar" 
+              <div
+                className="profile-avatar"
                 onClick={handleImageClick}
-                style={{ cursor: 'pointer' }}
               >
                 {userData?.photoURL ? (
-                  <img 
-                    src={userData.photoURL} 
-                    alt="Profile" 
+                  <img
+                    src={userData.photoURL}
+                    alt="Profile"
                     className="profile-image"
                   />
                 ) : (
-                  <div className="avatar-initial">{getUserInitial()}</div>
+                  <div className="avatar-initial">
+                    {getUserInitial()}
+                  </div>
                 )}
+
                 <div className="upload-overlay">
                   <FaCamera />
                 </div>
+
                 {uploading && (
                   <div className="uploading-overlay">
                     <div className="uploading-spinner"></div>
                   </div>
                 )}
               </div>
+
               <input
                 type="file"
                 ref={fileInputRef}
                 onChange={handleFileUpload}
                 accept="image/*"
-                style={{ display: 'none' }}
+                style={{ display: "none" }}
               />
             </div>
+
             <div className="profile-info">
               <h3 className="profile-name">{getUserName()}</h3>
-              <p className="profile-email">{user?.email || "admin@chakestates.com"}</p>
+              <p className="profile-email">
+                {user?.email || "admin@chakestates.com"}
+              </p>
               <span className="profile-role">Agent</span>
             </div>
           </>
         )}
       </div>
 
-      {/* SCROLLABLE MENU AREA */}
+      {/* MENU */}
       <div className="sidebar-scrollable">
-        {/* MENU SECTION */}
         <p className="sidebar-title">MENU</p>
         <ul className="sidebar-menu">
           {menuItems.map((item, index) => (
-            <li 
+            <li
               key={index}
               className={isActive(item.path) ? "active" : ""}
               onClick={() => navigate(item.path)}
@@ -199,19 +198,21 @@ const Sidebar = () => {
           ))}
         </ul>
 
-        {/* SYSTEM SECTION */}
-        <p className="sidebar-title system-title">SYSTEM</p>
-        <ul className="sidebar-bottom">
-          {systemItems.map((item, index) => (
-            <li 
-              key={index}
-              className={isActive(item.path) ? "active" : ""}
-              onClick={() => navigate(item.path)}
-            >
-              {item.icon} <span>{item.label}</span>
-            </li>
-          ))}
-        </ul>
+        {/* SYSTEM (FIXED) */}
+        <div className="sidebar-system">
+          <p className="sidebar-title">SYSTEM</p>
+          <ul className="sidebar-bottom">
+            {systemItems.map((item, index) => (
+              <li
+                key={index}
+                className={isActive(item.path) ? "active" : ""}
+                onClick={() => navigate(item.path)}
+              >
+                {item.icon} <span>{item.label}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
       </div>
     </div>
   );

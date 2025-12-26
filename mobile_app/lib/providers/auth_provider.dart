@@ -91,24 +91,21 @@ class AuthProvider extends ChangeNotifier {
       // Initialize Google Sign-In if needed
       await _googleSignIn.initialize();
       
-      // Authenticate with Google (throws exception if user cancels)
-      final GoogleSignInAccount googleUser = await _googleSignIn.authenticate();
-
-<<<<<<< HEAD
-      // Get authentication details (idToken only in v7.x)
-      final GoogleSignInAuthentication googleAuth = googleUser.authentication;
+      // Use signIn() method instead of authenticate()
+      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
       
-      // Create Firebase credential with idToken only
-      // Firebase Auth can work with just idToken
+      if (googleUser == null) {
+        // User cancelled the sign-in
+        return false;
+      }
+      
+      // Get authentication details
+      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+      
+      // Create Firebase credential with both tokens
       final credential = fb.GoogleAuthProvider.credential(
         idToken: googleAuth.idToken,
-=======
-    final account = await _googleSignIn.authenticate();
-
-    final auth = account.authentication;
-    final credential = fb.GoogleAuthProvider.credential(
-        idToken: auth.idToken,
->>>>>>> 7ee1dc9be51295edafbe1b079e5ce620a66c32f6
+        accessToken: googleAuth.accessToken,
       );
 
       // Sign in to Firebase

@@ -1,16 +1,16 @@
 .quick-actions-card {
   background: white;
   border-radius: 12px;
-  padding: 20px;
+  padding: 16px; /* ⬇ reduced from 20px */
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
   height: fit-content;
 }
 
 .quick-actions-title {
-  font-size: 14px;
+  font-size: 13px; /* ⬇ slightly smaller */
   font-weight: 600;
   color: #333;
-  margin-bottom: 16px;
+  margin-bottom: 12px; /* ⬇ reduced spacing */
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
@@ -18,7 +18,7 @@
 .quick-actions-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 1px;
+  gap: 8px; /* ⬅ BIG improvement (was 1px visually odd) */
 }
 
 .quick-action-btn {
@@ -26,30 +26,29 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 16px 8px;
+  padding: 10px 6px; /* ⬅ MAIN SIZE REDUCTION */
   background: #f8f9fa;
   border: 1px solid #e9ecef;
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.2s ease;
-  font-size: 14px;
-  
+  font-size: 12px; /* ⬇ */
 }
 
 .quick-action-btn:hover {
   background: #e9ecef;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transform: translateY(-1px); /* ⬇ less jump */
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.1);
 }
 
 .action-icon {
-  font-size: 20px;
-  margin-bottom: 8px;
+  font-size: 18px; /* ⬇ from 20px */
+  margin-bottom: 4px; /* ⬇ */
   color: #4361ee;
 }
 
 .action-label {
-  font-size: 12px;
+  font-size: 11px; /* ⬇ */
   font-weight: 500;
   color: #495057;
 }
