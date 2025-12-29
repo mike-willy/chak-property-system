@@ -1,0 +1,355 @@
+/* Applications.css - SCOPED VERSION */
+
+.app-container {
+  padding: 20px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.app-header {
+  margin-bottom: 30px;
+}
+
+.app-header h1 {
+  color: #2c3e50;
+  margin-bottom: 10px;
+}
+
+.app-header p {
+  color: #7f8c8d;
+  font-size: 16px;
+}
+
+/* Loading State */
+.app-loading {
+  text-align: center;
+  padding: 50px;
+  color: #7f8c8d;
+  font-size: 18px;
+}
+
+/* No Applications State */
+.app-no-applications {
+  text-align: center;
+  padding: 60px 20px;
+  background: #f8f9fa;
+  border-radius: 10px;
+  border: 2px dashed #dee2e6;
+}
+
+.app-no-apps-icon {
+  font-size: 60px;
+  color: #bdc3c7;
+  margin-bottom: 20px;
+}
+
+.app-no-applications h3 {
+  color: #7f8c8d;
+  margin-bottom: 10px;
+}
+
+.app-no-applications p {
+  color: #95a5a6;
+}
+
+/* Applications Grid */
+.app-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  gap: 20px;
+}
+
+/* Application Card */
+.app-card {
+  background: white;
+  border-radius: 10px;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
+  padding: 20px;
+  transition: transform 0.3s, box-shadow 0.3s;
+}
+
+.app-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+.app-card-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid #eee;
+}
+
+.app-avatar {
+  width: 60px;
+  height: 60px;
+  background: #3498db;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 15px;
+}
+
+.app-avatar svg {
+  color: white;
+  font-size: 24px;
+}
+
+.app-info h3 {
+  margin: 0 0 5px 0;
+  color: #2c3e50;
+}
+
+.app-info p {
+  margin: 5px 0;
+  color: #7f8c8d;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Application Details */
+.app-details {
+  margin-bottom: 20px;
+}
+
+.app-detail-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+  padding: 8px 0;
+}
+
+.app-detail-row:not(:last-child) {
+  border-bottom: 1px solid #f5f5f5;
+}
+
+.app-label {
+  color: #7f8c8d;
+  font-weight: 500;
+}
+
+.app-value {
+  color: #2c3e50;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Status Badge */
+.app-status-badge {
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.app-status-badge.pending {
+  background: #fff3cd;
+  color: #856404;
+}
+
+/* Application Actions */
+.app-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.app-actions button {
+  flex: 1;
+  padding: 10px 15px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 0.3s;
+}
+
+.app-btn-view {
+  background: #f8f9fa;
+  color: #495057;
+}
+
+.app-btn-view:hover {
+  background: #e9ecef;
+}
+
+.app-btn-approve {
+  background: #28a745;
+  color: white;
+}
+
+.app-btn-approve:hover {
+  background: #218838;
+}
+
+.app-btn-reject {
+  background: #dc3545;
+  color: white;
+}
+
+.app-btn-reject:hover {
+  background: #c82333;
+}
+
+/* Modal Styles */
+.app-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.app-modal-content {
+  background: white;
+  border-radius: 10px;
+  width: 90%;
+  max-width: 600px;
+  max-height: 80vh;
+  overflow-y: auto;
+  animation: appSlideIn 0.3s ease;
+}
+
+@keyframes appSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.app-modal-header {
+  padding: 20px;
+  border-bottom: 1px solid #eee;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.app-modal-header h2 {
+  margin: 0;
+  color: #2c3e50;
+}
+
+.app-close-btn {
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  color: #7f8c8d;
+  padding: 0;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.app-close-btn:hover {
+  background: #f5f5f5;
+}
+
+.app-modal-body {
+  padding: 20px;
+}
+
+.app-detail-section {
+  margin-bottom: 25px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid #eee;
+}
+
+.app-detail-section:last-child {
+  border-bottom: none;
+}
+
+.app-detail-section h3 {
+  color: #3498db;
+  margin-bottom: 15px;
+  font-size: 18px;
+}
+
+.app-detail-section p {
+  margin: 10px 0;
+  color: #2c3e50;
+}
+
+.app-detail-section strong {
+  color: #2c3e50;
+  min-width: 120px;
+  display: inline-block;
+}
+
+.app-modal-footer {
+  padding: 20px;
+  border-top: 1px solid #eee;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.app-btn-secondary {
+  padding: 10px 20px;
+  background: #6c757d;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.app-btn-secondary:hover {
+  background: #5a6268;
+}
+
+.app-btn-primary {
+  padding: 10px 20px;
+  background: #27ae60;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.app-btn-primary:hover {
+  background: #219653;
+}
+
+/* Test Button Styles (if you still need them) */
+.app-test-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  background: #3498db;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: background 0.3s;
+}
+
+.app-test-btn:hover {
+  background: #2980b9;
+}

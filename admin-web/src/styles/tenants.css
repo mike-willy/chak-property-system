@@ -1,0 +1,422 @@
+/* tenants.css - SCOPED VERSION */
+.tenant-container {
+  padding: 20px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+/* Header */
+.tenant-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 30px;
+}
+
+.tenant-header h1 {
+  color: #2c3e50;
+  margin-bottom: 10px;
+}
+
+.tenant-header p {
+  color: #7f8c8d;
+  font-size: 16px;
+}
+
+.tenant-add-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 24px;
+  background: #390ed6;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+  font-size: 15px;
+  transition: background 0.3s;
+}
+
+.tenant-add-btn:hover {
+  background: #390ed6;
+}
+
+/* Stats */
+.tenant-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 20px;
+  margin-bottom: 30px;
+}
+
+.tenant-stat-card {
+  background: white;
+  padding: 20px;
+  border-radius: 10px;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
+  text-align: center;
+}
+
+.tenant-stat-card h3 {
+  font-size: 2rem;
+  color: #3498db;
+  margin: 0 0 10px 0;
+}
+
+.tenant-stat-card p {
+  color: #7f8c8d;
+  margin: 0;
+  font-size: 14px;
+}
+
+/* Controls */
+.tenant-controls {
+  display: flex;
+  gap: 20px;
+  margin-bottom: 30px;
+  flex-wrap: wrap;
+}
+
+/* ENHANCED SEARCH BOX */
+.tenant-search-box {
+  flex: 1;
+  min-width: 300px;
+  position: relative;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 0 15px;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+}
+
+.tenant-search-box:focus-within {
+  background: white;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.tenant-search-box svg {
+  color: #64748b;
+  font-size: 16px;
+  margin-right: 10px;
+  flex-shrink: 0;
+}
+
+.tenant-search-box input {
+  width: 100%;
+  padding: 14px 0;
+  border: none;
+  background: transparent;
+  font-size: 15px;
+  color: #1e293b;
+  outline: none;
+}
+
+.tenant-search-box input::placeholder {
+  color: #94a3b8;
+}
+
+.tenant-filter-box {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 15px;
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  color: #64748b;
+  min-height: 52px;
+}
+
+.tenant-filter-box select {
+  padding: 12px 0;
+  border: none;
+  background: none;
+  font-size: 15px;
+  cursor: pointer;
+  min-width: 150px;
+  color: #1e293b;
+  outline: none;
+}
+
+/* Table/Grid */
+.tenant-table-container {
+  background: white;
+  border-radius: 10px;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+}
+
+/* Loading */
+.tenant-loading {
+  text-align: center;
+  padding: 50px;
+  color: #7f8c8d;
+  font-size: 18px;
+}
+
+/* No Tenants */
+.tenant-no-tenants {
+  text-align: center;
+  padding: 60px 20px;
+}
+
+.tenant-no-tenants-icon {
+  font-size: 60px;
+  color: #bdc3c7;
+  margin-bottom: 20px;
+}
+
+.tenant-no-tenants h3 {
+  color: #7f8c8d;
+  margin-bottom: 10px;
+}
+
+.tenant-no-tenants p {
+  color: #95a5a6;
+  margin-bottom: 20px;
+}
+
+.tenant-add-first-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 24px;
+  background: #390ed6;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: background 0.3s;
+}
+
+.tenant-add-first-btn:hover {
+  background: #2980b9;
+}
+
+/* Tenants Grid */
+.tenant-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+  gap: 20px;
+  padding: 20px;
+}
+
+/* Tenant Card */
+.tenant-card {
+  background: white;
+  border-radius: 10px;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
+  padding: 20px;
+  transition: transform 0.3s, box-shadow 0.3s;
+  border: 1px solid #f1f5f9;
+}
+
+.tenant-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+  border-color: #e2e8f0;
+}
+
+.tenant-card-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.tenant-avatar {
+  width: 50px;
+  height: 50px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 15px;
+}
+
+.tenant-avatar svg {
+  color: white;
+  font-size: 20px;
+}
+
+.tenant-basic-info {
+  flex: 1;
+}
+
+.tenant-basic-info h3 {
+  margin: 0 0 5px 0;
+  color: #1e293b;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.tenant-basic-info p {
+  margin: 3px 0;
+  color: #64748b;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.tenant-status {
+  margin-left: 10px;
+}
+
+/* Status Badges */
+.tenant-status-badge {
+  display: inline-block;
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+}
+
+.tenant-status-badge.active {
+  background: #d1fae5;
+  color: #065f46;
+  border: 1px solid #a7f3d0;
+}
+
+.tenant-status-badge.pending {
+  background: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fde68a;
+}
+
+.tenant-status-badge.inactive {
+  background: #fee2e2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+}
+
+.tenant-status-badge.unknown {
+  background: #f1f5f9;
+  color: #475569;
+  border: 1px solid #e2e8f0;
+}
+
+/* Tenant Details */
+.tenant-card-details {
+  margin-bottom: 20px;
+}
+
+.tenant-detail-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid #f8fafc;
+}
+
+.tenant-detail-row:last-child {
+  border-bottom: none;
+}
+
+.tenant-detail-label {
+  color: #64748b;
+  font-weight: 500;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.tenant-detail-value {
+  color: #1e293b;
+  font-size: 14px;
+  text-align: right;
+  font-weight: 500;
+}
+
+/* Tenant Actions */
+.tenant-card-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.tenant-card-actions button {
+  flex: 1;
+  padding: 10px 12px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: all 0.3s;
+}
+
+.tenant-btn-view {
+  background: #f8fafc;
+  color: #475569;
+  border: 1px solid #e2e8f0;
+}
+
+.tenant-btn-view:hover {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+}
+
+.tenant-btn-edit {
+  background: #3b82f6;
+  color: white;
+  border: 1px solid #3b82f6;
+}
+
+.tenant-btn-edit:hover {
+  background: #2563eb;
+  border-color: #2563eb;
+}
+
+.tenant-btn-delete {
+  background: #ef4444;
+  color: white;
+  border: 1px solid #ef4444;
+}
+
+.tenant-btn-delete:hover {
+  background: #dc2626;
+  border-color: #dc2626;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .tenant-header {
+    flex-direction: column;
+    gap: 15px;
+  }
+  
+  .tenant-controls {
+    flex-direction: column;
+  }
+  
+  .tenant-search-box {
+    min-width: 100%;
+  }
+  
+  .tenant-grid {
+    grid-template-columns: 1fr;
+    padding: 15px;
+  }
+  
+  .tenant-card-actions {
+    flex-direction: column;
+  }
+  
+  .tenant-card-actions button {
+    width: 100%;
+  }
+}
