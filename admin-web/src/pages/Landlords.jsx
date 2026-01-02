@@ -4,12 +4,12 @@ import { Link, useNavigate } from "react-router-dom";
 import { 
   collection, 
   getDocs, 
-  query, 
+  query,
   where,
   orderBy 
 } from "firebase/firestore";
 import { db } from "../pages/firebase/firebase";
-import "../styles/landlord.css"; // We'll create this CSS
+import "../styles/landlord.css";
 
 const Landlords = () => {
   const [landlords, setLandlords] = useState([]);
@@ -24,10 +24,11 @@ const Landlords = () => {
 
   const fetchLandlords = async () => {
     try {
-      // Create a query to get only users with role "landlord"
+      console.log("📡 Fetching landlords from 'landlords' collection...");
+      
+      // CHANGED: Fetch from 'landlords' collection instead of 'users'
       const landlordsQuery = query(
-        collection(db, "users"),
-        where("role", "==", "landlord"),
+        collection(db, "landlords"),  // ← CHANGED THIS LINE
         orderBy("createdAt", "desc")
       );
 
@@ -36,23 +37,71 @@ const Landlords = () => {
       
       querySnapshot.forEach((doc) => {
         const data = doc.data();
+        
+        // Get the name - check both 'name' field and combine firstName/lastName
+        const fullName = data.name || 
+                        `${data.firstName || ""} ${data.lastName || ""}`.trim() || 
+                        "No Name";
+        
         landlordsData.push({
           id: doc.id,
-          name: data.name || "No Name",
+          name: fullName,
+          firstName: data.firstName || "",
+          lastName: data.lastName || "",
           email: data.email || "No Email",
           phone: data.phone || "Not provided",
-          propertiesCount: data.properties?.length || 0,
+          propertiesCount: data.properties?.length || data.totalProperties || 0,
           totalProperties: data.totalProperties || 0,
+          activeProperties: data.activeProperties || 0,
           status: data.status || "active",
           createdAt: data.createdAt ? data.createdAt.toDate() : new Date(),
-          isVerified: data.isVerified || false
+          isVerified: data.isVerified || false,
+          company: data.company || "",
+          address: data.address || ""
         });
       });
       
+      console.log(`✅ Loaded ${landlordsData.length} landlords from 'landlords' collection`);
       setLandlords(landlordsData);
     } catch (error) {
-      console.error("Error fetching landlords:", error);
-      alert("Failed to load landlords. Please try again.");
+      console.error("❌ Error fetching landlords:", error);
+      
+      // Try fallback to users collection if landlords collection doesn't exist
+      console.log("🔄 Trying fallback to 'users' collection...");
+      try {
+        const usersQuery = query(
+          collection(db, "users"),
+          where("role", "==", "landlord"),
+          orderBy("createdAt", "desc")
+        );
+        
+        const usersSnapshot = await getDocs(usersQuery);
+        const fallbackLandlords = [];
+        
+        usersSnapshot.forEach((doc) => {
+          const data = doc.data();
+          const fullName = data.name || 
+                          `${data.firstName || ""} ${data.lastName || ""}`.trim() || 
+                          "No Name";
+          
+          fallbackLandlords.push({
+            id: doc.id,
+            name: fullName,
+            email: data.email || "No Email",
+            phone: data.phone || "Not provided",
+            propertiesCount: data.properties?.length || 0,
+            status: data.status || "active",
+            createdAt: data.createdAt ? data.createdAt.toDate() : new Date(),
+            isVerified: data.isVerified || false
+          });
+        });
+        
+        setLandlords(fallbackLandlords);
+        console.log(`✅ Loaded ${fallbackLandlords.length} landlords from 'users' collection (fallback)`);
+      } catch (fallbackError) {
+        console.error("Fallback also failed:", fallbackError);
+        alert("Failed to load landlords. Please check your Firestore setup.");
+      }
     } finally {
       setLoading(false);
     }
@@ -62,7 +111,8 @@ const Landlords = () => {
   const filteredLandlords = landlords.filter(landlord =>
     landlord.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     landlord.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    landlord.phone.toLowerCase().includes(searchTerm.toLowerCase())
+    landlord.phone.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (landlord.company && landlord.company.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
   // Format date to readable string
@@ -100,7 +150,7 @@ const Landlords = () => {
         </div>
         <div className="header-actions">
           <button className="refresh-btn" onClick={handleRefresh} disabled={loading}>
-            ↻ Refresh
+            {loading ? "🔄 Loading..." : "↻ Refresh"}
           </button>
           <Link to="/landlords/add" className="add-landlord-btn">
             + Add New Landlord
@@ -113,7 +163,7 @@ const Landlords = () => {
         <div className="search-box">
           <input
             type="text"
-            placeholder="Search by name, email, or phone..."
+            placeholder="Search by name, email, phone, or company..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="search-input"
@@ -130,6 +180,12 @@ const Landlords = () => {
               {landlords.filter(l => l.status === "active").length}
             </span>
             <span className="stat-label">Active</span>
+          </div>
+          <div className="stat-box">
+            <span className="stat-number">
+              {landlords.reduce((sum, landlord) => sum + landlord.propertiesCount, 0)}
+            </span>
+            <span className="stat-label">Total Properties</span>
           </div>
         </div>
       </div>
@@ -179,6 +235,9 @@ const Landlords = () => {
                           {landlord.isVerified && (
                             <span className="verified-badge">✓ Verified</span>
                           )}
+                          {landlord.company && (
+                            <div className="company-name">{landlord.company}</div>
+                          )}
                         </div>
                       </td>
                       <td>
@@ -218,13 +277,6 @@ const Landlords = () => {
                             title="Edit Landlord"
                           >
                             ✏️ Edit
-                          </button>
-                          <button 
-                            className="message-btn"
-                            onClick={() => console.log("Message landlord:", landlord.id)}
-                            title="Send Message"
-                          >
-                            💬 Message
                           </button>
                         </div>
                       </td>

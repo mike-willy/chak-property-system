@@ -100,7 +100,7 @@ class AuthProvider extends ChangeNotifier {
       }
       
       // Get authentication details
-      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+      final GoogleSignInAuthentication googleAuth = googleUser.authentication;
       
       // Create Firebase credential with both tokens
       final credential = fb.GoogleAuthProvider.credential(

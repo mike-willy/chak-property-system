@@ -353,3 +353,321 @@
 .app-test-btn:hover {
   background: #2980b9;
 }
+/* Add to applications.css */
+
+/* Loading spinner */
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid #f3f3f3;
+  border-top: 3px solid #3498db;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 15px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.app-loading {
+  text-align: center;
+  padding: 60px 20px;
+}
+
+.app-loading p {
+  color: #7f8c8d;
+  font-size: 16px;
+  margin-top: 10px;
+}
+
+/* Header actions */
+.header-actions {
+  display: flex;
+  gap: 12px;
+  margin-left: auto;
+}
+
+.app-action-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 500;
+  font-size: 14px;
+  transition: all 0.3s;
+}
+
+.app-action-btn.primary {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.app-action-btn.secondary {
+  background: #f8f9fa;
+  color: #495057;
+  border: 1px solid #dee2e6;
+}
+
+.app-action-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* Simulator panel */
+.simulator-panel {
+  background: #f0f9ff;
+  border: 1px solid #bae6fd;
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 30px;
+  animation: slideDown 0.3s ease;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.simulator-panel h3 {
+  color: #0369a1;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.simulator-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  margin-top: 20px;
+}
+
+.simulator-btn {
+  padding: 12px 20px;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  justify-content: center;
+  transition: all 0.3s;
+}
+
+.simulator-btn.outline {
+  background: white;
+  color: #059669;
+  border: 2px solid #059669;
+}
+
+.simulator-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
+.simulator-info {
+  background: white;
+  padding: 15px;
+  border-radius: 8px;
+  border-left: 4px solid #3b82f6;
+}
+
+.simulator-info ul {
+  margin: 10px 0 0 20px;
+  color: #475569;
+}
+
+.simulator-info li {
+  margin-bottom: 5px;
+}
+
+/* Empty state improvements */
+.empty-state-icon {
+  font-size: 80px;
+  color: #bdc3c7;
+  margin-bottom: 20px;
+  opacity: 0.7;
+}
+
+.empty-state-actions {
+  margin-top: 30px;
+  max-width: 500px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.help-text {
+  color: #6b7280;
+  margin-bottom: 15px;
+  text-align: center;
+}
+
+.test-btn {
+  width: 100%;
+  padding: 14px;
+  margin-bottom: 10px;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  justify-content: center;
+  transition: all 0.3s;
+}
+
+.test-btn.primary {
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  color: white;
+}
+
+.test-btn.secondary {
+  background: #f8fafc;
+  color: #475569;
+  border: 2px solid #e2e8f0;
+}
+
+.test-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.empty-state-tips {
+  margin-top: 30px;
+  padding: 20px;
+  background: #f8fafc;
+  border-radius: 10px;
+  text-align: left;
+}
+
+.empty-state-tips h4 {
+  color: #1e293b;
+  margin-bottom: 10px;
+}
+
+.empty-state-tips ol {
+  margin-left: 20px;
+  color: #475569;
+}
+
+.empty-state-tips li {
+  margin-bottom: 8px;
+  padding-left: 5px;
+}
+
+/* Applications summary */
+.applications-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 15px;
+  margin-bottom: 25px;
+}
+
+.summary-card {
+  background: white;
+  padding: 20px;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  text-align: center;
+  border: 1px solid #f1f5f9;
+}
+
+.summary-card h3 {
+  font-size: 2rem;
+  color: #3b82f6;
+  margin: 0 0 8px 0;
+}
+
+.summary-card p {
+  color: #64748b;
+  margin: 0;
+  font-size: 14px;
+}
+
+/* Card enhancements */
+.app-avatar {
+  position: relative;
+}
+
+.source-badge {
+  position: absolute;
+  bottom: -5px;
+  right: -5px;
+  background: #3b82f6;
+  color: white;
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  border: 2px solid white;
+}
+
+.source-badge.mobile {
+  background: #10b981;
+}
+
+.occupation {
+  font-size: 12px;
+  color: #6b7280;
+  background: #f9fafb;
+  padding: 3px 8px;
+  border-radius: 12px;
+  display: inline-block;
+  margin-top: 5px;
+}
+
+/* Modal enhancements */
+.source-tag {
+  display: inline-block;
+  background: #dbeafe;
+  color: #1e40af;
+  padding: 3px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  margin-left: 10px;
+  font-weight: 500;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .app-header {
+    flex-direction: column;
+    gap: 15px;
+  }
+  
+  .header-actions {
+    margin-left: 0;
+    width: 100%;
+  }
+  
+  .app-action-btn {
+    flex: 1;
+    justify-content: center;
+  }
+  
+  .applications-summary {
+    grid-template-columns: 1fr;
+  }
+  
+  .empty-state-tips {
+    font-size: 14px;
+  }
+}

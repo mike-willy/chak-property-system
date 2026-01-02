@@ -10,10 +10,13 @@ const AddLandlord = () => {
   const navigate = useNavigate();
   
   const [form, setForm] = useState({
-    name: "",
+    firstName: "",
+    lastName: "",
     email: "",
     phone: "",
     password: "",
+    address: "",
+    company: ""
   });
   
   const [loading, setLoading] = useState(false);
@@ -26,8 +29,12 @@ const AddLandlord = () => {
   };
 
   const validateForm = () => {
-    if (!form.name.trim()) {
-      setError("Full name is required");
+    if (!form.firstName.trim()) {
+      setError("First name is required");
+      return false;
+    }
+    if (!form.lastName.trim()) {
+      setError("Last name is required");
       return false;
     }
     if (!form.email.includes("@")) {
@@ -57,7 +64,7 @@ const AddLandlord = () => {
     try {
       console.log("=== 🚀 Starting landlord registration ===");
       
-      // Check if admin is logged in before starting
+      // Check if admin is logged in
       const adminUser = auth.currentUser;
       if (!adminUser) {
         throw new Error("You must be logged in as admin to register landlords");
@@ -66,86 +73,75 @@ const AddLandlord = () => {
       console.log("Admin logged in:", adminUser.email);
       console.log("Creating landlord account for:", form.email);
       
-      // IMPORTANT: Sign out admin temporarily to create landlord auth account
-      // OR use Firebase Admin SDK on backend (recommended)
-      // For now, we'll try to create directly
+      // Create the combined name
+      const fullName = `${form.firstName} ${form.lastName}`.trim();
       
-      // 1. Create auth account
+      // 1. Create auth account for landlord
       const cred = await createUserWithEmailAndPassword(
         auth,
         form.email,
         form.password
       );
 
-      console.log("✅ Auth account created. UID:", cred.user.uid);
+      const landlordUid = cred.user.uid;
+      console.log("✅ Auth account created. UID:", landlordUid);
       
-      // 2. Sign back in as admin if needed
-      // In production, use Firebase Admin SDK or separate backend
-      
-      // 3. Create Firestore user profile - FIXED DATA STRUCTURE
+      // 2. Create landlord profile in 'landlords' collection ONLY
       const landlordData = {
-        uid: cred.user.uid,
-        name: form.name,
+        uid: landlordUid,
+        firstName: form.firstName,
+        lastName: form.lastName,
+        name: fullName,
         email: form.email,
         phone: form.phone,
-        role: "landlord",
-        isVerified: true,
+        address: form.address || "",
+        company: form.company || "",
+        role: "landlord", // Add role field
         createdAt: serverTimestamp(),
-        properties: [], // Empty array
-        totalProperties: 0,
-        status: "active",
-        // Removed assignedProperties to simplify
-        lastUpdated: serverTimestamp()
-      };
-      
-      console.log("📝 Creating Firestore document in 'users' collection...");
-      await setDoc(doc(db, "users", cred.user.uid), landlordData);
-      
-      console.log("✅ Firestore user document created!");
-      
-      // 4. Create landlord profile document
-      const landlordProfileData = {
-        uid: cred.user.uid,
-        name: form.name,
-        email: form.email,
-        phone: form.phone,
-        role: "landlord", // ADD THIS
-        createdAt: serverTimestamp(),
+        createdBy: adminUser.uid,
+        properties: [],
         totalProperties: 0,
         activeProperties: 0,
-        vacantProperties: 0,
-        totalRent: 0,
-        averageRent: 0,
-        properties: [], // Property IDs will go here
-        status: "active" // ADD THIS
+        status: "active",
+        lastLogin: null,
+        updatedAt: serverTimestamp()
       };
       
       console.log("📝 Creating landlord profile in 'landlords' collection...");
-      await setDoc(doc(db, "landlords", cred.user.uid), landlordProfileData);
+      console.log("Landlord data being saved:", landlordData);
+      await setDoc(doc(db, "landlords", landlordUid), landlordData);
+      console.log("✅ Landlord profile created in 'landlords' collection!");
       
-      console.log("✅ Landlord profile created!");
       console.log("=== 🎉 Registration complete ===");
 
       // Reset form and show success
       setForm({
-        name: "",
+        firstName: "",
+        lastName: "",
         email: "",
         phone: "",
         password: "",
+        address: "",
+        company: ""
       });
       
       setSuccess(`
         ✅ LANDLORD REGISTERED SUCCESSFULLY!
         
         Landlord Details:
-        • Name: ${form.name}
+        • Name: ${fullName}
         • Email: ${form.email}
         • Phone: ${form.phone}
-        • Landlord ID: ${cred.user.uid}
+        • Company: ${form.company || "Not provided"}
+        • Landlord ID: ${landlordUid}
         
         Login Credentials (For Mobile App):
         Email: ${form.email}
         Password: ${form.password}
+        
+        Document Created:
+        1. Firebase Auth account ✓
+        2. Landlords collection document ✓
         
         Next Steps:
         1. Go to "Add Property" to assign properties to this landlord
@@ -155,10 +151,10 @@ const AddLandlord = () => {
         Redirecting to landlords list...
       `);
       
-      // Redirect back to landlords list after 3 seconds
+      // Redirect after 5 seconds
       setTimeout(() => {
         navigate("/landlords");
-      }, 3000);
+      }, 5000);
       
     } catch (error) {
       console.error("🔴 Registration error:", {
@@ -179,16 +175,23 @@ const AddLandlord = () => {
         errorMessage = `
           🔒 PERMISSION DENIED!
           
-          Current Firestore rules don't allow admin to create user documents.
+          Firestore rules are blocking creation in 'landlords' collection.
           
-          Solution 1: Update Firestore rules to allow admin to create users
-          Solution 2: Use Firebase Admin SDK on a backend server
-          Solution 3: Create a Cloud Function for user registration
+          Use these SIMPLE rules temporarily:
+          
+          rules_version = '2';
+          service cloud.firestore {
+            match /databases/{database}/documents {
+              match /landlords/{document=**} {
+                allow read, write: if request.auth != null;
+              }
+            }
+          }
           
           Error details: ${error.message}
         `;
       } else if (error.message.includes("must be logged in")) {
-        errorMessage = error.message;
+        errorMessage = "You must be logged in as admin. Please login first.";
       }
       
       setError(errorMessage);
@@ -236,83 +239,117 @@ const AddLandlord = () => {
         {!success && (
           <>
             <h2>Landlord Details</h2>
-            <p className="form-subtitle">Fill in the details below to register a new landlord</p>
+            <p className="form-subtitle">Fill in the details to register a new landlord</p>
             
             <form onSubmit={handleSubmit} className="add-landlord-form">
-              <div className="form-group">
-                <label htmlFor="name" className="required">Full Name</label>
-                <input
-                  id="name"
-                  name="name"
-                  type="text"
-                  value={form.name}
-                  onChange={handleChange}
-                  placeholder="Enter landlord's full name"
-                  className="form-input"
-                  required
-                  disabled={loading}
-                />
-                <span className="helper-text">Legal name as per identification</span>
-              </div>
-              
-              <div className="form-group">
-                <label htmlFor="email" className="required">Email Address</label>
-                <input
-                  id="email"
-                  name="email"
-                  type="email"
-                  value={form.email}
-                  onChange={handleChange}
-                  placeholder="landlord@example.com"
-                  className="form-input"
-                  required
-                  disabled={loading}
-                />
-                <span className="helper-text">Will be used for login and notifications</span>
-              </div>
-              
-              <div className="form-group">
-                <label htmlFor="phone" className="required">Phone Number</label>
-                <input
-                  id="phone"
-                  name="phone"
-                  type="tel"
-                  value={form.phone}
-                  onChange={handleChange}
-                  placeholder="+254 712 345 678"
-                  className="form-input"
-                  required
-                  disabled={loading}
-                />
-                <span className="helper-text">Primary contact number</span>
-              </div>
-              
-              <div className="form-group">
-                <label htmlFor="password" className="required">Password</label>
-                <input
-                  id="password"
-                  name="password"
-                  type="password"
-                  value={form.password}
-                  onChange={handleChange}
-                  placeholder="Create a secure password"
-                  className="form-input"
-                  required
-                  disabled={loading}
-                />
-                <div className="password-helper">
-                  <span>Password strength: </span>
-                  <span className={`strength-text ${
-                    form.password.length >= 8 ? 'strength-strong' : 
-                    form.password.length >= 6 ? 'strength-medium' : 
-                    form.password.length > 0 ? 'strength-weak' : ''
-                  }`}>
-                    {form.password.length >= 8 ? 'Strong' : 
-                     form.password.length >= 6 ? 'Medium' : 
-                     form.password.length > 0 ? 'Weak' : 'None'}
-                  </span>
+              <div className="form-row">
+                <div className="form-group half">
+                  <label htmlFor="firstName" className="required">First Name</label>
+                  <input
+                    id="firstName"
+                    name="firstName"
+                    type="text"
+                    value={form.firstName}
+                    onChange={handleChange}
+                    placeholder="John"
+                    className="form-input"
+                    required
+                    disabled={loading}
+                  />
                 </div>
-                <span className="helper-text">Must be at least 6 characters</span>
+                
+                <div className="form-group half">
+                  <label htmlFor="lastName" className="required">Last Name</label>
+                  <input
+                    id="lastName"
+                    name="lastName"
+                    type="text"
+                    value={form.lastName}
+                    onChange={handleChange}
+                    placeholder="Doe"
+                    className="form-input"
+                    required
+                    disabled={loading}
+                  />
+                </div>
+              </div>
+              
+              <div className="form-row">
+                <div className="form-group half">
+                  <label htmlFor="email" className="required">Email</label>
+                  <input
+                    id="email"
+                    name="email"
+                    type="email"
+                    value={form.email}
+                    onChange={handleChange}
+                    placeholder="landlord@example.com"
+                    className="form-input"
+                    required
+                    disabled={loading}
+                  />
+                  <span className="helper-text">For login and notifications</span>
+                </div>
+                
+                <div className="form-group half">
+                  <label htmlFor="phone" className="required">Phone</label>
+                  <input
+                    id="phone"
+                    name="phone"
+                    type="tel"
+                    value={form.phone}
+                    onChange={handleChange}
+                    placeholder="+254 712 345 678"
+                    className="form-input"
+                    required
+                    disabled={loading}
+                  />
+                </div>
+              </div>
+              
+              <div className="form-row">
+                <div className="form-group half">
+                  <label htmlFor="company">Company (Optional)</label>
+                  <input
+                    id="company"
+                    name="company"
+                    type="text"
+                    value={form.company}
+                    onChange={handleChange}
+                    placeholder="Company name"
+                    className="form-input"
+                    disabled={loading}
+                  />
+                </div>
+                
+                <div className="form-group half">
+                  <label htmlFor="password" className="required">Password</label>
+                  <input
+                    id="password"
+                    name="password"
+                    type="password"
+                    value={form.password}
+                    onChange={handleChange}
+                    placeholder="Min. 6 characters"
+                    className="form-input"
+                    required
+                    disabled={loading}
+                  />
+                </div>
+              </div>
+              
+              <div className="form-group">
+                <label htmlFor="address">Address (Optional)</label>
+                <input
+                  id="address"
+                  name="address"
+                  type="text"
+                  value={form.address}
+                  onChange={handleChange}
+                  placeholder="Physical address"
+                  className="form-input"
+                  disabled={loading}
+                />
               </div>
               
               <div className="form-actions">
@@ -343,23 +380,16 @@ const AddLandlord = () => {
             </form>
             
             <div className="info-section">
-              <h3>How Property Assignment Works</h3>
+              <h3>Important Information</h3>
+              <p>
+                <strong>Landlord will be created in 'landlords' collection only.</strong>
+                The landlord can login on the mobile app using the email and password above.
+              </p>
               <ul>
-                <li>After registering a landlord, go to "Add Property"</li>
-                <li>Select this landlord when adding a new property</li>
-                <li>The property will be automatically linked to this landlord</li>
-                <li>The landlord will see all their properties in the mobile app</li>
-                <li>Each landlord has their own separate property list</li>
+                <li>First Name + Last Name = Full Name in database</li>
+                <li>The landlord will see their full name in the mobile app</li>
+                <li>All landlord data is stored in the 'landlords' collection</li>
               </ul>
-              
-              <div className="note-box">
-                <strong>Important:</strong> This landlord can now login on the mobile app using the credentials above.
-                They will see any properties you assign to them.
-              </div>
-              
-              <div className="permission-note">
-                <strong>⚠️ Permission Note:</strong> Make sure your Firestore rules allow admin to create user documents.
-              </div>
             </div>
           </>
         )}
