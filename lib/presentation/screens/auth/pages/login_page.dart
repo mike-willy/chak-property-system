@@ -28,7 +28,7 @@ class _LoginPageState extends State<LoginPage> {
 
     if (success) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Signed in')));
-      Navigator.pop(context);
+      // Navigation is handled automatically by AuthGate listening to AuthProvider
     } else {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Sign in failed')));
     }
@@ -42,7 +42,7 @@ class _LoginPageState extends State<LoginPage> {
 
     if (success) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Signed in with Google')));
-      Navigator.pop(context);
+      // Navigation is handled automatically by AuthGate listening to AuthProvider
     } else {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Google sign in cancelled or failed')));
     }
