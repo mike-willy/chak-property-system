@@ -14,6 +14,7 @@ import 'data/repositories/auth_repository.dart';
 import 'data/repositories/notification_repository.dart';
 import 'providers/auth_provider.dart';
 import 'providers/notification_provider.dart';
+import 'presentation/screens/auth/widgets/auth_gate.dart';
 
 import 'firebase_options.dart';
 
@@ -91,7 +92,7 @@ class MyApp extends StatelessWidget {
         theme: AppTheme.lightTheme,
         darkTheme: AppTheme.darkTheme,
         themeMode: ThemeMode.light,
-        home: PropertyListPage(),
+        home: const PropertyListPage(),
         debugShowCheckedModeBanner: false,
       ),
     );

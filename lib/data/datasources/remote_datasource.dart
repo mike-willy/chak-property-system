@@ -153,6 +153,22 @@ class RemoteDataSource {
     }
   }
 
+  Future<void> createUserProfile(UserModel user) async {
+    try {
+      await _firestore.collection('users').doc(user.id).set(user.toMap());
+    } catch (e) {
+      throw Exception('Failed to create user profile: $e');
+    }
+  }
+
+  Future<void> updateUserProfile(UserModel user) async {
+    try {
+      await _firestore.collection('users').doc(user.id).update(user.toMap());
+    } catch (e) {
+      throw Exception('Failed to update user profile: $e');
+    }
+  }
+
   // Notification Methods
   Future<List<NotificationModel>> getNotifications(String userId) async {
     try {

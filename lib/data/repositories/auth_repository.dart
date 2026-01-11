@@ -17,4 +17,22 @@ class AuthRepository {
       return Left(FailureModel(message: 'Failed to fetch user profile: $e'));
     }
   }
+
+  Future<Either<FailureModel, void>> createUserProfile(UserModel user) async {
+    try {
+      await _remoteDataSource.createUserProfile(user);
+      return const Right(null);
+    } catch (e) {
+      return Left(FailureModel(message: 'Failed to create user profile: $e'));
+    }
+  }
+
+  Future<Either<FailureModel, void>> updateUserProfile(UserModel user) async {
+    try {
+      await _remoteDataSource.updateUserProfile(user);
+      return const Right(null);
+    } catch (e) {
+      return Left(FailureModel(message: 'Failed to update user profile: $e'));
+    }
+  }
 }

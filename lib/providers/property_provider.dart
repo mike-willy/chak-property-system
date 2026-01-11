@@ -10,6 +10,8 @@ class PropertyProvider with ChangeNotifier {
   final PropertyRepository _repository;
   final AuthProvider _authProvider;
 
+  bool _disposed = false;
+
   PropertyProvider(this._repository, this._authProvider);
 
   bool get isLandlord => _authProvider.isLandlord;
@@ -66,7 +68,7 @@ class PropertyProvider with ChangeNotifier {
       _error = 'An unexpected error occurred';
     } finally {
       _isLoading = false;
-      notifyListeners();
+      if (!_disposed) notifyListeners();
     }
   }
 
@@ -80,19 +82,19 @@ class PropertyProvider with ChangeNotifier {
     } catch (e) {
       _error = 'Failed to load statistics';
     }
-    notifyListeners();
+    if (!_disposed) notifyListeners();
   }
 
   void setSearchTerm(String term) {
     _searchTerm = term;
     _applyFilters();
-    notifyListeners();
+    if (!_disposed) notifyListeners();
   }
 
   void setFilterStatus(String status) {
     _filterStatus = status;
     _applyFilters();
-    notifyListeners();
+    if (!_disposed) notifyListeners();
   }
 
   void _applyFilters() {
@@ -152,6 +154,12 @@ class PropertyProvider with ChangeNotifier {
 
   void clearError() {
     _error = null;
-    notifyListeners();
+    if (!_disposed) notifyListeners();
+  }
+
+  @override
+  void dispose() {
+    _disposed = true;
+    super.dispose();
   }
 }
