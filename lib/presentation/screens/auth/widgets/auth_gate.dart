@@ -1,6 +1,9 @@
+// lib/presentation/screens/auth/widgets/auth_gate.dart (updated)
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:provider/provider.dart';
 import 'package:mobile_app/providers/auth_provider.dart';
+import 'package:mobile_app/providers/message_provider.dart';
 import 'package:mobile_app/presentation/themes/theme_colors.dart';
 import '../pages/login_page.dart';
 import '../../pages/dashboard_page.dart';
@@ -46,6 +49,9 @@ class _AuthGateState extends State<AuthGate> {
 
         // If user is logged in, show the app
         if (authProvider.loggedIn) {
+          // Initialize message provider when user logs in
+          _initializeMessageProvider(context, authProvider);
+          
           return widget.child ?? const DashboardPage();
         }
 
@@ -53,5 +59,28 @@ class _AuthGateState extends State<AuthGate> {
         return const LoginPage();
       },
     );
+  }
+
+  void _initializeMessageProvider(BuildContext context, AuthProvider authProvider) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final messageProvider = Provider.of<MessageProvider>(context, listen: false);
+      final currentUser = authProvider.currentUser; // Check if this exists
+      
+      if (currentUser != null) {
+        // Get user role from Firestore
+        FirebaseFirestore.instance
+            .collection('users')
+            .doc(currentUser.uid)
+            .get()
+            .then((userDoc) {
+          if (userDoc.exists) {
+            final userRole = userDoc.data()?['role'];
+            if (userRole != null) {
+              messageProvider.initialize(currentUser.uid, userRole);
+            }
+          }
+        });
+      }
+    });
   }
 }

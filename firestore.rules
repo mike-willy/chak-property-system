@@ -1,0 +1,124 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // ==================== SIMPLE HELPER FUNCTIONS ====================
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isAdmin() {
+      // WARNING: This currently allows ANY authenticated user to act as admin.
+      // In production, you should check for a specific role or UID.
+      return isAuthenticated();
+    }
+
+    // ==================== MESSAGING (NEW) ====================
+    // Global messages collection
+    match /messages/{messageId} {
+      allow read: if isAuthenticated() && (
+        resource.data.recipientId == request.auth.uid || 
+        resource.data.senderId == request.auth.uid
+      );
+      allow create: if isAuthenticated() && request.resource.data.senderId == request.auth.uid;
+      allow update: if isAuthenticated() && resource.data.recipientId == request.auth.uid;
+    }
+
+    // ==================== LANDLORDS COLLECTION ====================
+    match /landlords/{landlordId} {
+      // SIMPLE: Admin can create landlords
+      allow create: if isAdmin();
+      
+      // SIMPLE: Anyone authenticated can read
+      allow read: if isAuthenticated();
+      
+      // SIMPLE: Admin can update
+      allow update: if isAdmin();
+      
+      // SIMPLE: Admin can delete
+      allow delete: if isAdmin();
+
+      // Messages subcollection for landlords
+      match /messages/{messageId} {
+        allow read, write: if isAuthenticated() && request.auth.uid == landlordId;
+      }
+    }
+
+    // ==================== USERS ====================
+    match /users/{userId} {
+      // SIMPLE: Admin can create users
+      allow create: if isAdmin();
+      
+      // SIMPLE: Users can read their own, admin can read all
+      allow read: if isAuthenticated() && (isAdmin() || request.auth.uid == userId);
+      
+      // SIMPLE: Users can update their own, admin can update any
+      allow update: if isAuthenticated() && (isAdmin() || request.auth.uid == userId);
+      
+      // SIMPLE: Admin can delete
+      allow delete: if isAdmin();
+
+      // Messages subcollection for tenants
+      match /messages/{messageId} {
+        allow read, write: if isAuthenticated() && request.auth.uid == userId;
+      }
+    }
+
+    // ==================== OTHER COLLECTIONS - SIMPLIFIED ====================
+    match /properties/{propertyId} {
+      allow create: if isAdmin();
+      allow read: if true;
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+    
+    match /units/{unitId} {
+      allow create: if isAdmin();
+      allow read: if true;
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+    
+    match /tenants/{tenantId} {
+      allow create: if isAdmin();
+      allow read: if isAuthenticated();
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+    
+    match /notifications/{notificationId} {
+      allow create: if isAuthenticated();
+      allow read: if isAuthenticated();
+      allow update: if isAuthenticated();
+      allow delete: if isAuthenticated();
+    }
+      
+    match /tenantApplications/{applicationId} {
+      allow create: if isAuthenticated();
+      allow read: if isAuthenticated();
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+    
+    match /maintenance/{requestId} {
+      allow create: if isAuthenticated();
+      allow read: if isAuthenticated();
+      allow update: if isAuthenticated();
+      allow delete: if isAdmin();
+    }
+    
+    match /leases/{leaseId} {
+      allow create: if isAdmin();
+      allow read: if isAuthenticated();
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+    
+    match /payments/{paymentId} {
+      allow create: if isAuthenticated();
+      allow read: if isAuthenticated();
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+  }
+}

@@ -1,22 +1,26 @@
-
+// lib/main.dart
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:provider/provider.dart';
-import 'providers/property_provider.dart';
-import 'data/datasources/remote_datasource.dart';
-import 'package:mobile_app/presentation/screens/pages/dashboard_page.dart';
-import 'data/repositories/property_repository.dart';
-import 'presentation/screens/properties/pages/property_list_page.dart';
-import 'presentation/screens/properties/pages/property_list_page.dart';
-import 'presentation/themes/app_theme.dart';
-import 'data/repositories/auth_repository.dart';
-import 'data/repositories/notification_repository.dart';
-import 'providers/auth_provider.dart';
-import 'providers/notification_provider.dart';
-import 'presentation/screens/auth/widgets/auth_gate.dart';
-
 import 'firebase_options.dart';
+
+// Providers
+import 'providers/auth_provider.dart';
+import 'providers/property_provider.dart';
+import 'providers/notification_provider.dart';
+import 'providers/message_provider.dart';
+
+// Data Sources & Repositories
+import 'data/datasources/remote_datasource.dart';
+import 'data/repositories/auth_repository.dart';
+import 'data/repositories/property_repository.dart';
+import 'data/repositories/notification_repository.dart';
+import 'data/repositories/message_repository.dart';
+
+// Screens
+import 'presentation/screens/auth/widgets/auth_gate.dart';
+import 'presentation/themes/app_theme.dart';
 
 void main() async {
   try {
@@ -45,12 +49,17 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
+        // Firebase Services
         Provider(create: (_) => FirebaseFirestore.instance),
+        
+        // Data Sources
         Provider(
           create: (context) => RemoteDataSource(
             context.read<FirebaseFirestore>(),
           ),
         ),
+        
+        // Repositories
         Provider(
           create: (context) => PropertyRepository(
             context.read<RemoteDataSource>(),
@@ -66,6 +75,13 @@ class MyApp extends StatelessWidget {
             context.read<RemoteDataSource>(),
           ),
         ),
+        Provider(
+          create: (context) => MessageRepository(
+            firestore: context.read<FirebaseFirestore>(),
+          ),
+        ),
+        
+        // Providers
         ChangeNotifierProvider(
           create: (context) => AuthProvider(
             context.read<AuthRepository>(),
@@ -76,6 +92,13 @@ class MyApp extends StatelessWidget {
             context.read<NotificationRepository>(),
           ),
         ),
+        ChangeNotifierProvider(
+          create: (context) => MessageProvider(
+            messageRepository: context.read<MessageRepository>(),
+          ),
+        ),
+        
+        // Property Provider depends on Auth Provider
         ChangeNotifierProxyProvider<AuthProvider, PropertyProvider>(
           create: (context) => PropertyProvider(
             context.read<PropertyRepository>(),
@@ -92,7 +115,7 @@ class MyApp extends StatelessWidget {
         theme: AppTheme.lightTheme,
         darkTheme: AppTheme.darkTheme,
         themeMode: ThemeMode.light,
-        home: const PropertyListPage(),
+        home: const AuthGate(),
         debugShowCheckedModeBanner: false,
       ),
     );
