@@ -273,15 +273,15 @@ class _SignupPageState extends State<SignupPage> {
                       ),
                     ),
                     const SizedBox(width: 16),
-                    Expanded(
-                      child: _RoleCard(
-                        role: UserRole.landlord,
-                        label: 'Landlord',
-                        icon: Icons.business,
-                        isSelected: _selectedRole == UserRole.landlord,
-                        onTap: () => setState(() => _selectedRole = UserRole.landlord),
-                      ),
-                    ),
+                    // Expanded(
+                    //   child: _RoleCard(
+                    //     role: UserRole.landlord,
+                    //     label: 'Landlord',
+                    //     icon: Icons.business,
+                    //     isSelected: _selectedRole == UserRole.landlord,
+                    //     onTap: () => setState(() => _selectedRole = UserRole.landlord),
+                    //   ),
+                    // ),
                   ],
                 ),
                 const SizedBox(height: 32),
