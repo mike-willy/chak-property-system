@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:mobile_app/data/models/property_model.dart';
+import 'package:provider/provider.dart';
+import 'package:mobile_app/providers/auth_provider.dart';
+import 'package:mobile_app/presentation/screens/auth/pages/login_page.dart';
+import 'application_page.dart';
 
 class PropertyDetailPage extends StatefulWidget {
   final PropertyModel property;
@@ -442,8 +446,39 @@ class _PropertyDetailPageState extends State<PropertyDetailPage> {
         child: SafeArea(
           child: ElevatedButton(
             onPressed: () {
-              // TODO: Implement booking/application flow
-            },
+  final auth = context.read<AuthProvider>();
+
+  if (!auth.loggedIn) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => LoginPage(
+          redirect: '/apply', // pass the route you want to redirect to
+          propertyId: widget.property.id, // pass the property ID
+        ),
+      ),
+    );
+    return;
+  }
+
+  if (!auth.isTenant) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Only tenants can apply for houses')),
+    );
+    return;
+  }
+
+  // Already logged in → go to apply
+  Navigator.push(
+    context,
+    MaterialPageRoute(
+      builder: (_) => ApplicationPage(propertyId: widget.property.id),
+    ),
+  );
+},
+
+
+
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.blue.shade700,
               padding: const EdgeInsets.symmetric(vertical: 16),

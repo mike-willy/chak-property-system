@@ -4,9 +4,21 @@ import 'package:mobile_app/providers/auth_provider.dart';
 import 'package:mobile_app/core/common/validators.dart';
 import 'package:mobile_app/presentation/themes/theme_colors.dart';
 import 'signup_page.dart';
+import 'package:mobile_app/presentation/screens/properties/pages/application_page.dart';
+import 'package:mobile_app/presentation/screens/properties/pages/property_list_page.dart';
 
+
+// class LoginPage extends StatefulWidget {
+//   const LoginPage({super.key});
+
+//   @override
+//   State<LoginPage> createState() => _LoginPageState();
+// }
 class LoginPage extends StatefulWidget {
-  const LoginPage({super.key});
+  final String? redirect;
+  final String? propertyId;
+
+  const LoginPage({super.key, this.redirect, this.propertyId});
 
   @override
   State<LoginPage> createState() => _LoginPageState();
@@ -51,7 +63,26 @@ class _LoginPageState extends State<LoginPage> {
           const SnackBar(content: Text('Signed in successfully!')),
         );
         // Navigation will be handled by auth state listener
-      } else {
+      }
+      if (errorMessage == null) {
+  // Successful login
+  if (widget.redirect == '/apply' && widget.propertyId != null) {
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ApplicationPage(propertyId: widget.propertyId!),
+      ),
+    );
+  } else {
+    // Default behavior
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (_) => const PropertyListPage()),
+    );
+  }
+}
+
+       else {
         // Error occurred
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(errorMessage)),

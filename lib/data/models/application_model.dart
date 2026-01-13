@@ -20,12 +20,11 @@ extension ApplicationStatusExtension on ApplicationStatus {
 
   static ApplicationStatus fromString(String value) {
     switch (value) {
-      case 'pending':
-        return ApplicationStatus.pending;
       case 'approved':
         return ApplicationStatus.approved;
       case 'rejected':
         return ApplicationStatus.rejected;
+      case 'pending':
       default:
         return ApplicationStatus.pending;
     }
@@ -34,15 +33,25 @@ extension ApplicationStatusExtension on ApplicationStatus {
 
 class ApplicationModel {
   final String id;
+
+  /// Immutable identity fields (tenant-controlled ONLY at creation)
   final String tenantId;
   final String unitId;
+
+  /// State (admin-controlled after submission)
   final ApplicationStatus status;
+
+  /// Optional tenant uploads
   final List<String> documents;
+
+  /// Audit fields
   final DateTime appliedDate;
   final DateTime? decisionDate;
+
+  /// Admin-only feedback
   final String? notes;
 
-  ApplicationModel({
+  const ApplicationModel({
     required this.id,
     required this.tenantId,
     required this.unitId,
@@ -53,7 +62,27 @@ class ApplicationModel {
     this.notes,
   });
 
-  // Convert to Firestore document
+  // ----------------------------
+  // Factory for TENANT submission
+  // ----------------------------
+  factory ApplicationModel.newApplication({
+    required String id,
+    required String tenantId,
+    required String unitId,
+  }) {
+    return ApplicationModel(
+      id: id,
+      tenantId: tenantId,
+      unitId: unitId,
+      status: ApplicationStatus.pending,
+      documents: const [],
+      appliedDate: DateTime.now(),
+    );
+  }
+
+  // ----------------------------
+  // Firestore serialization
+  // ----------------------------
   Map<String, dynamic> toMap() {
     return {
       'tenantId': tenantId,
@@ -61,55 +90,70 @@ class ApplicationModel {
       'status': status.value,
       'documents': documents,
       'appliedDate': Timestamp.fromDate(appliedDate),
-      if (decisionDate != null)
-        'decisionDate': Timestamp.fromDate(decisionDate!),
-      if (notes != null) 'notes': notes,
+      'decisionDate':
+          decisionDate != null ? Timestamp.fromDate(decisionDate!) : null,
+      'notes': notes,
     };
   }
 
-  // Create from Firestore document
   factory ApplicationModel.fromMap(String id, Map<String, dynamic> map) {
     return ApplicationModel(
       id: id,
-      tenantId: map['tenantId'] as String? ?? '',
-      unitId: map['unitId'] as String? ?? '',
+      tenantId: map['tenantId'] ?? '',
+      unitId: map['unitId'] ?? '',
       status: ApplicationStatusExtension.fromString(
-        map['status'] as String? ?? 'pending',
+        map['status'] ?? 'pending',
       ),
-      documents: List<String>.from(map['documents'] as List? ?? []),
-      appliedDate: (map['appliedDate'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      documents: List<String>.from(map['documents'] ?? []),
+      appliedDate:
+          (map['appliedDate'] as Timestamp?)?.toDate() ?? DateTime.now(),
       decisionDate: (map['decisionDate'] as Timestamp?)?.toDate(),
-      notes: map['notes'] as String?,
+      notes: map['notes'],
     );
   }
 
-  // Create from Firestore document snapshot
   factory ApplicationModel.fromFirestore(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>;
     return ApplicationModel.fromMap(doc.id, data);
   }
 
-  // Copy with method
+  // ----------------------------
+  // Controlled mutations
+  // ----------------------------
+
+  /// Admin approval
+  ApplicationModel approve({String? notes}) {
+    return copyWith(
+      status: ApplicationStatus.approved,
+      decisionDate: DateTime.now(),
+      notes: notes,
+    );
+  }
+
+  /// Admin rejection
+  ApplicationModel reject({String? notes}) {
+    return copyWith(
+      status: ApplicationStatus.rejected,
+      decisionDate: DateTime.now(),
+      notes: notes,
+    );
+  }
+
   ApplicationModel copyWith({
-    String? id,
-    String? tenantId,
-    String? unitId,
     ApplicationStatus? status,
     List<String>? documents,
-    DateTime? appliedDate,
     DateTime? decisionDate,
     String? notes,
   }) {
     return ApplicationModel(
-      id: id ?? this.id,
-      tenantId: tenantId ?? this.tenantId,
-      unitId: unitId ?? this.unitId,
+      id: id,
+      tenantId: tenantId,
+      unitId: unitId,
       status: status ?? this.status,
       documents: documents ?? this.documents,
-      appliedDate: appliedDate ?? this.appliedDate,
+      appliedDate: appliedDate,
       decisionDate: decisionDate ?? this.decisionDate,
       notes: notes ?? this.notes,
     );
   }
 }
-
