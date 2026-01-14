@@ -103,8 +103,8 @@ class MessageRepository {
       // Remove duplicates based on messageId or docId
       final seenIds = <String>{};
       final uniqueMessages = messages.where((message) {
-        // Use ID if available, otherwise messageId
-        final id = message.id ?? message.messageId;
+        // Use messageId if available (for subcollection messages), otherwise doc ID
+        final id = message.messageId ?? message.id;
         if (id != null) {
           if (seenIds.contains(id)) {
             return false;
@@ -206,7 +206,7 @@ class MessageRepository {
       // Remove duplicates
       final seenIds = <String>{};
       final uniqueMessages = messages.where((message) {
-        final id = message.id ?? message.messageId;
+        final id = message.messageId ?? message.id;
         if (id != null) {
           if (seenIds.contains(id)) {
             return false;
