@@ -58,7 +58,7 @@ class AuthProvider extends ChangeNotifier {
   
   // Compatibility getters
   fb.User? get currentUser => firebaseUser;
-  String? get userId => firebaseUser?.uid;
+  String? get UserId => firebaseUser?.uid;
   String? get userRole => _userProfile?.role.value;
 
   // ----------------------------
