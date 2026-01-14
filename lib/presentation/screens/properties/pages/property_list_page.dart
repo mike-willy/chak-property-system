@@ -1,5 +1,6 @@
 // presentation/screens/properties/pages/property_list_page.dart
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:mobile_app/data/models/property_model.dart';
 import 'package:mobile_app/presentation/screens/properties/pages/property_detail_page.dart';
@@ -14,19 +15,30 @@ class PropertyListPage extends StatefulWidget {
   State<PropertyListPage> createState() => _PropertyListPageState();
 }
 
-class _PropertyListPageState extends State<PropertyListPage> {
+class _PropertyListPageState extends State<PropertyListPage> with AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final provider = context.read<PropertyProvider>();
+      _loadProperties();
+    });
+  }
+
+  void _loadProperties() {
+    final provider = context.read<PropertyProvider>();
+    // Only load if properties are empty or if we need to refresh
+    if (provider.properties.isEmpty || provider.error != null) {
       provider.loadProperties();
       provider.loadStats();
-    });
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    super.build(context); // Required for AutomaticKeepAliveClientMixin
     return Scaffold(
       backgroundColor: Colors.white,
       body: Consumer<PropertyProvider>(
@@ -317,6 +329,64 @@ class _PropertyListPageState extends State<PropertyListPage> {
   }
 
   Widget _buildPropertiesList(PropertyProvider provider) {
+    // Debug output
+    debugPrint('PropertyListPage: filteredProperties.length = ${provider.filteredProperties.length}');
+    debugPrint('PropertyListPage: properties.length = ${provider.properties.length}');
+    debugPrint('PropertyListPage: isLoading = ${provider.isLoading}');
+    debugPrint('PropertyListPage: error = ${provider.error}');
+    
+    // Show error if there's an error and no properties
+    if (provider.error != null && provider.properties.isEmpty && !provider.isLoading) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                FontAwesomeIcons.exclamationTriangle,
+                size: 64,
+                color: Colors.red.shade300,
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Error loading properties',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.grey.shade700,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                provider.error ?? 'Unknown error occurred',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Colors.grey.shade600,
+                ),
+              ),
+              const SizedBox(height: 20),
+              ElevatedButton.icon(
+                onPressed: () {
+                  provider.clearError();
+                  provider.loadProperties();
+                  provider.loadStats();
+                },
+                icon: const Icon(FontAwesomeIcons.rotate),
+                label: const Text('Retry'),
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 12,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     if (provider.isLoading && provider.properties.isEmpty) {
       return const Center(
         child: Column(
@@ -333,90 +403,115 @@ class _PropertyListPageState extends State<PropertyListPage> {
       );
     }
 
-    if (provider.filteredProperties.isEmpty) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(32.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                FontAwesomeIcons.home,
-                size: 64,
-                color: Colors.grey.shade300,
-              ),
-              const SizedBox(height: 16),
-              Text(
-                'No properties found',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.grey.shade600,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                provider.searchTerm.isNotEmpty || provider.filterStatus != 'all'
-                    ? 'Try changing your search or filter'
-                    : 'Add your first property to get started',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: Colors.grey.shade500,
-                ),
-              ),
-              if (provider.searchTerm.isEmpty && provider.filterStatus == 'all' && provider.isLandlord)
-                Padding(
-                  padding: const EdgeInsets.only(top: 20),
-                  child: ElevatedButton.icon(
-                    onPressed: () {
-                      // Navigate to add property
-                    },
-                    icon: const Icon(FontAwesomeIcons.plus),
-                    label: const Text('Add New Property'),
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 24,
-                        vertical: 12,
-                      ),
+    // Wrap everything in RefreshIndicator so pull-to-refresh works even when list is empty
+    return RefreshIndicator(
+      onRefresh: () async {
+        debugPrint('PropertyListPage: Pull to refresh triggered');
+        await provider.loadProperties();
+        await provider.loadStats();
+        debugPrint('PropertyListPage: After refresh - filteredProperties.length = ${provider.filteredProperties.length}');
+      },
+      child: provider.filteredProperties.isEmpty
+          ? SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(), // Enable pull-to-refresh even when empty
+              child: SizedBox(
+                height: MediaQuery.of(context).size.height * 0.6, // Make it scrollable
+                child: Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(32.0),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          FontAwesomeIcons.home,
+                          size: 64,
+                          color: Colors.grey.shade300,
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          'No properties found',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.grey.shade600,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          provider.searchTerm.isNotEmpty || provider.filterStatus != 'all'
+                              ? 'Try changing your search or filter'
+                              : 'Add your first property to get started',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: Colors.grey.shade500,
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+                        // Add refresh button for manual refresh
+                        ElevatedButton.icon(
+                          onPressed: () async {
+                            debugPrint('PropertyListPage: Manual refresh button pressed');
+                            await provider.loadProperties();
+                            await provider.loadStats();
+                            debugPrint('PropertyListPage: After manual refresh - filteredProperties.length = ${provider.filteredProperties.length}');
+                          },
+                          icon: const Icon(FontAwesomeIcons.rotate),
+                          label: const Text('Refresh'),
+                          style: ElevatedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 24,
+                              vertical: 12,
+                            ),
+                          ),
+                        ),
+                        if (provider.searchTerm.isEmpty && provider.filterStatus == 'all' && provider.isLandlord)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 12),
+                            child: ElevatedButton.icon(
+                              onPressed: () {
+                                // Navigate to add property
+                              },
+                              icon: const Icon(FontAwesomeIcons.plus),
+                              label: const Text('Add New Property'),
+                              style: ElevatedButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 24,
+                                  vertical: 12,
+                                ),
+                              ),
+                            ),
+                          ),
+                      ],
                     ),
                   ),
                 ),
-            ],
-          ),
-        ),
-      );
-    }
-
-    return RefreshIndicator(
-      onRefresh: () async {
-        await provider.loadProperties();
-        await provider.loadStats();
-      },
-      child: ListView.builder(
-        padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-        itemCount: provider.filteredProperties.length,
-        itemBuilder: (context, index) {
-          final property = provider.filteredProperties[index];
-          return Padding(
-            padding: const EdgeInsets.only(bottom: 12),
-            child: PropertyCard(
-              property: property,
-              onView: () {
-                _navigateToPropertyDetail(property);
-              },
-              onEdit: () {
-                _navigateToEditProperty(property);
-              },
-              onStatusChanged: (newStatus) {
-                provider.updatePropertyStatus(
-                  property.id,
-                  newStatus,
+              ),
+            )
+          : ListView.builder(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+              itemCount: provider.filteredProperties.length,
+              itemBuilder: (context, index) {
+                final property = provider.filteredProperties[index];
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: PropertyCard(
+                    property: property,
+                    onView: () {
+                      _navigateToPropertyDetail(property);
+                    },
+                    onEdit: () {
+                      _navigateToEditProperty(property);
+                    },
+                    onStatusChanged: (newStatus) {
+                      provider.updatePropertyStatus(
+                        property.id,
+                        newStatus,
+                      );
+                    },
+                  ),
                 );
               },
             ),
-          );
-        },
-      ),
     );
   }
 

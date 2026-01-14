@@ -1,5 +1,6 @@
 // providers/property_provider.dart
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 // import 'auth_provider.dart'; comes from above chunk logic but ensuring imports exist
 import '../data/models/property_model.dart';
 import '../data/repositories/property_repository.dart';
@@ -41,31 +42,24 @@ class PropertyProvider with ChangeNotifier {
     notifyListeners();
 
     try {
-      String? ownerIdFilter;
-      String? statusFilter;
-
-      // Role-based filtering
-      if (_authProvider.isLandlord) {
-        ownerIdFilter = _authProvider.firebaseUser?.uid;
-      } else if (_authProvider.isTenant) {
-        statusFilter = 'vacant';
-      }
-
-      final result = await _repository.getProperties(
-        ownerId: ownerIdFilter,
-        statusFilter: statusFilter,
-      );
+      // Fetch all properties - filtering by ownerId will be done in _applyFilters
+      // This handles cases where Firebase uses 'landlordId' instead of 'ownerId'
+      final result = await _repository.getProperties();
       result.fold(
         (failure) {
           _error = failure.message;
+          debugPrint('PropertyProvider: Error loading properties: ${failure.message}');
         },
         (properties) {
+          debugPrint('PropertyProvider: Loaded ${properties.length} properties');
           _properties = properties;
-          _filteredProperties = properties;
+          _applyFilters(); // Apply filters after loading properties
+          debugPrint('PropertyProvider: Filtered to ${_filteredProperties.length} properties');
         },
       );
     } catch (e) {
-      _error = 'An unexpected error occurred';
+      _error = 'An unexpected error occurred: $e';
+      debugPrint('PropertyProvider: Exception loading properties: $e');
     } finally {
       _isLoading = false;
       if (!_disposed) notifyListeners();
@@ -98,18 +92,49 @@ class PropertyProvider with ChangeNotifier {
   }
 
   void _applyFilters() {
+    final uid = _authProvider.firebaseUser?.uid;
+    debugPrint('PropertyProvider: Applying filters - isLandlord: $isLandlord, isTenant: $isTenant, uid: $uid');
+    debugPrint('PropertyProvider: Total properties before filter: ${_properties.length}');
+    
+    // TEMPORARILY DISABLED: Role-based filtering to verify properties are loading
+    // TODO: Re-enable role-based filtering after verification
     _filteredProperties = _properties.where((property) {
-      final statusMatches = _filterStatus == 'all' || 
-          property.status.value == _filterStatus.toLowerCase();
-      
-      final searchMatches = _searchTerm.isEmpty ||
+      // Filter by status if needed (from status filter chip)
+      if (_filterStatus != 'all' && property.status.value != _filterStatus) {
+        return false;
+      }
+
+      // TEMPORARILY DISABLED: Role-based filtering
+      // // For tenants, only show vacant properties
+      // if (isTenant && property.status != PropertyStatus.vacant) {
+      //   return false;
+      // }
+
+      // // For landlords, only show their own properties
+      // if (isLandlord) {
+      //   if (uid == null || property.ownerId != uid) {
+      //     debugPrint('PropertyProvider: Filtering out property ${property.id} - ownerId: ${property.ownerId}, uid: $uid');
+      //     return false;
+      //   }
+      // }
+
+      // If user is not a landlord or tenant, show all properties
+
+      // Filter by search term
+      final searchMatches =
+          _searchTerm.isEmpty ||
           property.title.toLowerCase().contains(_searchTerm.toLowerCase()) ||
           property.description.toLowerCase().contains(_searchTerm.toLowerCase()) ||
-          property.address.fullAddress.toLowerCase().contains(_searchTerm.toLowerCase());
+          property.address.fullAddress
+              .toLowerCase()
+              .contains(_searchTerm.toLowerCase());
 
-      return statusMatches && searchMatches;
+      return searchMatches;
     }).toList();
+    
+    debugPrint('PropertyProvider: Properties after filter: ${_filteredProperties.length}');
   }
+
 
   Future<void> selectProperty(String propertyId) async {
     try {
