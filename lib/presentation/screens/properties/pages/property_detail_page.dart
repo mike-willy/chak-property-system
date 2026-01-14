@@ -472,7 +472,10 @@ class _PropertyDetailPageState extends State<PropertyDetailPage> {
   Navigator.push(
     context,
     MaterialPageRoute(
-      builder: (_) => ApplicationPage(propertyId: widget.property.id),
+      builder: (_) => ApplicationPage(
+        propertyId: widget.property.id,
+        unitId: widget.property.unitId, // Add this line if the property has unitId
+      ),
     ),
   );
 },

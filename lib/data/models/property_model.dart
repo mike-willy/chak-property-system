@@ -47,6 +47,7 @@ extension PropertyStatusExtension on PropertyStatus {
 class PropertyModel {
   final String id;
   final String title;
+  final String unitId;
   final String description;
   final AddressModel address;
   final String ownerId;
@@ -66,6 +67,7 @@ class PropertyModel {
     required this.id,
     required this.title,
     required this.description,
+    required this.unitId,
     required this.address,
     required this.ownerId,
     required this.ownerName,
@@ -134,6 +136,7 @@ class PropertyModel {
       id: id,
       // Map 'name' (Web) to 'title' (Mobile)
       title: map['name'] as String? ?? map['title'] as String? ?? '',
+      unitId: map['unitId'] as String? ?? '',
       description: map['description'] as String? ?? '',
       address: addressObj,
       // Map 'landlordId' (Web) to 'ownerId' (Mobile)
@@ -168,6 +171,7 @@ class PropertyModel {
   PropertyModel copyWith({
     String? id,
     String? title,
+    String? unitId,
     String? description,
     AddressModel? address,
     String? ownerId,
@@ -186,6 +190,8 @@ class PropertyModel {
     return PropertyModel(
       id: id ?? this.id,
       title: title ?? this.title,
+      unitId: unitId ?? this.unitId,
+
       description: description ?? this.description,
       address: address ?? this.address,
       ownerId: ownerId ?? this.ownerId,

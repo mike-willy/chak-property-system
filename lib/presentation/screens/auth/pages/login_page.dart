@@ -70,7 +70,7 @@ class _LoginPageState extends State<LoginPage> {
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(
-        builder: (_) => ApplicationPage(propertyId: widget.propertyId!),
+        builder: (_) => ApplicationPage(propertyId: widget.propertyId!, unitId: ''),
       ),
     );
   } else {

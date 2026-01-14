@@ -1,23 +1,29 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:dartz/dartz.dart';
 import '../models/application_model.dart';
-import '../models/failure_model.dart';
 
 class ApplicationRepository {
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FirebaseFirestore _db = FirebaseFirestore.instance;
 
-  Future<Either<FailureModel, void>> submitApplication(
-    ApplicationModel application,
-  ) async {
-    try {
-      await _firestore
-          .collection('tenantApplications')
-          .doc(application.id)
-          .set(application.toMap());
+  CollectionReference get _ref =>
+      _db.collection('tenantApplications');
 
-      return const Right(null);
-    } catch (e) {
-      return Left(FailureModel(message: 'Failed to submit application'));
-    }
+  Future<List<ApplicationModel>> getPendingApplications() async {
+    final snap =
+        await _ref.where('status', isEqualTo: 'pending').get();
+
+    return snap.docs
+        .map((d) => ApplicationModel.fromFirestore(d))
+        .toList();
+  }
+
+  Future<void> approveApplication({
+    required ApplicationModel application,
+    required String tenantId,
+  }) async {
+    await _ref.doc(application.id).update({
+      'status': 'approved',
+      'processedAt': Timestamp.now(),
+      'tenantId': tenantId,
+    });
   }
 }

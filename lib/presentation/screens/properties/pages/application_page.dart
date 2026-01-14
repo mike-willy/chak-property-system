@@ -1,25 +1,38 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
+import '../widgets/application_form.dart';
+import '../../../../providers/auth_provider.dart';
 
 class ApplicationPage extends StatelessWidget {
   final String propertyId;
+  final String unitId;
 
   const ApplicationPage({
     super.key,
     required this.propertyId,
+    required this.unitId,
   });
 
   @override
   Widget build(BuildContext context) {
+    final auth = context.watch<AuthProvider>();
+
+    // Gatekeeping like a civilized system
+    if (!auth.loggedIn) {
+      Future.microtask(() {
+        Navigator.pushNamed(context, '/login');
+      });
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Apply for Property'),
-      ),
-      body: Center(
-        child: Text(
-          'Application page for property:\n$propertyId',
-          textAlign: TextAlign.center,
-          style: const TextStyle(fontSize: 16),
-        ),
+      appBar: AppBar(title: const Text('House Application')),
+      body: ApplicationForm(
+        propertyId: propertyId,
+        unitId: unitId,
       ),
     );
   }
