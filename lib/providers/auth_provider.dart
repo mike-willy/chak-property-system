@@ -115,6 +115,7 @@ class AuthProvider extends ChangeNotifier {
           role: role,
           createdAt: DateTime.now(),
           isVerified: false,
+          idNumber: '',
         );
 
         final result = await _authRepository!.createUserProfile(userModel);
@@ -249,6 +250,7 @@ class AuthProvider extends ChangeNotifier {
             role: userRole,
             createdAt: DateTime.now(),
             isVerified: false,
+            idNumber: '', 
           );
           final createResult = await _authRepository!.createUserProfile(userModel);
           createResult.fold(

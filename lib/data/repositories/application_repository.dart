@@ -16,6 +16,16 @@ class ApplicationRepository {
         .toList();
   }
 
+  Stream<List<ApplicationModel>> getTenantApplicationsStream(String tenantId) {
+    return _ref
+        .where('tenantId', isEqualTo: tenantId)
+        .orderBy('appliedDate', descending: true)
+        .snapshots()
+        .map((snapshot) => snapshot.docs
+            .map((d) => ApplicationModel.fromFirestore(d))
+            .toList());
+  }
+
   Future<void> approveApplication({
     required ApplicationModel application,
     required String tenantId,

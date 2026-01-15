@@ -21,6 +21,9 @@ class ApplicationProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  Stream<List<ApplicationModel>> getTenantApplicationsStream(String tenantId) =>
+      _applicationRepo.getTenantApplicationsStream(tenantId);
+
   Future<void> convertToTenant({
     required ApplicationModel application,
     required Map<String, dynamic> tenantData,

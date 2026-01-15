@@ -12,6 +12,7 @@ import 'providers/property_provider.dart';
 import 'providers/notification_provider.dart';
 import 'providers/message_provider.dart';
 import 'providers/maintenance_provider.dart';
+import 'providers/application_provider.dart';
 
 // Data Sources & Repositories
 import 'data/datasources/remote_datasource.dart';
@@ -20,6 +21,8 @@ import 'data/repositories/property_repository.dart';
 import 'data/repositories/notification_repository.dart';
 import 'data/repositories/message_repository.dart';
 import 'data/repositories/maintenance_repository.dart';
+import 'data/repositories/application_repository.dart';
+import 'data/repositories/tenant_repository.dart';
 
 // Screens
 import 'presentation/screens/auth/widgets/auth_gate.dart';
@@ -88,6 +91,12 @@ class MyApp extends StatelessWidget {
             context.read<RemoteDataSource>(),
           ),
         ),
+        Provider(
+          create: (context) => ApplicationRepository(),
+        ),
+        Provider(
+          create: (context) => TenantRepository(),
+        ),
         
         // Providers
         ChangeNotifierProvider(
@@ -103,6 +112,12 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(
           create: (context) => MessageProvider(
             messageRepository: context.read<MessageRepository>(),
+          ),
+        ),
+        ChangeNotifierProvider(
+          create: (context) => ApplicationProvider(
+            context.read<ApplicationRepository>(),
+            context.read<TenantRepository>(),
           ),
         ),
         

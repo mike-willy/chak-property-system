@@ -41,6 +41,7 @@ class UserModel {
   final String? profileImage;
   final DateTime createdAt;
   final bool isVerified;
+  final String idNumber;
 
   UserModel({
     required this.id,
@@ -51,6 +52,7 @@ class UserModel {
     this.profileImage,
     required this.createdAt,
     required this.isVerified,
+    this.idNumber = '',
   });
 
   // Convert to Firestore document
@@ -63,6 +65,7 @@ class UserModel {
       'profileImage': profileImage,
       'createdAt': Timestamp.fromDate(createdAt),
       'isVerified': isVerified,
+      'idNumber': idNumber,
     };
   }
 
@@ -77,6 +80,7 @@ class UserModel {
       profileImage: map['profileImage'] as String?,
       createdAt: (map['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       isVerified: map['isVerified'] as bool? ?? false,
+      idNumber: map['idNumber'] as String? ?? '',
     );
   }
 
@@ -96,6 +100,7 @@ class UserModel {
     String? profileImage,
     DateTime? createdAt,
     bool? isVerified,
+    String? idNumber,
   }) {
     return UserModel(
       id: id ?? this.id,
@@ -106,6 +111,7 @@ class UserModel {
       profileImage: profileImage ?? this.profileImage,
       createdAt: createdAt ?? this.createdAt,
       isVerified: isVerified ?? this.isVerified,
+      idNumber: idNumber ?? this.idNumber,
     );
   }
 }

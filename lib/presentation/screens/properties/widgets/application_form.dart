@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart';
 
 import '../../../../providers/auth_provider.dart';
 import '../../../../data/models/application_model.dart';
+import '../pages/application_status_page.dart';
 import 'application_section.dart';
 
 class ApplicationForm extends StatefulWidget {
@@ -566,7 +567,14 @@ class _ApplicationFormState extends State<ApplicationForm> {
         ),
       );
 
-      Navigator.pop(context);
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (context) => ApplicationStatusPage(
+            applicationId: doc.id,
+          ),
+        ),
+      );
     } catch (e) {
       print('Error submitting application: $e');
       ScaffoldMessenger.of(context).showSnackBar(

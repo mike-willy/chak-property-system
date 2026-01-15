@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../payments/payment_page.dart';
+import '../../auth/widgets/auth_gate.dart';
 
 class ApplicationStatusPage extends StatelessWidget {
   final String applicationId;
@@ -74,22 +75,17 @@ class ApplicationStatusPage extends StatelessWidget {
                 if (status == 'approved')
                   ElevatedButton(
                     onPressed: () {
-                       Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => PaymentPage(
-                            applicationId: applicationId,
-                            amount: (data['totalFees'] ?? 0).toDouble(),
-                          ),
-                        ),
-                      );
+                      Navigator.of(context).pushAndRemoveUntil(
+                          MaterialPageRoute(
+                              builder: (context) => const AuthGate()),
+                          (route) => false);
                     },
                     style: ElevatedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       backgroundColor: Colors.green,
                       foregroundColor: Colors.white,
                     ),
-                    child: const Text('Proceed to Payment'),
+                    child: const Text('Continue to Dashboard'),
                   ),
                 if (status == 'pending') ...[
                    OutlinedButton(
@@ -186,7 +182,7 @@ class ApplicationStatusPage extends StatelessWidget {
   String _getStatusMessage(String status) {
     switch (status.toLowerCase()) {
       case 'approved':
-        return 'Congratulations! Your application has been approved. Please proceed to make the payment to finalize your lease.';
+        return 'Congratulations! Your application has been approved. The unit has been assigned to you.';
       case 'rejected':
         return 'We are sorry, but your application has been declined at this time. Please contact the property manager for more information.';
       default:
