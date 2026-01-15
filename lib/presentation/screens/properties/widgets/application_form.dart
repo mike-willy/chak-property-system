@@ -584,6 +584,26 @@ class _ApplicationFormState extends State<ApplicationForm> {
         } : null,
       });
 
+
+
+      // Update User Profile with latest details
+      try {
+        await FirebaseFirestore.instance.collection('users').doc(auth.firebaseUser!.uid).update({
+          'name': _nameCtrl.text.trim(),
+          'phone': _phoneCtrl.text.trim(),
+          'idNumber': _idNumberCtrl.text.trim(), // Assuming you want to save this
+          // Add other fields if necessary
+        });
+        
+        // Force reload of local user profile if possible, or just let the stream handle it
+        // The AuthProvider listens to changes if configured, otherwise next fetch will get it.
+        // If AuthProvider doesn't listen to doc changes real-time, we might need to manually trigger refresh,
+        // but for now, the Firestore update is the source of truth.
+      } catch (e) {
+        print('Error updating user profile: $e');
+        // Non-critical error, continue to navigation
+      }
+
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
