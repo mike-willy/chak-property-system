@@ -5,6 +5,8 @@ import 'package:provider/provider.dart';
 import '../../../../data/models/maintenance_model.dart';
 import '../../../../providers/maintenance_provider.dart';
 import '../../../../providers/property_provider.dart';
+import '../../../../providers/auth_provider.dart'; // Add this import
+import '../../../../data/repositories/tenant_repository.dart'; // Add this import
 
 class CreateMaintenanceRequestPage extends StatefulWidget {
   final String? unitId;
@@ -22,29 +24,70 @@ class CreateMaintenanceRequestPage extends StatefulWidget {
 
 class _CreateMaintenanceRequestPageState extends State<CreateMaintenanceRequestPage> {
   final _formKey = GlobalKey<FormState>();
-  final _titleController = TextEditingController();
   final _descriptionController = TextEditingController();
   MaintenancePriority _selectedPriority = MaintenancePriority.medium;
   String? _selectedUnitId;
+  String? _selectedTitle; // Changed from controller to string for dropdown
   List<String> _images = [];
   bool _isSubmitting = false;
+  bool _isLoadingUnit = false; // For loading tenant unit
+
+  // Predefined title options
+  final List<String> _titleOptions = ['Water', 'Drainage', 'Electricity', 'Walks', 'Roof'];
 
   @override
   void initState() {
     super.initState();
     _selectedUnitId = widget.unitId;
+    _selectedTitle = _titleOptions.first; // Default to first option
+
     // Load properties/units if needed
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final propertyProvider = context.read<PropertyProvider>();
       if (propertyProvider.properties.isEmpty) {
         propertyProvider.loadProperties();
       }
+
+      // For tenants, fetch their associated unit
+      final authProvider = context.read<AuthProvider>();
+      if (authProvider.isTenant) {
+        _loadTenantUnit(authProvider.firebaseUser?.uid);
+      }
     });
+  }
+
+  Future<void> _loadTenantUnit(String? userId) async {
+    if (userId == null) return;
+
+    setState(() {
+      _isLoadingUnit = true;
+    });
+
+    try {
+      final tenantRepo = TenantRepository(); // Instantiate TenantRepository
+      final tenant = await tenantRepo.getTenantByUserId(userId);
+      if (tenant != null && tenant.unitId.isNotEmpty) {
+        setState(() {
+          _selectedUnitId = tenant.unitId;
+        });
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Unable to load your allocated unit. Please contact support.')),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error loading unit: $e')),
+      );
+    } finally {
+      setState(() {
+        _isLoadingUnit = false;
+      });
+    }
   }
 
   @override
   void dispose() {
-    _titleController.dispose();
     _descriptionController.dispose();
     super.dispose();
   }
@@ -61,6 +104,13 @@ class _CreateMaintenanceRequestPageState extends State<CreateMaintenanceRequestP
       return;
     }
 
+    if (_selectedTitle == null || _selectedTitle!.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please select a title')),
+      );
+      return;
+    }
+
     setState(() {
       _isSubmitting = true;
     });
@@ -68,7 +118,7 @@ class _CreateMaintenanceRequestPageState extends State<CreateMaintenanceRequestP
     final provider = context.read<MaintenanceProvider>();
     await provider.createRequest(
       unitId: _selectedUnitId!,
-      title: _titleController.text.trim(),
+      title: _selectedTitle!, // Use selected title
       description: _descriptionController.text.trim(),
       priority: _selectedPriority,
       images: _images,
@@ -93,6 +143,8 @@ class _CreateMaintenanceRequestPageState extends State<CreateMaintenanceRequestP
 
   @override
   Widget build(BuildContext context) {
+    final authProvider = context.watch<AuthProvider>();
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('New Maintenance Request'),
@@ -104,83 +156,89 @@ class _CreateMaintenanceRequestPageState extends State<CreateMaintenanceRequestP
           padding: const EdgeInsets.all(16),
           children: [
             // Unit Selection
-            Consumer<PropertyProvider>(
-              builder: (context, propertyProvider, _) {
-                if (propertyProvider.isTenant) {
-                  // For tenants, show a simple text field for unit ID
-                  return TextFormField(
-                    initialValue: _selectedUnitId,
-                    decoration: const InputDecoration(
-                      labelText: 'Unit ID / Unit Number',
-                      hintText: 'Enter your unit ID or number',
-                      prefixIcon: Icon(FontAwesomeIcons.home),
-                      border: OutlineInputBorder(),
-                    ),
-                    onChanged: (value) {
-                      setState(() {
-                        _selectedUnitId = value;
-                      });
-                    },
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Please enter unit ID';
-                      }
-                      return null;
-                    },
-                  );
-                } else {
-                  // For landlords, show dropdown of their properties/units
-                  return DropdownButtonFormField<String>(
-                    value: _selectedUnitId,
-                    decoration: const InputDecoration(
-                      labelText: 'Select Unit',
-                      prefixIcon: Icon(FontAwesomeIcons.home),
-                      border: OutlineInputBorder(),
-                    ),
-                    items: propertyProvider.properties
-                        .expand((property) {
-                          // For now, use property ID as unit ID
-                          // In production, you'd fetch actual units
-                          return [property.id];
-                        })
-                        .map((id) => DropdownMenuItem(
-                              value: id,
-                              child: Text('Unit: $id'),
-                            ))
-                        .toList(),
-                    onChanged: (value) {
-                      setState(() {
-                        _selectedUnitId = value;
-                      });
-                    },
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Please select a unit';
-                      }
-                      return null;
-                    },
-                  );
-                }
-              },
-            ),
+            if (_isLoadingUnit)
+              const Center(child: CircularProgressIndicator())
+            else
+              Consumer<PropertyProvider>(
+                builder: (context, propertyProvider, _) {
+                  if (authProvider.isTenant) {
+                    // For tenants, show the auto-selected unit (read-only)
+                    return TextFormField(
+                      initialValue: _selectedUnitId ?? 'Unit not found',
+                      decoration: const InputDecoration(
+                        labelText: 'Your Unit ID',
+                        prefixIcon: Icon(FontAwesomeIcons.home),
+                        border: OutlineInputBorder(),
+                      ),
+                      readOnly: true, // Make it read-only
+                      validator: (value) {
+                        if (value == null || value.isEmpty || value == 'Unit not found') {
+                          return 'Unit not available. Please contact support.';
+                        }
+                        return null;
+                      },
+                    );
+                  } else {
+                    // For landlords, show dropdown of their properties/units
+                    return DropdownButtonFormField<String>(
+                      value: _selectedUnitId,
+                      decoration: const InputDecoration(
+                        labelText: 'Select Unit',
+                        prefixIcon: Icon(FontAwesomeIcons.home),
+                        border: OutlineInputBorder(),
+                      ),
+                      items: propertyProvider.properties
+                          .expand((property) {
+                            // For now, use property ID as unit ID
+                            // In production, you'd fetch actual units
+                            return [property.id];
+                          })
+                          .map((id) => DropdownMenuItem(
+                                value: id,
+                                child: Text('Unit: $id'),
+                              ))
+                          .toList(),
+                      onChanged: (value) {
+                        setState(() {
+                          _selectedUnitId = value;
+                        });
+                      },
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Please select a unit';
+                        }
+                        return null;
+                      },
+                    );
+                  }
+                },
+              ),
 
             const SizedBox(height: 24),
 
-            // Title Field
-            TextFormField(
-              controller: _titleController,
+            // Title Dropdown
+            DropdownButtonFormField<String>(
+              value: _selectedTitle,
               decoration: const InputDecoration(
-                labelText: 'Title',
-                hintText: 'Brief description of the issue',
-                prefixIcon: Icon(FontAwesomeIcons.heading),
+                labelText: 'Issue Category',
+                hintText: 'Select the type of issue',
+                prefixIcon: Icon(FontAwesomeIcons.list),
                 border: OutlineInputBorder(),
               ),
+              items: _titleOptions.map((option) {
+                return DropdownMenuItem<String>(
+                  value: option,
+                  child: Text(option),
+                );
+              }).toList(),
+              onChanged: (value) {
+                setState(() {
+                  _selectedTitle = value;
+                });
+              },
               validator: (value) {
                 if (value == null || value.isEmpty) {
-                  return 'Please enter a title';
-                }
-                if (value.length < 5) {
-                  return 'Title must be at least 5 characters';
+                  return 'Please select an issue category';
                 }
                 return null;
               },

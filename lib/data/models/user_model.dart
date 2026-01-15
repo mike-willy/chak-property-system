@@ -19,7 +19,7 @@ extension UserRoleExtension on UserRole {
   }
 
   static UserRole fromString(String value) {
-    switch (value) {
+    switch (value.toLowerCase()) {
       case 'tenant':
         return UserRole.tenant;
       case 'landlord':

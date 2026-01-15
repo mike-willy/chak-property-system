@@ -1,32 +1,45 @@
 import 'package:flutter/material.dart';
 
 class HeaderSection extends StatelessWidget {
-  const HeaderSection({super.key});
+  final String userName;
+  final String userRole;
+
+  const HeaderSection({
+    super.key,
+    required this.userName,
+    required this.userRole,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        const Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Welcome back,', style: TextStyle(color: Colors.grey)),
-            SizedBox(height: 6),
-            Text(
-              'Hi, Alex Fletcher 👋',
-              style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700),
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.blue.shade50,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Welcome back, $userName!',
+            style: const TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+              color: Colors.blue,
             ),
-          ],
-        ),
-        Row(
-          children: const [
-            Icon(Icons.notifications_none),
-            SizedBox(width: 12),
-            CircleAvatar(radius: 18),
-          ],
-        )
-      ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Role: $userRole',
+            style: TextStyle(
+              fontSize: 16,
+              color: Colors.grey.shade700,
+            ),
+          ),
+          // Add more dynamic content here if needed, e.g., profile image or stats
+        ],
+      ),
     );
   }
 }

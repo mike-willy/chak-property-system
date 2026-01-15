@@ -7,7 +7,6 @@ import 'package:flutter/foundation.dart';
 import '../../../../providers/auth_provider.dart';
 import '../../../../data/models/application_model.dart';
 import 'application_section.dart';
-import '../pages/application_status_page.dart';
 
 class ApplicationForm extends StatefulWidget {
   final String propertyId;
@@ -91,9 +90,6 @@ class _ApplicationFormState extends State<ApplicationForm> {
 
   Future<void> _loadPropertyData() async {
     try {
-      await _checkExistingApplication();
-      if (!mounted) return;
-
       // Load property data
       final propertyDoc = await FirebaseFirestore.instance
           .collection('properties')
@@ -393,49 +389,6 @@ class _ApplicationFormState extends State<ApplicationForm> {
     };
   }
 
-  Future<void> _checkExistingApplication() async {
-    final auth = context.read<AuthProvider>();
-    if (auth.firebaseUser == null) return;
-
-    // Check for pending applications for this property by this user
-    // We fetch all pending applications for this user and filter in memory 
-    // to avoid needing a specific composite index immediately
-    final query = await FirebaseFirestore.instance
-        .collection('tenantApplications')
-        .where('tenantId', isEqualTo: auth.firebaseUser!.uid)
-        .where('status', isEqualTo: 'pending')
-        .get();
-
-    if (query.docs.isNotEmpty) {
-      // Check if any of these are for the current property
-      final existingApp = query.docs.firstWhere(
-        (doc) => doc['propertyId'] == widget.propertyId,
-        orElse: () => query.docs.first, // Fallback (shouldn't be hit if we filter right, but logic below handles it)
-      );
-      
-      // Specifically check if the found doc is for this property
-      if (existingApp['propertyId'] == widget.propertyId) {
-         if (!mounted) return;
-         
-         ScaffoldMessenger.of(context).showSnackBar(
-           const SnackBar(
-             content: Text('You already have a pending application for this property.'),
-             backgroundColor: Colors.blue,
-           ),
-         );
-
-         Navigator.pushReplacement(
-           context,
-           MaterialPageRoute(
-             builder: (context) => ApplicationStatusPage(
-               applicationId: existingApp.id,
-             ),
-           ),
-         );
-      }
-    }
-  }
-
   void _updateRentForSelectedUnit() {
     if (_selectedUnitData != null) {
       // Use unit-specific rent if available, otherwise use property rent
@@ -613,15 +566,7 @@ class _ApplicationFormState extends State<ApplicationForm> {
         ),
       );
 
-      // Navigate to status page replacing the current route so they can't go back to form easily
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (context) => ApplicationStatusPage(
-            applicationId: doc.id,
-          ),
-        ),
-      );
+      Navigator.pop(context);
     } catch (e) {
       print('Error submitting application: $e');
       ScaffoldMessenger.of(context).showSnackBar(

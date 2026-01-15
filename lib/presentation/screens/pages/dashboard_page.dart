@@ -1,4 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../../../providers/auth_provider.dart';
+import '../../../providers/property_provider.dart';
+import '../../../data/repositories/tenant_repository.dart';
+import '../../../data/models/tenant_model.dart';
 import '../widgets/header_section.dart';
 import '../widgets/upcoming_rent_card.dart';
 import '../widgets/status_row.dart';
@@ -9,6 +14,8 @@ import '../properties/pages/property_list_page.dart';
 import 'messages_page.dart';
 import 'maintenance_page.dart';
 import 'profile_page.dart';
+import '../../../data/models/user_model.dart';
+
 
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
@@ -57,27 +64,102 @@ class _DashboardPageState extends State<DashboardPage> {
   }
 }
 
-class DashboardHome extends StatelessWidget {
+class DashboardHome extends StatefulWidget {
   const DashboardHome({super.key});
+
+  @override
+  State<DashboardHome> createState() => _DashboardHomeState();
+}
+
+class _DashboardHomeState extends State<DashboardHome> {
+  TenantModel? _tenantData;
+  bool _isLoadingTenant = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      // Load properties
+      final propertyProvider = context.read<PropertyProvider>();
+      if (propertyProvider.properties.isEmpty) {
+        propertyProvider.loadProperties();
+      }
+
+      // Load tenant data for tenants
+      final authProvider = context.read<AuthProvider>();
+      if (authProvider.isTenant && authProvider.firebaseUser != null) {
+        _loadTenantData(authProvider.firebaseUser!.uid);
+      }
+    });
+  }
+
+  Future<void> _loadTenantData(String userId) async {
+    setState(() {
+      _isLoadingTenant = true;
+    });
+    try {
+      final tenantRepo = TenantRepository();
+      _tenantData = await tenantRepo.getTenantByUserId(userId);
+    } catch (e) {
+      debugPrint('Error loading tenant data: $e');
+    } finally {
+      setState(() {
+        _isLoadingTenant = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return SafeArea(
       child: SingleChildScrollView(
         padding: const EdgeInsets.all(AppConstants.horizontalPadding),
-        child: const Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            HeaderSection(),
-            SizedBox(height: 24),
-            UpcomingRentCard(),
-            SizedBox(height: 24),
-            StatusRow(),
-            SizedBox(height: 32),
-            RecentActivity(),
-            SizedBox(height: 32),
-            CTASection(),
-          ],
+        child: Consumer2<AuthProvider, PropertyProvider>(
+          builder: (context, authProvider, propertyProvider, _) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Header with user data
+                HeaderSection(
+                  userName: authProvider.userProfile?.name ?? 'User',
+                  userRole: authProvider.userProfile?.role.value ?? 'Unknown',
+                ),
+                const SizedBox(height: 24),
+
+                // Upcoming Rent Card - for tenants
+                if (authProvider.isTenant)
+                  UpcomingRentCard(
+                    tenantData: _tenantData,
+                    isLoading: _isLoadingTenant,
+                    properties: propertyProvider.properties,
+                  )
+                else
+                  const SizedBox.shrink(), // Hide for non-tenants
+
+                const SizedBox(height: 24),
+
+                // Status Row - show property stats
+                // StatusRow(
+                //   properties: propertyProvider.properties,
+                //   isLoading: propertyProvider.isLoading,
+                //   error: propertyProvider.error,
+                // ),
+
+                const SizedBox(height: 32),
+
+                // Recent Activity - show recent properties or maintenance
+               RecentActivity(
+  properties: propertyProvider.filteredProperties.take(3).toList(), // Show last 3 properties
+  isLoading: propertyProvider.isLoading,
+),
+
+                const SizedBox(height: 32),
+
+                // CTA Section - static
+                const CTASection(),
+              ],
+            );
+          },
         ),
       ),
     );
