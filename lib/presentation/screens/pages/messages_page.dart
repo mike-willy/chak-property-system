@@ -38,9 +38,13 @@ class _MessagesPageState extends State<MessagesPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFF141725), // Dark background
       appBar: AppBar(
-        title: const Text('Chat with Admin'),
+        title: const Text('Chat with Admin', style: TextStyle(color: Colors.white)),
         centerTitle: true,
+        backgroundColor: const Color(0xFF141725),
+        elevation: 0,
+        iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: Column(
         children: [
@@ -49,23 +53,26 @@ class _MessagesPageState extends State<MessagesPage> {
             child: Consumer2<MessageProvider, AuthProvider>(
               builder: (context, messageProvider, authProvider, _) {
                 if (messageProvider.isLoading) {
-                  return const Center(child: CircularProgressIndicator());
+                  return const Center(child: CircularProgressIndicator(color: Color(0xFF4E95FF)));
                 }
 
                 if (messageProvider.error != null) {
-                  return Center(child: Text('Error: ${messageProvider.error}'));
+                  return Center(child: Text('Error: ${messageProvider.error}', style: const TextStyle(color: Colors.red)));
                 }
 
                 final messages = messageProvider.messages;
 
                 if (messages.isEmpty) {
-                  return const Center(
+                  return Center(
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.chat_bubble_outline, size: 48, color: Colors.grey),
-                        SizedBox(height: 16),
-                        Text('No messages yet. Start a conversation!'),
+                        Icon(Icons.chat_bubble_outline, size: 48, color: Colors.grey.shade600),
+                        const SizedBox(height: 16),
+                        Text(
+                          'No messages yet. Start a conversation!',
+                          style: TextStyle(color: Colors.grey.shade400),
+                        ),
                       ],
                     ),
                   );
@@ -101,16 +108,13 @@ class _MessagesPageState extends State<MessagesPage> {
 
           // Input Area
           Container(
-            padding: const EdgeInsets.all(8.0),
-            decoration: BoxDecoration(
-              color: Theme.of(context).scaffoldBackgroundColor,
-              boxShadow: [
-                BoxShadow(
-                  offset: const Offset(0, -1),
-                  blurRadius: 4,
-                  color: Colors.black.withOpacity(0.05),
-                ),
-              ],
+            padding: const EdgeInsets.all(16.0),
+            decoration: const BoxDecoration(
+              color: Color(0xFF1E2235), // Dark Surface
+              borderRadius: BorderRadius.only(
+                topLeft: Radius.circular(20),
+                topRight: Radius.circular(20),
+              ),
             ),
             child: SafeArea(
               child: Row(
@@ -119,13 +123,15 @@ class _MessagesPageState extends State<MessagesPage> {
                     child: TextField(
                       controller: _messageController,
                       textCapitalization: TextCapitalization.sentences,
+                      style: const TextStyle(color: Colors.white),
                       decoration: InputDecoration(
                         hintText: 'Type a message...',
+                        hintStyle: TextStyle(color: Colors.grey.shade600),
                         filled: true,
-                        fillColor: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.3),
+                        fillColor: const Color(0xFF141725), // Ultra dark input
                         contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 10,
+                          horizontal: 20,
+                          vertical: 12,
                         ),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(24),
@@ -136,19 +142,26 @@ class _MessagesPageState extends State<MessagesPage> {
                       maxLines: 4,
                     ),
                   ),
-                  const SizedBox(width: 8),
-                  IconButton(
-                    onPressed: _isSending ? null : _sendMessage,
-                    icon: _isSending
-                        ? const SizedBox(
-                            width: 24,
-                            height: 24,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : Icon(
-                            Icons.send,
-                            color: Theme.of(context).colorScheme.primary,
-                          ),
+                  const SizedBox(width: 12),
+                  Container(
+                    decoration: const BoxDecoration(
+                      color: Color(0xFF4E95FF), // Brand Blue
+                      shape: BoxShape.circle,
+                    ),
+                    child: IconButton(
+                      onPressed: _isSending ? null : _sendMessage,
+                      icon: _isSending
+                          ? const SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                            )
+                          : const Icon(
+                              Icons.send,
+                              color: Colors.white,
+                              size: 20,
+                            ),
+                    ),
                   ),
                 ],
               ),
@@ -198,9 +211,6 @@ class ChatBubble extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
-    
     return Align(
       alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
       child: Container(
@@ -208,9 +218,9 @@ class ChatBubble extends StatelessWidget {
         constraints: BoxConstraints(
           maxWidth: MediaQuery.of(context).size.width * 0.75,
         ),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
-          color: isMe ? colorScheme.primary : colorScheme.surfaceVariant,
+          color: isMe ? const Color(0xFF4E95FF) : const Color(0xFF1E2235), // Blue vs Dark Surface
           borderRadius: BorderRadius.only(
             topLeft: const Radius.circular(16),
             topRight: const Radius.circular(16),
@@ -223,18 +233,19 @@ class ChatBubble extends StatelessWidget {
           children: [
             Text(
               message.message,
-              style: theme.textTheme.bodyLarge?.copyWith(
-                color: isMe ? colorScheme.onPrimary : colorScheme.onSurfaceVariant,
+              style: TextStyle(
+                color: isMe ? Colors.white : Colors.grey.shade200,
+                fontSize: 15,
               ),
             ),
-            const SizedBox(height: 4),
+            const SizedBox(height: 6),
             Text(
               DateFormat('h:mm a').format(message.createdAt.toDate()),
-              style: theme.textTheme.labelSmall?.copyWith(
+              style: TextStyle(
                 color: isMe 
-                  ? colorScheme.onPrimary.withOpacity(0.7) 
-                  : colorScheme.onSurfaceVariant.withOpacity(0.7),
-                fontSize: 10,
+                  ? Colors.white.withOpacity(0.7) 
+                  : Colors.grey.shade500,
+                fontSize: 11,
               ),
             ),
           ],

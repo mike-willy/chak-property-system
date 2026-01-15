@@ -43,7 +43,7 @@ class ApplicationProvider extends ChangeNotifier {
 
       await _applicationRepo.approveApplication(
         application: application,
-        tenantId: tenantRef.id,
+        generatedTenantId: tenantRef.id,
       );
 
       applications.removeWhere((a) => a.id == application.id);

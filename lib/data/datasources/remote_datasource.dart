@@ -4,11 +4,24 @@ import '../models/property_model.dart';
 import '../models/user_model.dart';
 import '../models/notification_model.dart';
 import '../models/maintenance_model.dart';
+import '../models/maintenance_category_model.dart'; // Added import
 
 class RemoteDataSource {
   final FirebaseFirestore _firestore;
 
   RemoteDataSource(this._firestore);
+
+  // Maintenance Categories
+  Future<List<MaintenanceCategoryModel>> getMaintenanceCategories() async {
+    try {
+      final querySnapshot = await _firestore.collection('maintenance_categories').get();
+      return querySnapshot.docs
+          .map((doc) => MaintenanceCategoryModel.fromFirestore(doc))
+          .toList();
+    } catch (e) {
+      throw Exception('Failed to fetch maintenance categories: $e');
+    }
+  }
 
   Future<List<PropertyModel>> getProperties({
     String? statusFilter,
@@ -139,6 +152,45 @@ class RemoteDataSource {
         .map((snapshot) => snapshot.docs
             .map((doc) => PropertyModel.fromFirestore(doc))
             .toList());
+  }
+
+  Future<List<Map<String, dynamic>>> getPropertyUnits(String propertyId) async {
+    try {
+      final querySnapshot = await _firestore
+          .collection('properties')
+          .doc(propertyId)
+          .collection('units')
+          .get();
+
+      return querySnapshot.docs.map((doc) {
+        final data = doc.data();
+        data['id'] = doc.id;
+        return data;
+      }).toList();
+    } catch (e) {
+      throw Exception('Failed to fetch property units: $e');
+    }
+  }
+
+  Future<Map<String, dynamic>> getPropertyUnit(String propertyId, String unitId) async {
+    try {
+      final doc = await _firestore
+          .collection('properties')
+          .doc(propertyId)
+          .collection('units')
+          .doc(unitId)
+          .get();
+
+      if (!doc.exists) {
+        throw Exception('Unit not found');
+      }
+
+      final data = doc.data()!;
+      data['id'] = doc.id;
+      return data;
+    } catch (e) {
+      throw Exception('Failed to fetch property unit: $e');
+    }
   }
 
   // User Profile Methods

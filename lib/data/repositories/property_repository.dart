@@ -4,6 +4,7 @@ import 'package:dartz/dartz.dart';
 import '../datasources/remote_datasource.dart';
 import '../models/failure_model.dart';
 import '../models/property_model.dart';
+import '../models/unit_model.dart';
 
 class PropertyRepository {
   final RemoteDataSource _remoteDataSource;
@@ -37,6 +38,35 @@ class PropertyRepository {
     } catch (e) {
       return Left(
         FailureModel(message: 'Failed to fetch property: $e'),
+      );
+    }
+  }
+
+  /// Fetch property units from subcollection
+  Future<Either<FailureModel, List<Map<String, dynamic>>>> getPropertyUnits(
+    String propertyId,
+  ) async {
+    try {
+      final units = await _remoteDataSource.getPropertyUnits(propertyId);
+      return Right(units);
+    } catch (e) {
+      return Left(
+        FailureModel(message: 'Failed to fetch property units: $e'),
+      );
+    }
+  }
+
+  /// Fetch single property unit
+  Future<Either<FailureModel, UnitModel>> getPropertyUnit(
+    String propertyId,
+    String unitId,
+  ) async {
+    try {
+      final unitData = await _remoteDataSource.getPropertyUnit(propertyId, unitId);
+      return Right(UnitModel.fromMap(unitData['id'], unitData));
+    } catch (e) {
+      return Left(
+        FailureModel(message: 'Failed to fetch property unit: $e'),
       );
     }
   }

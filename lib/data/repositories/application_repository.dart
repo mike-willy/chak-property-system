@@ -28,12 +28,12 @@ class ApplicationRepository {
 
   Future<void> approveApplication({
     required ApplicationModel application,
-    required String tenantId,
+    required String generatedTenantId,
   }) async {
     await _ref.doc(application.id).update({
       'status': 'approved',
       'processedAt': Timestamp.now(),
-      'tenantId': tenantId,
+      'linkedTenantId': generatedTenantId,
     });
   }
 }

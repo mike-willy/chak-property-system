@@ -9,11 +9,16 @@ import 'auth_provider.dart';
 
 class PropertyProvider with ChangeNotifier {
   final PropertyRepository _repository;
-  final AuthProvider _authProvider;
+  AuthProvider _authProvider;
 
   bool _disposed = false;
 
   PropertyProvider(this._repository, this._authProvider);
+  
+  void update(AuthProvider auth) {
+    _authProvider = auth;
+    notifyListeners();
+  }
 
   bool get isLandlord => _authProvider.isLandlord;
   bool get isTenant => _authProvider.isTenant;

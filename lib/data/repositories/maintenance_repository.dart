@@ -3,11 +3,24 @@ import 'package:dartz/dartz.dart';
 import '../datasources/remote_datasource.dart';
 import '../models/failure_model.dart';
 import '../models/maintenance_model.dart';
+import '../models/maintenance_category_model.dart'; // Added import
 
 class MaintenanceRepository {
   final RemoteDataSource _remoteDataSource;
 
   MaintenanceRepository(this._remoteDataSource);
+
+  /// Fetch maintenance categories
+  Future<Either<FailureModel, List<MaintenanceCategoryModel>>> getMaintenanceCategories() async {
+    try {
+      final categories = await _remoteDataSource.getMaintenanceCategories();
+      return Right(categories);
+    } catch (e) {
+      return Left(
+        FailureModel(message: 'Failed to fetch categories: $e'),
+      );
+    }
+  }
 
   /// Fetch maintenance requests
   Future<Either<FailureModel, List<MaintenanceModel>>> getMaintenanceRequests({

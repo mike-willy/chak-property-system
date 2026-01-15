@@ -33,16 +33,19 @@ class _CreateMaintenanceRequestPageState extends State<CreateMaintenanceRequestP
   bool _isLoadingUnit = false; // For loading tenant unit
 
   // Predefined title options
-  final List<String> _titleOptions = ['Water', 'Drainage', 'Electricity', 'Walks', 'Roof'];
+  // final List<String> _titleOptions = ['Water', 'Drainage', 'Electricity', 'Walks', 'Roof'];
 
   @override
   void initState() {
     super.initState();
     _selectedUnitId = widget.unitId;
-    _selectedTitle = _titleOptions.first; // Default to first option
+    _selectedTitle = null; // Default to null for dynamic list
 
     // Load properties/units if needed
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      final maintenanceProvider = context.read<MaintenanceProvider>();
+      maintenanceProvider.loadCategories(); // Load categories
+
       final propertyProvider = context.read<PropertyProvider>();
       if (propertyProvider.properties.isEmpty) {
         propertyProvider.loadProperties();
@@ -217,31 +220,39 @@ class _CreateMaintenanceRequestPageState extends State<CreateMaintenanceRequestP
             const SizedBox(height: 24),
 
             // Title Dropdown
-            DropdownButtonFormField<String>(
-              value: _selectedTitle,
-              decoration: const InputDecoration(
-                labelText: 'Issue Category',
-                hintText: 'Select the type of issue',
-                prefixIcon: Icon(FontAwesomeIcons.list),
-                border: OutlineInputBorder(),
-              ),
-              items: _titleOptions.map((option) {
-                return DropdownMenuItem<String>(
-                  value: option,
-                  child: Text(option),
+            Consumer<MaintenanceProvider>(
+              builder: (context, maintenanceProvider, child) {
+                 final categories = maintenanceProvider.categories;
+                 
+                 return DropdownButtonFormField<String>(
+                  value: _selectedTitle,
+                  decoration: const InputDecoration(
+                    labelText: 'Issue Category',
+                    hintText: 'Select the type of issue',
+                    prefixIcon: Icon(FontAwesomeIcons.list),
+                    border: OutlineInputBorder(),
+                  ),
+                  items: categories.isEmpty 
+                    ? [] 
+                    : categories.map((category) {
+                    return DropdownMenuItem<String>(
+                      value: category.name,
+                      child: Text(category.name),
+                    );
+                  }).toList(),
+                  onChanged: (value) {
+                    setState(() {
+                      _selectedTitle = value;
+                    });
+                  },
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please select an issue category';
+                    }
+                    return null;
+                  },
                 );
-              }).toList(),
-              onChanged: (value) {
-                setState(() {
-                  _selectedTitle = value;
-                });
-              },
-              validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return 'Please select an issue category';
-                }
-                return null;
-              },
+              }
             ),
 
             const SizedBox(height: 16),

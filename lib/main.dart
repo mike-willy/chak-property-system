@@ -23,6 +23,8 @@ import 'data/repositories/message_repository.dart';
 import 'data/repositories/maintenance_repository.dart';
 import 'data/repositories/application_repository.dart';
 import 'data/repositories/tenant_repository.dart';
+import 'data/repositories/payment_repository.dart';
+import 'providers/tenant_provider.dart';
 
 // Screens
 import 'presentation/screens/auth/widgets/auth_gate.dart';
@@ -97,6 +99,9 @@ class MyApp extends StatelessWidget {
         Provider(
           create: (context) => TenantRepository(),
         ),
+        Provider(
+          create: (context) => PaymentRepository(),
+        ),
         
         // Providers
         ChangeNotifierProvider(
@@ -121,16 +126,30 @@ class MyApp extends StatelessWidget {
           ),
         ),
         
+        // Tenant Provider depends on Auth Provider
+        ChangeNotifierProxyProvider<AuthProvider, TenantProvider>(
+          create: (context) => TenantProvider(
+            context.read<TenantRepository>(),
+            context.read<PaymentRepository>(),
+            context.read<PropertyRepository>(),
+            context.read<AuthProvider>(),
+          ),
+          update: (context, auth, previous) {
+             previous!.update(auth);
+             return previous;
+          },
+        ),
+        
         // Property Provider depends on Auth Provider
         ChangeNotifierProxyProvider<AuthProvider, PropertyProvider>(
           create: (context) => PropertyProvider(
             context.read<PropertyRepository>(),
             context.read<AuthProvider>(),
           ),
-          update: (context, auth, previous) => PropertyProvider(
-            context.read<PropertyRepository>(),
-            auth,
-          ),
+          update: (context, auth, previous) {
+            previous!.update(auth);
+            return previous;
+          },
         ),
         // Maintenance Provider depends on Auth Provider
         ChangeNotifierProxyProvider<AuthProvider, MaintenanceProvider>(
@@ -138,10 +157,10 @@ class MyApp extends StatelessWidget {
             context.read<MaintenanceRepository>(),
             context.read<AuthProvider>(),
           ),
-          update: (context, auth, previous) => MaintenanceProvider(
-            context.read<MaintenanceRepository>(),
-            auth,
-          ),
+          update: (context, auth, previous) {
+            previous!.update(auth);
+            return previous;
+          },
         ),
       ],
       child: MaterialApp(

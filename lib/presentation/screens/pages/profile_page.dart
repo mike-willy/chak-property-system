@@ -21,16 +21,21 @@ class ProfilePage extends StatelessWidget {
 
     if (user == null || firebaseUser == null) {
       return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
+        backgroundColor: Color(0xFF141725),
+        body: Center(child: CircularProgressIndicator(color: Color(0xFF4E95FF))),
       );
     }
 
     return Scaffold(
+      backgroundColor: const Color(0xFF141725),
       appBar: AppBar(
-        title: const Text('My Profile'),
+        title: const Text('My Profile', style: TextStyle(color: Colors.white)),
+        backgroundColor: const Color(0xFF141725),
+        elevation: 0,
+        iconTheme: const IconThemeData(color: Colors.white),
         actions: [
           IconButton(
-            icon: const Icon(Icons.logout),
+            icon: const Icon(Icons.logout, color: Colors.redAccent),
             onPressed: () async {
               await context.read<AuthProvider>().signOut();
             },
@@ -47,36 +52,52 @@ class ProfilePage extends StatelessWidget {
             Center(
               child: Column(
                 children: [
-                  CircleAvatar(
-                    radius: 50,
-                    backgroundColor: Colors.grey.shade200,
-                    backgroundImage: user.profileImage != null && user.profileImage!.isNotEmpty
-                        ? NetworkImage(user.profileImage!)
-                        : null,
-                    child: user.profileImage == null || user.profileImage!.isEmpty
-                        ? Text(
-                            user.name.isNotEmpty ? user.name[0].toUpperCase() : '?',
-                            style: const TextStyle(fontSize: 40),
-                          )
-                        : null,
+                  Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(color: const Color(0xFF4E95FF), width: 2),
+                    ),
+                    child: CircleAvatar(
+                      radius: 50,
+                      backgroundColor: const Color(0xFF1E2235),
+                      backgroundImage: user.profileImage != null && user.profileImage!.isNotEmpty
+                          ? NetworkImage(user.profileImage!)
+                          : null,
+                      child: user.profileImage == null || user.profileImage!.isEmpty
+                          ? Text(
+                              user.name.isNotEmpty ? user.name[0].toUpperCase() : '?',
+                              style: const TextStyle(fontSize: 40, color: Colors.white),
+                            )
+                          : null,
+                    ),
                   ),
                   const SizedBox(height: 16),
                   Text(
                     user.name,
-                    style: Theme.of(context).textTheme.titleLarge,
+                    style: const TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     user.email,
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: Colors.grey,
-                        ),
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey.shade400,
+                    ),
                   ),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 12),
                   Chip(
-                    label: Text(user.role.name.toUpperCase()),
-                    backgroundColor: Colors.blue.withOpacity(0.1),
-                    labelStyle: const TextStyle(color: Colors.blue, fontSize: 12),
+                    label: Text(
+                      user.role.name.toUpperCase(),
+                      style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+                    ),
+                    backgroundColor: const Color(0xFF4E95FF),
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 0),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20), side: BorderSide.none),
                   ),
                 ],
               ),
@@ -86,22 +107,32 @@ class ProfilePage extends StatelessWidget {
             // Personal Details Section
             const Text(
               'Personal Details',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
             ),
             const SizedBox(height: 16),
-            Card(
+            Container(
+              decoration: BoxDecoration(
+                color: const Color(0xFF1E2235),
+                borderRadius: BorderRadius.circular(16),
+              ),
               child: Column(
                 children: [
                   ListTile(
-                    leading: const Icon(Icons.phone),
-                    title: const Text('Phone Number'),
-                    subtitle: Text(user.phone.isNotEmpty ? user.phone : 'Not set'),
+                    leading: const Icon(Icons.phone, color: Color(0xFF4E95FF)),
+                    title: const Text('Phone Number', style: TextStyle(color: Colors.grey, fontSize: 13)),
+                    subtitle: Text(
+                      user.phone.isNotEmpty ? user.phone : 'Not set',
+                      style: const TextStyle(color: Colors.white, fontSize: 16),
+                    ),
                   ),
-                  const Divider(height: 1),
+                  Divider(height: 1, color: Colors.grey.shade800),
                   ListTile(
-                    leading: const Icon(Icons.badge),
-                    title: const Text('ID Number'),
-                    subtitle: Text(user.idNumber.isNotEmpty ? user.idNumber : 'Not set'),
+                    leading: const Icon(Icons.badge, color: Color(0xFF4E95FF)),
+                    title: const Text('ID Number', style: TextStyle(color: Colors.grey, fontSize: 13)),
+                    subtitle: Text(
+                      user.idNumber.isNotEmpty ? user.idNumber : 'Not set',
+                      style: const TextStyle(color: Colors.white, fontSize: 16),
+                    ),
                   ),
                 ],
               ),
@@ -112,7 +143,7 @@ class ProfilePage extends StatelessWidget {
             // Active Application Section
             const Text(
               'Current Activity',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
             ),
             const SizedBox(height: 16),
             
@@ -132,65 +163,97 @@ class ProfilePage extends StatelessWidget {
       stream: applicationProvider.getTenantApplicationsStream(userId),
       builder: (context, snapshot) {
         if (snapshot.hasError) {
-          return Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Row(
-                children: [
-                  const Icon(Icons.error_outline, color: Colors.red),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Text(
-                      'Error loading applications: ${snapshot.error}',
-                      style: const TextStyle(color: Colors.red),
-                    ),
+          return Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: const Color(0xFF1E2235),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.red.shade900),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.error_outline, color: Colors.redAccent),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Text(
+                    'Error loading applications: ${snapshot.error}',
+                    style: const TextStyle(color: Colors.redAccent),
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           );
         }
 
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
+          return const Center(child: CircularProgressIndicator(color: Color(0xFF4E95FF)));
         }
 
         if (!snapshot.hasData || snapshot.data!.isEmpty) {
-          return Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      const Icon(Icons.info_outline, color: Colors.grey),
-                      const SizedBox(width: 16),
-                      const Text('No applications found'),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Submit an application to see your status here',
-                    style: TextStyle(color: Colors.grey.shade600),
-                  ),
-                ],
-              ),
+          return Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: const Color(0xFF1E2235),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                   Icon(Icons.info_outline, color: Colors.grey.shade400),
+                    const SizedBox(width: 16),
+                    const Text('No applications found', style: TextStyle(color: Colors.white)),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Submit an application to see your status here',
+                  style: TextStyle(color: Colors.grey.shade500),
+                ),
+              ],
             ),
           );
         }
 
-        final applications = snapshot.data!;
+        // Sort applications to prioritize Approved > Pending > Rejected
+        // Secondary sort by date descending
+        final sortedApplications = List<ApplicationModel>.from(snapshot.data!);
+        sortedApplications.sort((a, b) {
+          // Define priority: Approved (2) > Pending (1) > Rejected (0)
+          int getPriority(String status) {
+            switch (status.toLowerCase()) {
+              case 'approved': return 2;
+              case 'pending': return 1;
+              default: return 0;
+            }
+          }
+
+          final priorityA = getPriority(a.status.value);
+          final priorityB = getPriority(b.status.value);
+
+          if (priorityA != priorityB) {
+            return priorityB.compareTo(priorityA); // Descending priority
+          }
+          return b.appliedDate.compareTo(a.appliedDate); // Descending date
+        });
+
+        final applications = sortedApplications;
 
         return Column(
           children: [
-            // Show the most recent application prominently
+            // Show the most relevant application (highest priority)
             _buildApplicationCard(context, applications.first),
             
             // Show count of other applications
             if (applications.length > 1) ...[
               const SizedBox(height: 16),
-              Card(
+              const SizedBox(height: 16),
+              Container(
+                decoration: BoxDecoration(
+                  color: const Color(0xFF1E2235),
+                  borderRadius: BorderRadius.circular(16),
+                ),
                 child: Padding(
                   padding: const EdgeInsets.all(16.0),
                   child: Row(
@@ -198,10 +261,10 @@ class ProfilePage extends StatelessWidget {
                     children: [
                       Text(
                         '${applications.length - 1} other application${applications.length > 2 ? 's' : ''}',
-                        style: const TextStyle(fontWeight: FontWeight.w500),
+                        style: const TextStyle(fontWeight: FontWeight.w500, color: Colors.white),
                       ),
                       IconButton(
-                        icon: const Icon(Icons.history),
+                        icon: const Icon(Icons.history, color: Colors.white70),
                         onPressed: () {
                           // Navigate to application history page
                           _showAllApplications(context, applications);
@@ -262,89 +325,129 @@ class ProfilePage extends StatelessWidget {
     final statusColor = _getStatusColor(status);
     final statusIcon = _getStatusIcon(status);
 
-    return Card(
-      elevation: 2,
-      child: InkWell(
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => ApplicationStatusPage(
-                applicationId: application.id,
+    return Container(
+      decoration: BoxDecoration(
+        color: const Color(0xFF1E2235),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.2),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => ApplicationStatusPage(
+                  applicationId: application.id,
+                ),
               ),
-            ),
-          );
-        },
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Row(
-                    children: [
-                      Icon(statusIcon, color: statusColor, size: 20),
-                      const SizedBox(width: 8),
-                      Text(
-                        'Application Status',
+            );
+          },
+          child: Padding(
+            padding: const EdgeInsets.all(20.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(statusIcon, color: statusColor, size: 18),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Application Status',
+                          style: TextStyle(
+                            color: Colors.grey.shade400,
+                            fontWeight: FontWeight.w500,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ],
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: statusColor.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: statusColor.withOpacity(0.3)),
+                      ),
+                      child: Text(
+                        status.toUpperCase(),
                         style: TextStyle(
-                          color: Colors.grey.shade600,
-                          fontWeight: FontWeight.w500,
+                          color: statusColor,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 11,
                         ),
                       ),
-                    ],
-                  ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: statusColor.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(12),
                     ),
-                    child: Text(
-                      status.toUpperCase(),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  application.propertyName ?? 'Property Application',
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+                if (application.unitNumber != null || application.unitName != null) ...[
+                  const SizedBox(height: 6),
+                  Text(
+                    'Unit: ${application.unitNumber ?? application.unitName}',
+                    style: TextStyle(
+                      color: Colors.grey.shade400,
+                      fontWeight: FontWeight.w500,
+                      fontSize: 15,
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Icon(Icons.calendar_today, size: 14, color: Colors.grey.shade600),
+                    const SizedBox(width: 6),
+                    Text(
+                      'Applied: ${_formatDate(application.appliedDate)}',
+                      style: TextStyle(fontSize: 13, color: Colors.grey.shade500),
+                    ),
+                    if (application.monthlyRent != null) ...[
+                      const SizedBox(width: 20),
+                      Icon(Icons.attach_money, size: 14, color: Colors.grey.shade600),
+                      const SizedBox(width: 4),
+                      Text(
+                        'Rent: ${application.monthlyRent!.toStringAsFixed(0)}',
+                        style: TextStyle(fontSize: 13, color: Colors.grey.shade500),
+                      ),
+                    ],
+                  ],
+                ),
+                const SizedBox(height: 20),
+                const Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    Text(
+                      'View Details',
                       style: TextStyle(
-                        color: statusColor,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 12,
+                        color: Color(0xFF4E95FF),
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              const Text(
-                'Property Application', // Placeholder since propertyName is not in model yet
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
+                    SizedBox(width: 6),
+                    Icon(Icons.arrow_forward, size: 16, color: Color(0xFF4E95FF)),
+                  ],
                 ),
-              ),
-              const SizedBox(height: 8),
-               Text(
-                'Submitted: ${_formatDate(application.appliedDate)}',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Colors.grey.shade600,
-                ),
-              ),
-              const SizedBox(height: 16),
-              const Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  Text(
-                    'View details',
-                    style: TextStyle(
-                      color: Colors.blue,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                  SizedBox(width: 4),
-                  Icon(Icons.arrow_forward_ios, size: 12, color: Colors.blue),
-                ],
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -355,7 +458,8 @@ class ProfilePage extends StatelessWidget {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('All Applications'),
+        backgroundColor: const Color(0xFF1E2235),
+        title: const Text('All Applications', style: TextStyle(color: Colors.white)),
         content: SizedBox(
           width: double.maxFinite,
           child: ListView.builder(
@@ -366,11 +470,35 @@ class ProfilePage extends StatelessWidget {
               final status = application.status.value;
               
               return ListTile(
-                title: const Text('Property Application'),
-                subtitle: Text('Submitted: ${_formatDate(application.appliedDate)}'),
+                title: Text(
+                  application.propertyName ?? 'Property Application',
+                  style: const TextStyle(color: Colors.white),
+                ),
+                subtitle: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (application.unitNumber != null || application.unitName != null)
+                      Text(
+                        'Unit: ${application.unitNumber ?? application.unitName}',
+                        style: TextStyle(color: Colors.grey.shade400),
+                      ),
+                    Text(
+                      'Submitted: ${_formatDate(application.appliedDate)}',
+                      style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+                    ),
+                  ],
+                ),
                 trailing: Chip(
-                  label: Text(status.toUpperCase()),
-                  labelStyle: const TextStyle(fontSize: 10),
+                  label: Text(
+                    status.toUpperCase(),
+                    style: TextStyle(
+                      color: _getStatusColor(status),
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold
+                    ),
+                  ),
+                  backgroundColor: _getStatusColor(status).withOpacity(0.1),
+                  side: BorderSide.none,
                 ),
                 onTap: () {
                   Navigator.pop(context);
@@ -390,7 +518,7 @@ class ProfilePage extends StatelessWidget {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Close'),
+            child: const Text('Close', style: TextStyle(color: Colors.white)),
           ),
         ],
       ),

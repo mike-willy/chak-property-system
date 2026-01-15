@@ -51,6 +51,12 @@ class ApplicationModel {
   /// Admin-only feedback
   final String? notes;
 
+  /// Denormalized fields for display
+  final String? propertyName;
+  final String? unitName;
+  final String? unitNumber;
+  final double? monthlyRent;
+
   const ApplicationModel({
     required this.id,
     required this.tenantId,
@@ -60,6 +66,10 @@ class ApplicationModel {
     required this.appliedDate,
     this.decisionDate,
     this.notes,
+    this.propertyName,
+    this.unitName,
+    this.unitNumber,
+    this.monthlyRent,
   });
 
   // ----------------------------
@@ -93,6 +103,10 @@ class ApplicationModel {
       'decisionDate':
           decisionDate != null ? Timestamp.fromDate(decisionDate!) : null,
       'notes': notes,
+      'propertyName': propertyName,
+      'unitName': unitName,
+      'unitNumber': unitNumber,
+      'monthlyRent': monthlyRent,
     };
   }
 
@@ -109,6 +123,10 @@ class ApplicationModel {
           (map['appliedDate'] as Timestamp?)?.toDate() ?? DateTime.now(),
       decisionDate: (map['decisionDate'] as Timestamp?)?.toDate(),
       notes: map['notes'],
+      propertyName: map['propertyName'],
+      unitName: map['unitName'],
+      unitNumber: map['unitNumber']?.toString(), // Handle simplified int storage
+      monthlyRent: (map['monthlyRent'] as num?)?.toDouble(),
     );
   }
 
@@ -144,6 +162,10 @@ class ApplicationModel {
     List<String>? documents,
     DateTime? decisionDate,
     String? notes,
+    String? propertyName,
+    String? unitName,
+    String? unitNumber,
+    double? monthlyRent,
   }) {
     return ApplicationModel(
       id: id,
@@ -154,6 +176,10 @@ class ApplicationModel {
       appliedDate: appliedDate,
       decisionDate: decisionDate ?? this.decisionDate,
       notes: notes ?? this.notes,
+      propertyName: propertyName ?? this.propertyName,
+      unitName: unitName ?? this.unitName,
+      unitNumber: unitNumber ?? this.unitNumber,
+      monthlyRent: monthlyRent ?? this.monthlyRent,
     );
   }
 }

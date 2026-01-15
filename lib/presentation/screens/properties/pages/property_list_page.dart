@@ -40,22 +40,24 @@ class _PropertyListPageState extends State<PropertyListPage> with AutomaticKeepA
   Widget build(BuildContext context) {
     super.build(context); // Required for AutomaticKeepAliveClientMixin
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: const Color(0xFF141725), // Dark background
       body: Consumer<PropertyProvider>(
         builder: (context, provider, child) {
-          return Column(
-            children: [
-              // Header Section
-              _buildHeaderSection(provider),
-              
-              // Search and Filter Section
-              _buildSearchFilterSection(provider),
-              
-              // Properties List
-              Expanded(
-                child: _buildPropertiesList(provider),
-              ),
-            ],
+          return SafeArea(
+            child: Column(
+              children: [
+                // Header Section
+                _buildHeaderSection(provider),
+                
+                // Search and Filter Section
+                _buildSearchFilterSection(provider),
+                
+                // Properties List
+                Expanded(
+                  child: _buildPropertiesList(provider),
+                ),
+              ],
+            ),
           );
         },
       ),
@@ -64,21 +66,10 @@ class _PropertyListPageState extends State<PropertyListPage> with AutomaticKeepA
 
   Widget _buildHeaderSection(PropertyProvider provider) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            Colors.blue.shade900,
-            Colors.blue.shade700,
-          ],
-        ),
-      ),
+      padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const SizedBox(height: 40),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -86,9 +77,9 @@ class _PropertyListPageState extends State<PropertyListPage> with AutomaticKeepA
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    provider.isLandlord ? 'My Properties' : 'Available Properties',
-                    style: TextStyle(
-                      fontSize: 24,
+                    provider.isLandlord ? 'My Properties' : 'Available',
+                    style: const TextStyle(
+                      fontSize: 28,
                       fontWeight: FontWeight.bold,
                       color: Colors.white,
                     ),
@@ -100,33 +91,30 @@ class _PropertyListPageState extends State<PropertyListPage> with AutomaticKeepA
                         : 'Browse available homes',
                     style: TextStyle(
                       fontSize: 14,
-                      color: Colors.white70,
+                      color: Colors.grey.shade400,
                     ),
                   ),
                 ],
               ),
               if (provider.isLandlord)
                 IconButton(
-                  icon: const Icon(FontAwesomeIcons.plusCircle, size: 28),
-                  color: Colors.white,
+                  icon: const Icon(FontAwesomeIcons.plus, size: 20),
+                  style: IconButton.styleFrom(
+                    backgroundColor: const Color(0xFF4E95FF), // Brand Blue
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.all(12),
+                  ),
                   onPressed: () {
                     // Navigate to add property
                   },
                 ),
             ],
           ),
-          const SizedBox(height: 24),
-          const Text(
-            'Top 12',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-              color: Colors.white,
-            ),
-          ),
-          const SizedBox(height: 16),
-          _buildStatsRow(provider),
-          const SizedBox(height: 8),
+          if (provider.isLandlord) ...[
+            const SizedBox(height: 24),
+            _buildStatsRow(provider),
+          ],
+           const SizedBox(height: 10),
         ],
       ),
     );
@@ -135,30 +123,37 @@ class _PropertyListPageState extends State<PropertyListPage> with AutomaticKeepA
   Widget _buildStatsRow(PropertyProvider provider) {
     if (provider.isTenant) return const SizedBox.shrink(); // Hide stats for tenants
 
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        _buildStatItem(
-          title: 'Total',
-          value: provider.stats['total']?.toString() ?? '0',
-          color: Colors.white,
-        ),
-        _buildStatItem(
-          title: 'Occupied',
-          value: provider.stats['occupied']?.toString() ?? '0',
-          color: Colors.green.shade300,
-        ),
-        _buildStatItem(
-          title: 'Vacant',
-          value: provider.stats['vacant']?.toString() ?? '0',
-          color: Colors.orange.shade300,
-        ),
-        _buildStatItem(
-          title: 'Maint.',
-          value: provider.stats['maintenance']?.toString() ?? '0',
-          color: Colors.red.shade300,
-        ),
-      ],
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1E2235),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          _buildStatItem(
+            title: 'Total',
+            value: provider.stats['total']?.toString() ?? '0',
+            color: Colors.white,
+          ),
+          _buildStatItem(
+            title: 'Occupied',
+            value: provider.stats['occupied']?.toString() ?? '0',
+            color: Colors.green.shade300,
+          ),
+          _buildStatItem(
+            title: 'Vacant',
+            value: provider.stats['vacant']?.toString() ?? '0',
+            color: Colors.orange.shade300,
+          ),
+          _buildStatItem(
+            title: 'Maint.',
+            value: provider.stats['maintenance']?.toString() ?? '0',
+            color: Colors.red.shade300,
+          ),
+        ],
+      ),
     );
   }
 
@@ -172,7 +167,7 @@ class _PropertyListPageState extends State<PropertyListPage> with AutomaticKeepA
         Text(
           value,
           style: TextStyle(
-            fontSize: 24,
+            fontSize: 20,
             fontWeight: FontWeight.bold,
             color: color,
           ),
@@ -180,9 +175,9 @@ class _PropertyListPageState extends State<PropertyListPage> with AutomaticKeepA
         const SizedBox(height: 4),
         Text(
           title,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 12,
-            color: Colors.white70,
+            color: Colors.grey.shade400,
           ),
         ),
       ],
@@ -191,37 +186,31 @@ class _PropertyListPageState extends State<PropertyListPage> with AutomaticKeepA
 
   Widget _buildSearchFilterSection(PropertyProvider provider) {
     return Padding(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(20),
       child: Column(
         children: [
           // Search Bar
           Container(
             decoration: BoxDecoration(
-              color: Colors.grey.shade50,
-              borderRadius: BorderRadius.circular(12),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
-                ),
-              ],
+              color: const Color(0xFF1E2235), // Dark Surface
+              borderRadius: BorderRadius.circular(16),
             ),
             child: TextField(
               controller: TextEditingController(text: provider.searchTerm),
+              style: const TextStyle(color: Colors.white),
               decoration: InputDecoration(
                 hintText: 'Search properties...',
-                prefixIcon: const Icon(
-                  FontAwesomeIcons.search,
-                  size: 18,
-                  color: Colors.grey,
+                prefixIcon: Icon(
+                  FontAwesomeIcons.magnifyingGlass,
+                  size: 16,
+                  color: Colors.grey.shade500,
                 ),
                 suffixIcon: provider.searchTerm.isNotEmpty
                     ? IconButton(
-                        icon: const Icon(
-                          FontAwesomeIcons.times,
+                        icon: Icon(
+                          FontAwesomeIcons.xmark,
                           size: 16,
-                          color: Colors.grey,
+                          color: Colors.grey.shade500,
                         ),
                         onPressed: () {
                           provider.setSearchTerm('');
@@ -230,10 +219,10 @@ class _PropertyListPageState extends State<PropertyListPage> with AutomaticKeepA
                     : null,
                 border: InputBorder.none,
                 contentPadding: const EdgeInsets.symmetric(
-                  vertical: 14,
-                  horizontal: 16,
+                  vertical: 16,
+                  horizontal: 20,
                 ),
-                hintStyle: const TextStyle(color: Colors.grey),
+                hintStyle: TextStyle(color: Colors.grey.shade600),
               ),
               onChanged: provider.setSearchTerm,
             ),
@@ -251,21 +240,21 @@ class _PropertyListPageState extends State<PropertyListPage> with AutomaticKeepA
                   value: 'all',
                   provider: provider,
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: 10),
                 _buildFilterChip(
                   label: 'Occupied',
                   value: 'occupied',
                   icon: FontAwesomeIcons.userCheck,
                   provider: provider,
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: 10),
                 _buildFilterChip(
                   label: 'Vacant',
                   value: 'vacant',
                   icon: FontAwesomeIcons.doorClosed,
                   provider: provider,
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: 10),
                 _buildFilterChip(
                   label: 'Maintenance',
                   value: 'maintenance',
@@ -287,41 +276,40 @@ class _PropertyListPageState extends State<PropertyListPage> with AutomaticKeepA
     required PropertyProvider provider,
   }) {
     final isSelected = provider.filterStatus == value;
-    return Container(
-      decoration: BoxDecoration(
+    return Material(
+       color: Colors.transparent,
+       child: InkWell(
+        onTap: () => provider.setFilterStatus(value),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: isSelected ? Colors.blue : Colors.grey.shade300,
-          width: isSelected ? 2 : 1,
-        ),
-      ),
-      child: Material(
-        color: isSelected ? Colors.blue.shade50 : Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(20),
-          onTap: () => provider.setFilterStatus(value),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: Row(
-              children: [
-                if (icon != null) ...[
-                  Icon(
-                    icon,
-                    size: 14,
-                    color: isSelected ? Colors.blue : Colors.grey,
-                  ),
-                  const SizedBox(width: 6),
-                ],
-                Text(
-                  label,
-                  style: TextStyle(
-                    color: isSelected ? Colors.blue : Colors.grey.shade700,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          decoration: BoxDecoration(
+            color: isSelected ? const Color(0xFF4E95FF) : const Color(0xFF1E2235),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: isSelected ? const Color(0xFF4E95FF) : Colors.transparent,
+              width: 1,
             ),
+          ),
+          child: Row(
+            children: [
+              if (icon != null) ...[
+                Icon(
+                  icon,
+                  size: 12,
+                  color: isSelected ? Colors.white : Colors.grey.shade500,
+                ),
+                const SizedBox(width: 6),
+              ],
+              Text(
+                label,
+                style: TextStyle(
+                  color: isSelected ? Colors.white : Colors.grey.shade400,
+                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                  fontSize: 13,
+                ),
+              ),
+            ],
           ),
         ),
       ),
@@ -330,11 +318,8 @@ class _PropertyListPageState extends State<PropertyListPage> with AutomaticKeepA
 
   Widget _buildPropertiesList(PropertyProvider provider) {
     // Debug output
-    debugPrint('PropertyListPage: filteredProperties.length = ${provider.filteredProperties.length}');
-    debugPrint('PropertyListPage: properties.length = ${provider.properties.length}');
-    debugPrint('PropertyListPage: isLoading = ${provider.isLoading}');
-    debugPrint('PropertyListPage: error = ${provider.error}');
-    
+    // debugPrint('PropertyListPage: filteredProperties.length = ${provider.filteredProperties.length}');
+
     // Show error if there's an error and no properties
     if (provider.error != null && provider.properties.isEmpty && !provider.isLoading) {
       return Center(
@@ -344,7 +329,7 @@ class _PropertyListPageState extends State<PropertyListPage> with AutomaticKeepA
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Icon(
-                FontAwesomeIcons.exclamationTriangle,
+                FontAwesomeIcons.triangleExclamation,
                 size: 64,
                 color: Colors.red.shade300,
               ),
@@ -354,7 +339,7 @@ class _PropertyListPageState extends State<PropertyListPage> with AutomaticKeepA
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w600,
-                  color: Colors.grey.shade700,
+                  color: Colors.grey.shade400,
                 ),
               ),
               const SizedBox(height: 8),
@@ -372,13 +357,11 @@ class _PropertyListPageState extends State<PropertyListPage> with AutomaticKeepA
                   provider.loadProperties();
                   provider.loadStats();
                 },
-                icon: const Icon(FontAwesomeIcons.rotate),
+                icon: const Icon(FontAwesomeIcons.rotate, size: 16),
                 label: const Text('Retry'),
                 style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 24,
-                    vertical: 12,
-                  ),
+                   backgroundColor: const Color(0xFF4E95FF),
+                   foregroundColor: Colors.white,
                 ),
               ),
             ],
@@ -392,7 +375,7 @@ class _PropertyListPageState extends State<PropertyListPage> with AutomaticKeepA
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            CircularProgressIndicator(),
+            CircularProgressIndicator(color: Color(0xFF4E95FF)),
             SizedBox(height: 16),
             Text(
               'Loading properties...',
@@ -403,37 +386,44 @@ class _PropertyListPageState extends State<PropertyListPage> with AutomaticKeepA
       );
     }
 
-    // Wrap everything in RefreshIndicator so pull-to-refresh works even when list is empty
+    // Wrap everything in RefreshIndicator
     return RefreshIndicator(
       onRefresh: () async {
-        debugPrint('PropertyListPage: Pull to refresh triggered');
         await provider.loadProperties();
         await provider.loadStats();
-        debugPrint('PropertyListPage: After refresh - filteredProperties.length = ${provider.filteredProperties.length}');
       },
+      backgroundColor: const Color(0xFF1E2235),
+      color: const Color(0xFF4E95FF),
       child: provider.filteredProperties.isEmpty
           ? SingleChildScrollView(
-              physics: const AlwaysScrollableScrollPhysics(), // Enable pull-to-refresh even when empty
+              physics: const AlwaysScrollableScrollPhysics(),
               child: SizedBox(
-                height: MediaQuery.of(context).size.height * 0.6, // Make it scrollable
+                height: MediaQuery.of(context).size.height * 0.6,
                 child: Center(
                   child: Padding(
                     padding: const EdgeInsets.all(32.0),
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(
-                          FontAwesomeIcons.home,
-                          size: 64,
-                          color: Colors.grey.shade300,
+                        Container(
+                           padding: const EdgeInsets.all(24),
+                           decoration: const BoxDecoration(
+                             color: Color(0xFF1E2235),
+                             shape: BoxShape.circle,
+                           ),
+                           child: Icon(
+                            FontAwesomeIcons.house,
+                            size: 48,
+                            color: Colors.grey.shade700,
+                          ),
                         ),
-                        const SizedBox(height: 16),
+                        const SizedBox(height: 24),
                         Text(
                           'No properties found',
                           style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.w600,
-                            color: Colors.grey.shade600,
+                            color: Colors.grey.shade400,
                           ),
                         ),
                         const SizedBox(height: 8),
@@ -443,44 +433,24 @@ class _PropertyListPageState extends State<PropertyListPage> with AutomaticKeepA
                               : 'Add your first property to get started',
                           textAlign: TextAlign.center,
                           style: TextStyle(
-                            color: Colors.grey.shade500,
+                            color: Colors.grey.shade600,
                           ),
                         ),
-                        const SizedBox(height: 20),
+                        const SizedBox(height: 24),
                         // Add refresh button for manual refresh
                         ElevatedButton.icon(
                           onPressed: () async {
-                            debugPrint('PropertyListPage: Manual refresh button pressed');
-                            await provider.loadProperties();
-                            await provider.loadStats();
-                            debugPrint('PropertyListPage: After manual refresh - filteredProperties.length = ${provider.filteredProperties.length}');
+                             await provider.loadProperties();
+                             await provider.loadStats();
                           },
-                          icon: const Icon(FontAwesomeIcons.rotate),
+                          icon: const Icon(FontAwesomeIcons.rotate, size: 16),
                           label: const Text('Refresh'),
                           style: ElevatedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 24,
-                              vertical: 12,
-                            ),
+                             backgroundColor: const Color(0xFF1E2235),
+                             foregroundColor: Colors.white,
+                             side: BorderSide(color: Colors.grey.shade800),
                           ),
                         ),
-                        if (provider.searchTerm.isEmpty && provider.filterStatus == 'all' && provider.isLandlord)
-                          Padding(
-                            padding: const EdgeInsets.only(top: 12),
-                            child: ElevatedButton.icon(
-                              onPressed: () {
-                                // Navigate to add property
-                              },
-                              icon: const Icon(FontAwesomeIcons.plus),
-                              label: const Text('Add New Property'),
-                              style: ElevatedButton.styleFrom(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 24,
-                                  vertical: 12,
-                                ),
-                              ),
-                            ),
-                          ),
                       ],
                     ),
                   ),
@@ -488,12 +458,12 @@ class _PropertyListPageState extends State<PropertyListPage> with AutomaticKeepA
               ),
             )
           : ListView.builder(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
               itemCount: provider.filteredProperties.length,
               itemBuilder: (context, index) {
                 final property = provider.filteredProperties[index];
                 return Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
+                  padding: const EdgeInsets.only(bottom: 16),
                   child: PropertyCard(
                     property: property,
                     onView: () {

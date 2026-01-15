@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../services/mpesa_service.dart';
+import '../models/payment_model.dart';
 
 class PaymentRepository {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
@@ -56,21 +57,46 @@ class PaymentRepository {
     }
   }
 
+
   Future<String> checkPaymentStatus(String checkoutRequestId) async {
     try {
       final result = await _mpesaService.queryTransactionStatus(checkoutRequestId);
       final responseCode = result['ResponseCode'];
-      // Note: Daraja Query result parsing is complex, usually check 'ResultCode' inside 'Result'
-      // For simple polling, we might just look for success indication
-      
-      // Update local record if found?
-      // In a real backend app, the callback updates the record. 
-      // Here we might manually update if we confirm success.
-      
       return responseCode == '0' ? 'completed' : 'pending';
     } catch (e) {
       print('Status check failed: $e');
       return 'unknown';
+    }
+  }
+
+  // Get payments for a specific tenant
+  Future<List<PaymentModel>> getPaymentsByTenantId(String tenantId) async {
+    try {
+      final querySnapshot = await _paymentsRef
+          .where('tenantId', isEqualTo: tenantId)
+          .orderBy('initiatedAt', descending: true) // Assuming 'initiatedAt' is the timestamp
+          .limit(10)
+          .get();
+
+      return querySnapshot.docs.map((doc) {
+        // Map Firestore doc to PaymentModel
+        final data = doc.data() as Map<String, dynamic>;
+        
+        return PaymentModel(
+          id: doc.id,
+          leaseId: data['applicationId'] ?? '', 
+          tenantId: data['tenantId'] ?? '',
+          amount: (data['amount'] as num).toDouble(),
+          method: PaymentMethodExtension.fromString(data['method'] ?? 'mobile'),
+          status: PaymentStatusExtension.fromString(data['status'] ?? 'pending'),
+          transactionId: data['checkoutRequestId'],
+          dueDate: (data['initiatedAt'] as Timestamp).toDate(), 
+          paidDate: data['status'] == 'completed' ? (data['updatedAt'] as Timestamp?)?.toDate() : null,
+        );
+      }).toList();
+    } catch (e) {
+      print('Error fetching payments: $e');
+      return [];
     }
   }
 }

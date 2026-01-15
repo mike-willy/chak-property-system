@@ -39,6 +39,10 @@ class TenantModel {
   final String fullName;
   final String email;
   final String phone;
+  final String propertyId;
+  final String propertyName;
+  final String unitNumber;
+  final double rentAmount; // Added rentAmount
   final DateTime? leaseStartDate;
   final DateTime? leaseEndDate;
   final TenantStatus status;
@@ -52,6 +56,10 @@ class TenantModel {
     required this.fullName,
     required this.email,
     required this.phone,
+    this.propertyId = '',
+    this.propertyName = '',
+    this.unitNumber = '',
+    this.rentAmount = 0.0, // Default to 0.0
     this.leaseStartDate,
     this.leaseEndDate,
     required this.status,
@@ -67,6 +75,10 @@ class TenantModel {
       'fullName': fullName,
       'email': email,
       'phone': phone,
+      'propertyId': propertyId,
+      'propertyName': propertyName,
+      'unitNumber': unitNumber,
+      'rentAmount': rentAmount,
       'leaseStartDate': leaseStartDate != null ? Timestamp.fromDate(leaseStartDate!) : null,
       'leaseEndDate': leaseEndDate != null ? Timestamp.fromDate(leaseEndDate!) : null,
       'status': status.value,
@@ -84,6 +96,10 @@ class TenantModel {
       fullName: map['fullName'] as String? ?? '',
       email: map['email'] as String? ?? '',
       phone: map['phone'] as String? ?? '',
+      propertyId: map['propertyId'] as String? ?? '',
+      propertyName: map['propertyName'] as String? ?? '',
+      unitNumber: map['unitNumber'] as String? ?? '',
+      rentAmount: (map['rentAmount'] as num?)?.toDouble() ?? 0.0,
       leaseStartDate: (map['leaseStartDate'] as Timestamp?)?.toDate(),
       leaseEndDate: (map['leaseEndDate'] as Timestamp?)?.toDate(),
       status: TenantStatusExtension.fromString(map['status'] as String? ?? 'active'),
@@ -106,6 +122,10 @@ class TenantModel {
     String? fullName,
     String? email,
     String? phone,
+    String? propertyId,
+    String? propertyName,
+    String? unitNumber,
+    double? rentAmount,
     DateTime? leaseStartDate,
     DateTime? leaseEndDate,
     TenantStatus? status,
@@ -119,6 +139,10 @@ class TenantModel {
       fullName: fullName ?? this.fullName,
       email: email ?? this.email,
       phone: phone ?? this.phone,
+      propertyId: propertyId ?? this.propertyId,
+      propertyName: propertyName ?? this.propertyName,
+      unitNumber: unitNumber ?? this.unitNumber,
+      rentAmount: rentAmount ?? this.rentAmount,
       leaseStartDate: leaseStartDate ?? this.leaseStartDate,
       leaseEndDate: leaseEndDate ?? this.leaseEndDate,
       status: status ?? this.status,

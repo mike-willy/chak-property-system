@@ -78,23 +78,25 @@ class MaintenanceCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
-      elevation: 2,
+      elevation: 4,
+      color: const Color(0xFF1E2235), // Dark Theme Card Color
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(16),
       ),
       child: InkWell(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(16),
         onTap: onView,
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(20),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Header Row
               Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Expanded(
+                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -103,21 +105,29 @@ class MaintenanceCard extends StatelessWidget {
                           style: const TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
+                            color: Colors.white, // White text
                           ),
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                         ),
-                        const SizedBox(height: 4),
-                        Text(
-                          formatDate(request.createdAt),
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: Colors.grey.shade600,
-                          ),
+                        const SizedBox(height: 6),
+                        Row(
+                          children: [
+                            Icon(Icons.calendar_today, size: 12, color: Colors.grey.shade500),
+                            const SizedBox(width: 6),
+                            Text(
+                              formatDate(request.createdAt),
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: Colors.grey.shade500, // Light grey text
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     ),
                   ),
+                  const SizedBox(width: 12),
                   // Status Badge
                   Container(
                     padding: const EdgeInsets.symmetric(
@@ -125,10 +135,10 @@ class MaintenanceCard extends StatelessWidget {
                       vertical: 6,
                     ),
                     decoration: BoxDecoration(
-                      color: getStatusColor(request.status).withOpacity(0.1),
+                      color: getStatusColor(request.status).withOpacity(0.2),
                       borderRadius: BorderRadius.circular(20),
                       border: Border.all(
-                        color: getStatusColor(request.status).withOpacity(0.3),
+                        color: getStatusColor(request.status).withOpacity(0.5),
                         width: 1,
                       ),
                     ),
@@ -155,85 +165,107 @@ class MaintenanceCard extends StatelessWidget {
                 ],
               ),
 
-              const SizedBox(height: 12),
+              const SizedBox(height: 16),
 
-              // Priority Badge
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 4,
-                ),
-                decoration: BoxDecoration(
-                  color: getPriorityColor(request.priority).withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      FontAwesomeIcons.exclamationTriangle,
-                      size: 10,
-                      color: getPriorityColor(request.priority),
+              // Priority Badge & Images
+              Row(
+                children: [
+                   Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 4,
                     ),
-                    const SizedBox(width: 6),
-                    Text(
-                      getPriorityText(request.priority) + ' Priority',
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                        color: getPriorityColor(request.priority),
+                    decoration: BoxDecoration(
+                      color: getPriorityColor(request.priority).withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          FontAwesomeIcons.exclamationTriangle,
+                          size: 10,
+                          color: getPriorityColor(request.priority),
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          getPriorityText(request.priority) + ' Priority',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: getPriorityColor(request.priority),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (request.images.isNotEmpty) ...[
+                    const SizedBox(width: 12),
+                    Container(
+                       padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade800,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(
+                            FontAwesomeIcons.image,
+                            size: 10,
+                            color: Colors.white70,
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            '${request.images.length} photos',
+                            style: const TextStyle(
+                              fontSize: 11,
+                              color: Colors.white70,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ],
-                ),
+                ],
               ),
-
-              const SizedBox(height: 12),
+              
+              const SizedBox(height: 16),
 
               // Description Preview
               Text(
                 request.description,
                 style: TextStyle(
-                  fontSize: 13,
-                  color: Colors.grey.shade700,
+                  fontSize: 14,
+                  color: Colors.grey.shade400, // Lighter grey for description
+                  height: 1.4,
                 ),
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
               ),
 
-              if (request.images.isNotEmpty) ...[
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    Icon(
-                      FontAwesomeIcons.image,
-                      size: 12,
-                      color: Colors.grey.shade600,
-                    ),
-                    const SizedBox(width: 6),
-                    Text(
-                      '${request.images.length} image${request.images.length > 1 ? 's' : ''}',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey.shade600,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-
-              const SizedBox(height: 16),
+              const SizedBox(height: 20),
 
               // Action Button
               SizedBox(
                 width: double.infinity,
-                child: OutlinedButton.icon(
+                child: OutlinedButton(
                   onPressed: onView,
-                  icon: const Icon(FontAwesomeIcons.eye, size: 14),
-                  label: const Text('View Details'),
                   style: OutlinedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 12),
-                    side: BorderSide(color: Colors.blue.shade300),
+                    side: BorderSide(color: Colors.grey.shade700),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    foregroundColor: Colors.white,
+                  ),
+                   child: const Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text('View Details'),
+                      SizedBox(width: 8),
+                      Icon(Icons.arrow_forward, size: 16),
+                    ],
                   ),
                 ),
               ),

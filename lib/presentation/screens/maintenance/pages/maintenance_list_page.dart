@@ -36,22 +36,25 @@ class _MaintenanceListPageState extends State<MaintenanceListPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: const Color(0xFF141725), // Dark Dashboard Background
       body: Consumer2<MaintenanceProvider, AuthProvider>(
         builder: (context, provider, authProvider, _) {
-          return Column(
-            children: [
-              // Header Section
-              _buildHeaderSection(provider, authProvider),
-              
-              // Filter Section
-              _buildFilterSection(provider),
-              
-              // Requests List
-              Expanded(
-                child: _buildRequestsList(provider),
-              ),
-            ],
+          return SafeArea(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Header Section
+                _buildHeaderSection(provider, authProvider),
+                
+                // Filter Section
+                _buildFilterSection(provider),
+                
+                // Requests List
+                Expanded(
+                  child: _buildRequestsList(provider),
+                ),
+              ],
+            ),
           );
         },
       ),
@@ -72,7 +75,8 @@ class _MaintenanceListPageState extends State<MaintenanceListPage> {
               },
               icon: const Icon(FontAwesomeIcons.plus),
               label: const Text('New Request'),
-              backgroundColor: Colors.blue,
+              backgroundColor: const Color(0xFF4E95FF), // Bright Blue
+              foregroundColor: Colors.white,
             );
           }
           return const SizedBox.shrink();
@@ -82,41 +86,48 @@ class _MaintenanceListPageState extends State<MaintenanceListPage> {
   }
 
   Widget _buildHeaderSection(MaintenanceProvider provider, AuthProvider authProvider) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            Colors.blue.shade900,
-            Colors.blue.shade700,
-          ],
-        ),
-      ),
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const SizedBox(height: 40),
-          Text(
-            authProvider.isTenant ? 'My Maintenance Requests' : 'Maintenance Requests',
-            style: const TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
-            ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                   Text(
+                    authProvider.isTenant ? 'Maintenance' : 'Requests',
+                    style: const TextStyle(
+                      fontSize: 28,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    authProvider.isTenant
+                        ? 'Track and manage your requests'
+                        : 'Manage all maintenance requests',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey.shade400,
+                    ),
+                  ),
+                ],
+              ),
+              // Refresh Button
+              IconButton(
+                onPressed: provider.loadRequests,
+                icon: const Icon(Icons.refresh, color: Colors.white70),
+                style: IconButton.styleFrom(
+                   backgroundColor: const Color(0xFF1E2235),
+                   padding: const EdgeInsets.all(12),
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 4),
-          Text(
-            authProvider.isTenant
-                ? 'Track your maintenance requests'
-                : 'Manage all maintenance requests',
-            style: const TextStyle(
-              fontSize: 14,
-              color: Colors.white70,
-            ),
-          ),
-          const SizedBox(height: 16),
         ],
       ),
     );
@@ -124,7 +135,7 @@ class _MaintenanceListPageState extends State<MaintenanceListPage> {
 
   Widget _buildFilterSection(MaintenanceProvider provider) {
     return Padding(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
         child: Row(
@@ -134,21 +145,21 @@ class _MaintenanceListPageState extends State<MaintenanceListPage> {
               value: 'all',
               provider: provider,
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: 10),
             _buildFilterChip(
               label: 'Open',
               value: 'open',
               icon: FontAwesomeIcons.circleExclamation,
               provider: provider,
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: 10),
             _buildFilterChip(
               label: 'In Progress',
               value: 'in-progress',
               icon: FontAwesomeIcons.hammer,
               provider: provider,
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: 10),
             _buildFilterChip(
               label: 'Completed',
               value: 'completed',
@@ -168,41 +179,40 @@ class _MaintenanceListPageState extends State<MaintenanceListPage> {
     required MaintenanceProvider provider,
   }) {
     final isSelected = provider.filterStatus == value;
-    return Container(
-      decoration: BoxDecoration(
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () => provider.setFilterStatus(value),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: isSelected ? Colors.blue : Colors.grey.shade300,
-          width: isSelected ? 2 : 1,
-        ),
-      ),
-      child: Material(
-        color: isSelected ? Colors.blue.shade50 : Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(20),
-          onTap: () => provider.setFilterStatus(value),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: Row(
-              children: [
-                if (icon != null) ...[
-                  Icon(
-                    icon,
-                    size: 14,
-                    color: isSelected ? Colors.blue : Colors.grey,
-                  ),
-                  const SizedBox(width: 6),
-                ],
-                Text(
-                  label,
-                  style: TextStyle(
-                    color: isSelected ? Colors.blue : Colors.grey.shade700,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          decoration: BoxDecoration(
+            color: isSelected ? const Color(0xFF4E95FF) : const Color(0xFF1E2235), // Dark Chip
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: isSelected ? const Color(0xFF4E95FF) : Colors.transparent,
+              width: 1,
             ),
+          ),
+          child: Row(
+            children: [
+              if (icon != null) ...[
+                Icon(
+                  icon,
+                  size: 14,
+                  color: isSelected ? Colors.white : Colors.grey.shade400,
+                ),
+                const SizedBox(width: 6),
+              ],
+              Text(
+                label,
+                style: TextStyle(
+                  color: isSelected ? Colors.white : Colors.grey.shade400,
+                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                  fontSize: 13,
+                ),
+              ),
+            ],
           ),
         ),
       ),
@@ -233,7 +243,7 @@ class _MaintenanceListPageState extends State<MaintenanceListPage> {
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w600,
-                  color: Colors.grey.shade700,
+                  color: Colors.grey.shade400,
                 ),
               ),
               const SizedBox(height: 8),
@@ -250,8 +260,12 @@ class _MaintenanceListPageState extends State<MaintenanceListPage> {
                   provider.clearError();
                   provider.loadRequests();
                 },
-                icon: const Icon(FontAwesomeIcons.rotate),
+                icon: const Icon(FontAwesomeIcons.rotate, size: 16),
                 label: const Text('Retry'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF4E95FF),
+                  foregroundColor: Colors.white,
+                ),
               ),
             ],
           ),
@@ -264,7 +278,7 @@ class _MaintenanceListPageState extends State<MaintenanceListPage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            CircularProgressIndicator(),
+            CircularProgressIndicator(color: Color(0xFF4E95FF)),
             SizedBox(height: 16),
             Text(
               'Loading maintenance requests...',
@@ -278,6 +292,8 @@ class _MaintenanceListPageState extends State<MaintenanceListPage> {
     if (provider.filteredRequests.isEmpty) {
       return RefreshIndicator(
         onRefresh: () => provider.loadRequests(),
+        backgroundColor: const Color(0xFF1E2235),
+        color: const Color(0xFF4E95FF),
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
           child: SizedBox(
@@ -288,18 +304,25 @@ class _MaintenanceListPageState extends State<MaintenanceListPage> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(
-                      FontAwesomeIcons.tools,
-                      size: 64,
-                      color: Colors.grey.shade300,
+                    Container(
+                      padding: const EdgeInsets.all(24),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF1E2235),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        FontAwesomeIcons.tools,
+                        size: 48,
+                        color: Colors.grey.shade700,
+                      ),
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 24),
                     Text(
                       'No maintenance requests',
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.w600,
-                        color: Colors.grey.shade600,
+                        color: Colors.grey.shade400,
                       ),
                     ),
                     const SizedBox(height: 8),
@@ -309,7 +332,7 @@ class _MaintenanceListPageState extends State<MaintenanceListPage> {
                           : 'Submit your first maintenance request',
                       textAlign: TextAlign.center,
                       style: TextStyle(
-                        color: Colors.grey.shade500,
+                        color: Colors.grey.shade600,
                       ),
                     ),
                   ],
@@ -323,13 +346,15 @@ class _MaintenanceListPageState extends State<MaintenanceListPage> {
 
     return RefreshIndicator(
       onRefresh: () => provider.loadRequests(),
+      backgroundColor: const Color(0xFF1E2235),
+       color: const Color(0xFF4E95FF),
       child: ListView.builder(
-        padding: const EdgeInsets.fromLTRB(16, 0, 16, 80), // Extra padding for FAB
+        padding: const EdgeInsets.fromLTRB(20, 0, 20, 100), // Extra padding for FAB
         itemCount: provider.filteredRequests.length,
         itemBuilder: (context, index) {
           final request = provider.filteredRequests[index];
           return Padding(
-            padding: const EdgeInsets.only(bottom: 12),
+            padding: const EdgeInsets.only(bottom: 16),
             child: MaintenanceCard(
               request: request,
               onView: () {

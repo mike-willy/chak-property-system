@@ -75,15 +75,16 @@ class PropertyCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
-      elevation: 2,
+      elevation: 4,
+      color: const Color(0xFF1E2235), // Dark Theme Card
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(16),
       ),
       child: InkWell(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(16),
         onTap: onView,
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(20),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -100,25 +101,26 @@ class PropertyCard extends StatelessWidget {
                           style: const TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
+                            color: Colors.white, // White text
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
-                        const SizedBox(height: 4),
+                        const SizedBox(height: 6),
                         Row(
                           children: [
                             Icon(
-                              FontAwesomeIcons.mapMarkerAlt,
+                              FontAwesomeIcons.locationDot,
                               size: 12,
-                              color: Colors.grey.shade600,
+                              color: Colors.grey.shade500,
                             ),
-                            const SizedBox(width: 6),
+                            const SizedBox(width: 8),
                             Expanded(
                               child: Text(
                                 truncateText(property.address.fullAddress, 30),
                                 style: TextStyle(
                                   fontSize: 13,
-                                  color: Colors.grey.shade600,
+                                  color: Colors.grey.shade500, // Grey text
                                 ),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
@@ -135,10 +137,10 @@ class PropertyCard extends StatelessWidget {
                       vertical: 6,
                     ),
                     decoration: BoxDecoration(
-                      color: getStatusColor(property.status).withOpacity(0.1),
+                      color: getStatusColor(property.status).withOpacity(0.2),
                       borderRadius: BorderRadius.circular(20),
                       border: Border.all(
-                        color: getStatusColor(property.status).withOpacity(0.3),
+                        color: getStatusColor(property.status).withOpacity(0.5),
                         width: 1,
                       ),
                     ),
@@ -147,14 +149,14 @@ class PropertyCard extends StatelessWidget {
                       children: [
                         Icon(
                           getStatusIcon(property.status),
-                          size: 12,
+                          size: 10,
                           color: getStatusColor(property.status),
                         ),
                         const SizedBox(width: 6),
                         Text(
                           getStatusText(property.status),
                           style: TextStyle(
-                            fontSize: 12,
+                            fontSize: 11,
                             fontWeight: FontWeight.w600,
                             color: getStatusColor(property.status),
                           ),
@@ -187,53 +189,67 @@ class PropertyCard extends StatelessWidget {
                 ],
               ),
 
-              const SizedBox(height: 12),
+              const SizedBox(height: 16),
 
               // Rent and Deposit
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Monthly Rent',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey.shade600,
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF141725), // Ultra dark background for price
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Monthly Rent',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: Colors.grey.shade500,
+                          ),
                         ),
-                      ),
-                      Text(
-                        formatCurrency(property.price),
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.green,
+                        const SizedBox(height: 2),
+                        Text(
+                          formatCurrency(property.price),
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
                         ),
-                      ),
-                    ],
-                  ),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Text(
-                        'Deposit',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey.shade600,
+                      ],
+                    ),
+                    Container(
+                      height: 30, 
+                      width: 1, 
+                      color: Colors.grey.shade800
+                    ),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text(
+                          'Deposit',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: Colors.grey.shade500,
+                          ),
                         ),
-                      ),
-                      Text(
-                        formatCurrency(property.deposit),
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.blue.shade700,
+                         const SizedBox(height: 2),
+                        Text(
+                          formatCurrency(property.deposit),
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.blue.shade300,
+                          ),
                         ),
-                      ),
-                    ],
-                  ),
-                ],
+                      ],
+                    ),
+                  ],
+                ),
               ),
 
               const SizedBox(height: 16),
@@ -247,7 +263,8 @@ class PropertyCard extends StatelessWidget {
                       truncateText(property.description, 80),
                       style: TextStyle(
                         fontSize: 13,
-                        color: Colors.grey.shade700,
+                        color: Colors.grey.shade400,
+                        height: 1.4,
                       ),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
@@ -256,26 +273,28 @@ class PropertyCard extends StatelessWidget {
                   ],
                 ),
 
-              // Status Selector
-              // 
-              const SizedBox(height: 16),
-
               // Action Buttons
               Row(
                 children: [
                   Expanded(
-                    child: OutlinedButton.icon(
+                    child: OutlinedButton(
                       onPressed: onView,
-                      icon: const Icon(FontAwesomeIcons.eye, size: 14),
-                      label: const Text('View Details'),
                       style: OutlinedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 12),
-                        side: BorderSide(color: Colors.blue.shade300),
+                        side: BorderSide(color: Colors.grey.shade700),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        foregroundColor: Colors.white,
+                      ),
+                       child: const Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text('View Details'),
+                          SizedBox(width: 8),
+                          Icon(FontAwesomeIcons.arrowRight, size: 14),
+                        ],
                       ),
                     ),
                   ),
-                  const SizedBox(width: 12),
-                  
                 ],
               ),
             ],
@@ -288,13 +307,14 @@ class PropertyCard extends StatelessWidget {
   Widget _buildDetailItem({required IconData icon, required String text}) {
     return Row(
       children: [
-        Icon(icon, size: 14, color: Colors.grey.shade600),
+        Icon(icon, size: 12, color: Colors.grey.shade500),
         const SizedBox(width: 6),
         Text(
           text,
           style: TextStyle(
-            fontSize: 13,
-            color: Colors.grey.shade600,
+            fontSize: 12,
+            color: Colors.grey.shade500,
+            fontWeight: FontWeight.w500,
           ),
         ),
       ],

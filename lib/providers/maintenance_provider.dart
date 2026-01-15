@@ -2,22 +2,29 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import '../data/models/maintenance_model.dart';
+import '../data/models/maintenance_category_model.dart'; // Added
 import '../data/repositories/maintenance_repository.dart';
 import 'auth_provider.dart';
 
 class MaintenanceProvider with ChangeNotifier {
   final MaintenanceRepository _repository;
-  final AuthProvider _authProvider;
+  AuthProvider _authProvider;
 
   bool _disposed = false;
 
   MaintenanceProvider(this._repository, this._authProvider);
+
+  void update(AuthProvider auth) {
+    _authProvider = auth;
+    notifyListeners();
+  }
 
   bool get isLandlord => _authProvider.isLandlord;
   bool get isTenant => _authProvider.isTenant;
 
   List<MaintenanceModel> _requests = [];
   List<MaintenanceModel> _filteredRequests = [];
+  List<MaintenanceCategoryModel> _categories = []; // Added
   MaintenanceModel? _selectedRequest;
   bool _isLoading = false;
   String _filterStatus = 'all';
@@ -25,6 +32,7 @@ class MaintenanceProvider with ChangeNotifier {
 
   List<MaintenanceModel> get requests => _requests;
   List<MaintenanceModel> get filteredRequests => _filteredRequests;
+  List<MaintenanceCategoryModel> get categories => _categories; // Added
   MaintenanceModel? get selectedRequest => _selectedRequest;
   bool get isLoading => _isLoading;
   String get filterStatus => _filterStatus;
@@ -63,6 +71,26 @@ class MaintenanceProvider with ChangeNotifier {
     } finally {
       _isLoading = false;
       if (!_disposed) notifyListeners();
+    }
+  }
+
+  Future<void> loadCategories() async {
+    // Don't show global loading state for categories background fetch if requests are already loaded
+    // But initially it might be good. Let's just create a separate isLoadingCategories if needed,
+    // or use the same one. For simplicity, reusing _isLoading or just fetching quietly.
+    // Let's fetch quietly but update UI when done.
+    
+    try {
+      final result = await _repository.getMaintenanceCategories();
+      result.fold(
+        (failure) => debugPrint('Failed to load categories: ${failure.message}'),
+        (categories) {
+          _categories = categories;
+          notifyListeners();
+        },
+      );
+    } catch (e) {
+      debugPrint('Exception loading categories: $e');
     }
   }
 
