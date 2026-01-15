@@ -11,6 +11,7 @@ import 'providers/auth_provider.dart';
 import 'providers/property_provider.dart';
 import 'providers/notification_provider.dart';
 import 'providers/message_provider.dart';
+import 'providers/maintenance_provider.dart';
 
 // Data Sources & Repositories
 import 'data/datasources/remote_datasource.dart';
@@ -18,6 +19,7 @@ import 'data/repositories/auth_repository.dart';
 import 'data/repositories/property_repository.dart';
 import 'data/repositories/notification_repository.dart';
 import 'data/repositories/message_repository.dart';
+import 'data/repositories/maintenance_repository.dart';
 
 // Screens
 import 'presentation/screens/auth/widgets/auth_gate.dart';
@@ -81,6 +83,11 @@ class MyApp extends StatelessWidget {
             firestore: context.read<FirebaseFirestore>(),
           ),
         ),
+        Provider(
+          create: (context) => MaintenanceRepository(
+            context.read<RemoteDataSource>(),
+          ),
+        ),
         
         // Providers
         ChangeNotifierProvider(
@@ -107,6 +114,17 @@ class MyApp extends StatelessWidget {
           ),
           update: (context, auth, previous) => PropertyProvider(
             context.read<PropertyRepository>(),
+            auth,
+          ),
+        ),
+        // Maintenance Provider depends on Auth Provider
+        ChangeNotifierProxyProvider<AuthProvider, MaintenanceProvider>(
+          create: (context) => MaintenanceProvider(
+            context.read<MaintenanceRepository>(),
+            context.read<AuthProvider>(),
+          ),
+          update: (context, auth, previous) => MaintenanceProvider(
+            context.read<MaintenanceRepository>(),
             auth,
           ),
         ),

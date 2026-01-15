@@ -404,24 +404,23 @@ class _ApplicationFormState extends State<ApplicationForm> {
     }
   }
 
-  Future<void> _selectDate(BuildContext context, bool isStartDate) async {
+  Future<void> _selectStartDate(BuildContext context) async {
     final DateTime? picked = await showDatePicker(
       context: context,
       initialDate: DateTime.now(),
       firstDate: DateTime.now(),
-      lastDate: DateTime.now().add(Duration(days: _leaseTerm * 30)),
+      lastDate: DateTime.now().add(const Duration(days: 365 * 2)), // Allow selection up to 2 years in future
     );
     
     if (picked != null) {
       setState(() {
-        if (isStartDate) {
-          _leaseStartDate = picked;
-          if (_leaseEndDate != null && _leaseEndDate!.isBefore(picked)) {
-            _leaseEndDate = null;
-          }
-        } else {
-          _leaseEndDate = picked;
-        }
+        _leaseStartDate = picked;
+        // Calculate end date based on lease term
+        _leaseEndDate = DateTime(
+          picked.year,
+          picked.month + _leaseTerm,
+          picked.day,
+        );
       });
     }
   }
@@ -446,9 +445,9 @@ class _ApplicationFormState extends State<ApplicationForm> {
       return;
     }
 
-    if (_leaseStartDate == null || _leaseEndDate == null) {
+    if (_leaseStartDate == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select lease start and end dates')),
+        const SnackBar(content: Text('Please select lease start date')),
       );
       return;
     }
@@ -1383,15 +1382,61 @@ class _ApplicationFormState extends State<ApplicationForm> {
         ),
         const SizedBox(height: 16),
         _buildDateField(
-          label: 'Lease Start Date *',
+          label: 'Lease Start Date (Move-in Date) *',
           date: _leaseStartDate,
-          onTap: () => _selectDate(context, true),
+          onTap: () => _selectStartDate(context),
         ),
         const SizedBox(height: 16),
-        _buildDateField(
-          label: 'Lease End Date *',
-          date: _leaseEndDate,
-          onTap: () => _selectDate(context, false),
+        // Show calculated end date
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            border: Border.all(color: Colors.blue.shade300),
+            borderRadius: BorderRadius.circular(8),
+            color: Colors.blue.shade50,
+          ),
+          child: Row(
+            children: [
+              const Icon(Icons.calendar_today, color: Colors.blue, size: 24),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Lease End Date (Calculated):',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.grey.shade700,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      _leaseEndDate != null
+                          ? DateFormat('MMMM dd, yyyy').format(_leaseEndDate!)
+                          : 'Select start date first',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: _leaseEndDate != null ? Colors.blue : Colors.grey,
+                      ),
+                    ),
+                    if (_leaseEndDate != null) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        'Automatically calculated based on $_leaseTerm months from start date',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.blue.shade700,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ],
     );

@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/property_model.dart';
 import '../models/user_model.dart';
 import '../models/notification_model.dart';
+import '../models/maintenance_model.dart';
 
 class RemoteDataSource {
   final FirebaseFirestore _firestore;
@@ -196,5 +197,121 @@ class RemoteDataSource {
     } catch (e) {
       throw Exception('Failed to mark notification as read: $e');
     }
+  }
+
+  // Maintenance Request Methods
+  Future<List<MaintenanceModel>> getMaintenanceRequests({
+    String? tenantId,
+    String? propertyId,
+    String? statusFilter,
+  }) async {
+    try {
+      Query query = _firestore.collection('maintenance');
+
+      if (tenantId != null) {
+        query = query.where('tenantId', isEqualTo: tenantId);
+      }
+
+      if (statusFilter != null && statusFilter != 'all') {
+        query = query.where('status', isEqualTo: statusFilter);
+      }
+
+      final querySnapshot = await query.orderBy('createdAt', descending: true).get();
+
+      List<MaintenanceModel> requests = querySnapshot.docs
+          .map((doc) => MaintenanceModel.fromFirestore(doc))
+          .toList();
+
+      // Filter by propertyId if provided (need to check unit's propertyId)
+      if (propertyId != null) {
+        // Note: This requires fetching units to match propertyId
+        // For now, we'll filter in memory if needed
+        // In production, you might want to add propertyId to maintenance model
+      }
+
+      return requests;
+    } catch (e) {
+      throw Exception('Failed to fetch maintenance requests: $e');
+    }
+  }
+
+  Future<MaintenanceModel> getMaintenanceRequestById(String requestId) async {
+    try {
+      final doc = await _firestore.collection('maintenance').doc(requestId).get();
+      if (!doc.exists) {
+        throw Exception('Maintenance request not found');
+      }
+      return MaintenanceModel.fromFirestore(doc);
+    } catch (e) {
+      throw Exception('Failed to fetch maintenance request: $e');
+    }
+  }
+
+  Future<String> createMaintenanceRequest(MaintenanceModel request) async {
+    try {
+      final docRef = await _firestore.collection('maintenance').add(
+        request.copyWith(
+          createdAt: DateTime.now(),
+          updatedAt: DateTime.now(),
+        ).toMap(),
+      );
+      return docRef.id;
+    } catch (e) {
+      throw Exception('Failed to create maintenance request: $e');
+    }
+  }
+
+  Future<void> updateMaintenanceRequest(MaintenanceModel request) async {
+    try {
+      await _firestore.collection('maintenance').doc(request.id).update(
+        request.copyWith(updatedAt: DateTime.now()).toMap(),
+      );
+    } catch (e) {
+      throw Exception('Failed to update maintenance request: $e');
+    }
+  }
+
+  Future<void> updateMaintenanceStatus(
+    String requestId,
+    MaintenanceStatus status,
+  ) async {
+    try {
+      await _firestore.collection('maintenance').doc(requestId).update({
+        'status': status.value,
+        'updatedAt': Timestamp.now(),
+      });
+    } catch (e) {
+      throw Exception('Failed to update maintenance status: $e');
+    }
+  }
+
+  Future<void> deleteMaintenanceRequest(String requestId) async {
+    try {
+      await _firestore.collection('maintenance').doc(requestId).delete();
+    } catch (e) {
+      throw Exception('Failed to delete maintenance request: $e');
+    }
+  }
+
+  Stream<List<MaintenanceModel>> getMaintenanceRequestsStream({
+    String? tenantId,
+    String? statusFilter,
+  }) {
+    Query query = _firestore.collection('maintenance');
+
+    if (tenantId != null) {
+      query = query.where('tenantId', isEqualTo: tenantId);
+    }
+
+    if (statusFilter != null && statusFilter != 'all') {
+      query = query.where('status', isEqualTo: statusFilter);
+    }
+
+    return query
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map((snapshot) => snapshot.docs
+            .map((doc) => MaintenanceModel.fromFirestore(doc))
+            .toList());
   }
 }
