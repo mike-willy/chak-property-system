@@ -108,9 +108,27 @@ class _MaintenanceDetailPageState extends State<MaintenanceDetailPage> {
                     child: Column(
                       children: [
                         _buildDetailRow(
-                          icon: FontAwesomeIcons.home,
-                          label: 'Unit ID',
-                          value: widget.request.unitId,
+                          icon: FontAwesomeIcons.building,
+                          label: 'Property',
+                          value: widget.request.propertyName.isNotEmpty 
+                              ? widget.request.propertyName 
+                              : 'Unknown Property',
+                        ),
+                        const Divider(),
+                        _buildDetailRow(
+                          icon: FontAwesomeIcons.doorOpen,
+                          label: 'Unit Name',
+                          value: widget.request.unitName.isNotEmpty 
+                              ? widget.request.unitName 
+                              : widget.request.unitId,
+                        ),
+                        const Divider(),
+                        _buildDetailRow(
+                          icon: FontAwesomeIcons.user,
+                          label: 'Tenant',
+                          value: widget.request.tenantName.isNotEmpty 
+                              ? widget.request.tenantName 
+                              : 'Unknown Tenant',
                         ),
                         const Divider(),
                         _buildDetailRow(

@@ -6,16 +6,14 @@ import 'package:intl/intl.dart';
 import '../../../providers/auth_provider.dart';
 import '../../../providers/property_provider.dart';
 import '../../../providers/tenant_provider.dart';
-import '../../../providers/maintenance_provider.dart';
-import '../../../providers/notification_provider.dart';
+import '../../../data/repositories/tenant_repository.dart';
+import '../../../data/repositories/payment_repository.dart';
 
 // Models
 import '../../../data/models/tenant_model.dart';
 import '../../../data/models/property_model.dart';
 import '../../../data/models/address_model.dart';
 import '../../../data/models/payment_model.dart';
-import '../../../data/models/maintenance_model.dart';
-import '../../../data/models/notification_model.dart';
 
 // Pages
 import '../properties/pages/property_list_page.dart';
@@ -24,7 +22,11 @@ import 'maintenance_page.dart';
 import 'profile_page.dart';
 
 // Widgets
-import '../widgets/dashboard_widgets.dart';
+import '../widgets/header_section.dart';
+import '../widgets/tenant_home_card.dart';
+import '../widgets/upcoming_rent_card.dart';
+import '../widgets/quick_actions_grid.dart';
+import '../widgets/payment_history_list.dart';
 
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
@@ -35,30 +37,19 @@ class DashboardPage extends StatefulWidget {
 
 class _DashboardPageState extends State<DashboardPage> {
   int _currentIndex = 0;
-  late final List<Widget> _pages;
 
-  @override
-  void initState() {
-    super.initState();
-    _pages = [
-      DashboardHome(onNavigate: _onNavigate),
-      const PropertyListPage(),
-      const MessagesPage(),
-      const MaintenancePage(),
-      const ProfilePage(),
-    ];
-  }
-
-  void _onNavigate(int index) {
-    setState(() {
-      _currentIndex = index;
-    });
-  }
+  final List<Widget> _pages = [
+    const DashboardHome(),
+    const PropertyListPage(),
+    const MessagesPage(),
+    const MaintenancePage(),
+    const ProfilePage(),
+  ];
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF141725), 
+      backgroundColor: const Color(0xFF141725), // Deep Dark Background
       body: IndexedStack(
         index: _currentIndex,
         children: _pages,
@@ -84,7 +75,11 @@ class _DashboardPageState extends State<DashboardPage> {
           showUnselectedLabels: true,
           selectedLabelStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12),
           unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w400, fontSize: 12),
-          onTap: _onNavigate,
+          onTap: (index) {
+            setState(() {
+              _currentIndex = index;
+            });
+          },
           items: const [
             BottomNavigationBarItem(icon: Icon(Icons.home_filled), label: 'Home'),
             BottomNavigationBarItem(icon: Icon(Icons.search), label: 'Rentals'),
@@ -99,19 +94,15 @@ class _DashboardPageState extends State<DashboardPage> {
 }
 
 class DashboardHome extends StatefulWidget {
-  final Function(int) onNavigate;
-
-  const DashboardHome({
-    super.key,
-    required this.onNavigate,
-  });
+  const DashboardHome({super.key});
 
   @override
   State<DashboardHome> createState() => _DashboardHomeState();
 }
 
 class _DashboardHomeState extends State<DashboardHome> {
-  bool _isLoading = false;
+  PropertyModel? _currentProperty;
+  bool _isLoadingProperty = false;
 
   @override
   void initState() {
@@ -122,271 +113,177 @@ class _DashboardHomeState extends State<DashboardHome> {
   }
 
   Future<void> _loadData() async {
-    if (!mounted) return;
-    setState(() => _isLoading = true);
     final authProvider = context.read<AuthProvider>();
+    final propertyProvider = context.read<PropertyProvider>();
     final tenantProvider = context.read<TenantProvider>();
-    final maintenanceProvider = context.read<MaintenanceProvider>();
-    final notificationProvider = context.read<NotificationProvider>();
 
+    if (propertyProvider.properties.isEmpty) {
+      await propertyProvider.loadProperties();
+    }
+    
+    // Trigger Tenant Data Load
     if (authProvider.isTenant && authProvider.firebaseUser != null) {
       await tenantProvider.loadTenantData();
-      if (tenantProvider.tenant != null) {
-        await Future.wait([
-          maintenanceProvider.loadRequests(),
-          notificationProvider.loadNotifications(authProvider.firebaseUser!.uid),
-        ]);
-      }
     }
-    if (mounted) setState(() => _isLoading = false);
+  }
+
+  // Find the property for the loaded tenant
+  void _updateCurrentProperty(TenantModel? tenant) {
+    if (tenant == null) return;
+    
+    final propertyProvider = context.read<PropertyProvider>();
+    try {
+      if (propertyProvider.properties.isNotEmpty) {
+        final prop = propertyProvider.properties.firstWhere(
+           (p) => p.id == tenant.propertyId,
+           orElse: () => _getEmptyProperty(),
+        );
+         // only update if different to avoid infinite rebuild loops if used incorrectly
+         if (_currentProperty?.id != prop.id) {
+           setState(() {
+             _currentProperty = prop;
+           });
+         }
+      }
+    } catch (e) {
+      debugPrint('Property find error: $e');
+    }
+  }
+
+  PropertyModel _getEmptyProperty() {
+    return PropertyModel(
+      id: '', title: 'Loading...', unitId: '', description: '',
+      address: AddressModel(street: '', city: '', state: '', zipCode: ''),
+      ownerId: '', ownerName: '', price: 0, deposit: 0, bedrooms: 0, bathrooms: 0, squareFeet: 0,
+      amenities: [], images: [], status: PropertyStatus.vacant,
+      createdAt: DateTime.now(), updatedAt: DateTime.now(),
+    );
+  }
+
+  void _navigateToPage(int index) {
+     final dashboardState = context.findAncestorStateOfType<_DashboardPageState>();
+     if (dashboardState != null) {
+       dashboardState.setState(() {
+         dashboardState._currentIndex = index;
+       });
+     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Consumer4<AuthProvider, TenantProvider, MaintenanceProvider, NotificationProvider>(
-      builder: (context, authProvider, tenantProvider, maintenanceProvider, notificationProvider, _) {
-        final user = authProvider.userProfile;
-        
-        // Derive data
-        final userName = user?.name.split(' ')[0] ?? 'User';
-        final propertyAddress = tenantProvider.unit != null 
-            ? 'Unit ${tenantProvider.unit!.unitNumber}'
-            : '123 Maple Street, Apt 4B';
-        
-        // Payment Data
-        final nextPayment = tenantProvider.payments.firstWhere(
-          (p) => p.status == PaymentStatus.pending,
-          orElse: () => PaymentModel(
-            id: 'dummy', leaseId: '', tenantId: '', 
-            amount: 0.00, method: PaymentMethod.card, status: PaymentStatus.completed, 
-            dueDate: DateTime.now()
-          ),
-        );
-        
-        final hasPendingHeader = nextPayment.status == PaymentStatus.pending;
-        final paymentAmount = hasPendingHeader ? nextPayment.amount : 0.00;
-        final paymentDate = hasPendingHeader ? nextPayment.dueDate : DateTime.now();
+    return SafeArea(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+        child: Consumer3<AuthProvider, PropertyProvider, TenantProvider>(
+          builder: (context, authProvider, propertyProvider, tenantProvider, _) {
+            final isTenant = authProvider.isTenant && tenantProvider.tenant != null;
+            final user = authProvider.userProfile;
+            
+            // Should initiate property retrieval when tenant is loaded
+            if (isTenant && _currentProperty == null && propertyProvider.properties.isNotEmpty) {
+                // Defer state update
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  _updateCurrentProperty(tenantProvider.tenant);
+                });
+            }
 
-        // Combine Activities
-        final allActivities = <Map<String, dynamic>>[];
-        
-        for (var req in maintenanceProvider.requests) {
-           allActivities.add({
-             'type': 'maintenance',
-             'date': req.createdAt,
-             'data': req,
-           });
-        }
-        for (var pay in tenantProvider.payments) {
-           allActivities.add({
-             'type': 'payment',
-             'date': pay.dueDate,
-             'data': pay,
-           });
-        }
-        for (var notif in notificationProvider.notifications) {
-           allActivities.add({
-             'type': 'notification',
-             'date': notif.createdAt,
-             'data': notif,
-           });
-        }
-
-        // Robust sort
-        allActivities.sort((a, b) {
-            final dateA = a['date'] as DateTime?;
-            final dateB = b['date'] as DateTime?;
-            if (dateA == null && dateB == null) return 0;
-            if (dateA == null) return 1; // Nulls last
-            if (dateB == null) return -1;
-            return dateB.compareTo(dateA);
-        });
-        final recentActivities = allActivities.take(5).toList();
-
-        return Scaffold(
-          backgroundColor: const Color(0xFFF5F7FA),
-          body: SafeArea(
-            child: RefreshIndicator(
-              onRefresh: _loadData,
-              child: SingleChildScrollView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                padding: const EdgeInsets.all(20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // 1. Header
-                    DashboardHeader(
-                      userName: userName,
-                      address: propertyAddress,
-                      profileImage: user?.profileImage,
-                      onNotificationTap: () {},
-                    ),
-                    
-                    const SizedBox(height: 24),
-                    
-                    // 2. Payment Card
-                    PaymentCard(
-                      amount: paymentAmount,
-                      dueDate: paymentDate,
-                      onPayTap: () {
-                          // Navigate to payments
-                      },
-                      isLoading: tenantProvider.isLoading,
-                    ),
-                    
-                    const SizedBox(height: 24),
-                    
-                    // 3. Quick Actions
-                    const Text(
-                      'Quick Actions',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black87,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: ActionButton(
-                            icon: Icons.build,
-                            label: 'Request Repair',
-                            iconColor: Colors.blue,
-                            iconBgColor: Colors.blue.shade50,
-                            onTap: () => widget.onNavigate(3), // Maintenance Tab
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: ActionButton(
-                            icon: Icons.description,
-                            label: 'View Lease',
-                            iconColor: Colors.blue,
-                            iconBgColor: Colors.blue.shade50,
-                            onTap: () {
-                              showDialog(
-                                context: context,
-                                builder: (context) => AlertDialog(
-                                  title: const Text('Lease Document'),
-                                  content: const Text('Lease viewing functionality is coming soon.'),
-                                  actions: [
-                                    TextButton(
-                                      onPressed: () => Navigator.pop(context),
-                                      child: const Text('Close'),
-                                    ),
-                                  ],
-                                ),
-                              );
-                            },
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    // Message Landlord
-                    Container(
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(12),
-                        boxShadow: [
-                           BoxShadow(
-                              color: Colors.black.withOpacity(0.05),
-                              blurRadius: 5,
-                              offset: const Offset(0, 2),
-                            ),
-                        ],
-                      ),
-                      child: ListTile(
-                        leading: Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: Colors.blue.shade50,
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: const Icon(Icons.chat_bubble, color: Colors.blue),
-                        ),
-                        title: const Text(
-                          'Message Landlord',
-                          style: TextStyle(fontWeight: FontWeight.w600),
-                        ),
-                        trailing: const Icon(Icons.chevron_right, color: Colors.grey),
-                        onTap: () => widget.onNavigate(2), // Messages Tab
-                      ),
-                    ),
-                    
-                    const SizedBox(height: 24),
-                    
-                    // 4. Recent Activity
-                    const Text(
-                      'Recent Activity',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black87,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    
-                    if (recentActivities.isEmpty)
-                       const Padding(
-                         padding: EdgeInsets.all(16.0),
-                         child: Center(
-                           child: Text("No recent activity.", style: TextStyle(color: Colors.grey))
-                         ),
-                       )
-                    else
-                       ...recentActivities.map((activity) {
-                          final type = activity['type'] as String;
-                          final date = activity['date'] as DateTime;
-                          
-                          if (type == 'maintenance') {
-                             final req = activity['data'] as MaintenanceModel;
-                             return RecentActivityItem(
-                               icon: Icons.build_circle,
-                               iconColor: Colors.green,
-                               iconBgColor: Colors.green.shade50,
-                               title: req.title,
-                               subtitle: 'Maintenance • ${req.status.value}',
-                               date: _formatDate(date),
-                             );
-                          } else if (type == 'payment') {
-                             final pay = activity['data'] as PaymentModel;
-                             return RecentActivityItem(
-                               icon: Icons.payment,
-                               iconColor: Colors.blue,
-                               iconBgColor: Colors.blue.shade50,
-                               title: 'Payment Confirmed',
-                               subtitle: '\$${pay.amount}',
-                               date: _formatDate(date),
-                             );
-                          } else {
-                             final notif = activity['data'] as NotificationModel;
-                             return RecentActivityItem(
-                               icon: Icons.notifications_active,
-                               iconColor: Colors.orange,
-                               iconBgColor: Colors.orange.shade50,
-                               title: notif.title, 
-                               subtitle: 'Notice',
-                               date: _formatDate(date),
-                             );
-                          }
-                       }),
-                  ],
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // 1. HEADER
+                 HeaderSection(
+                  userName: user?.name.split(' ')[0] ?? 'User',
+                  userRole: authProvider.isTenant ? 'Tenant' : 'Guest',
+                  tenantId: isTenant ? tenantProvider.tenant!.id.substring(0, 6) : null,
+                  onNotificationTap: () {},
                 ),
-              ),
-            ),
-          ),
-        );
-      },
+                
+                const SizedBox(height: 24),
+                
+                if (tenantProvider.isLoading)
+                   const Center(child: CircularProgressIndicator(color: Colors.white))
+                else if (isTenant) ...[
+                  // 2. PROPERTY IMAGE CARD
+                  TenantHomeCard(
+                    tenantData: tenantProvider.tenant,
+                    propertyData: _currentProperty,
+                    isLoading: tenantProvider.isLoading,
+                    unitNumberOverride: tenantProvider.unit?.unitNumber,
+                  ),
+                  
+                  const SizedBox(height: 20),
+
+                  // 3. RENT DUE CARD
+                  UpcomingRentCard(
+                    tenantData: tenantProvider.tenant, 
+                    isLoading: tenantProvider.isLoading,
+                    properties: propertyProvider.properties,
+                  ),
+
+                  const SizedBox(height: 20),
+
+                  // 4. ACTION BUTTONS (Report Issue / Lease Terms)
+                  QuickActionsGrid(
+                    onPayRent: () {}, // Handled in Rent Card usually
+                    onRequestMaintenance: () => _navigateToPage(3),
+                    onViewMessages: () => _navigateToPage(2),
+                    onViewDocuments: () {},
+                  ),
+
+                  const SizedBox(height: 25),
+
+                  // 5. PAYMENT HISTORY LIST
+                  PaymentHistoryList(
+                    payments: tenantProvider.payments,
+                    isLoading: tenantProvider.isLoading,
+                  ),
+
+                ] else ...[
+                   _buildGuestView(),
+                ],
+                const SizedBox(height: 32),
+              ],
+            );
+          },
+        ),
+      ),
     );
   }
   
-  String _formatDate(DateTime date) {
-    final now = DateTime.now();
-    final diff = now.difference(date);
-    if (diff.inDays == 0) return 'Today';
-    if (diff.inDays == 1) return 'Yesterday';
-    return DateFormat('MMM d').format(date);
+  Widget _buildGuestView() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1E2235),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Column(
+        children: [
+          const Icon(Icons.home_work_outlined, size: 48, color: Colors.blue),
+          const SizedBox(height: 16),
+          const Text(
+            'Looking for a home?',
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Browse our available properties and submit an application today.',
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 14, color: Colors.grey.shade400),
+          ),
+          const SizedBox(height: 20),
+          ElevatedButton(
+            onPressed: () => _navigateToPage(1),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF2E86DE),
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+            ),
+            child: const Text('Browse Properties'),
+          ),
+        ],
+      ),
+    );
   }
 }

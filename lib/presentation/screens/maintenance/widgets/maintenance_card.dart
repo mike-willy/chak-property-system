@@ -110,7 +110,6 @@ class MaintenanceCard extends StatelessWidget {
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                         ),
-                        const SizedBox(height: 6),
                         Row(
                           children: [
                             Icon(Icons.calendar_today, size: 12, color: Colors.grey.shade500),
@@ -119,7 +118,24 @@ class MaintenanceCard extends StatelessWidget {
                               formatDate(request.createdAt),
                               style: TextStyle(
                                 fontSize: 13,
-                                color: Colors.grey.shade500, // Light grey text
+                                color: Colors.grey.shade500,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 6),
+                        Row(
+                          children: [
+                            Icon(FontAwesomeIcons.building, size: 12, color: Colors.grey.shade500),
+                            const SizedBox(width: 6),
+                            Expanded(
+                              child: Text(
+                                '${request.propertyName.isNotEmpty ? request.propertyName : 'Unknown'} • ${request.unitName.isNotEmpty ? request.unitName : request.unitId}',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: Colors.grey.shade500,
+                                ),
+                                overflow: TextOverflow.ellipsis,
                               ),
                             ),
                           ],

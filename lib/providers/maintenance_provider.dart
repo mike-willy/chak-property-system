@@ -115,6 +115,9 @@ class MaintenanceProvider with ChangeNotifier {
     required String title,
     required String description,
     required MaintenancePriority priority,
+    required String tenantName,
+    required String propertyName,
+    required String unitName,
     List<String> images = const [],
   }) async {
     _isLoading = true;
@@ -132,6 +135,9 @@ class MaintenanceProvider with ChangeNotifier {
         id: '', // Will be set by repository
         tenantId: tenantId,
         unitId: unitId,
+        tenantName: tenantName,
+        propertyName: propertyName,
+        unitName: unitName,
         title: title,
         description: description,
         priority: priority,

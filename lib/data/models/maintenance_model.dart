@@ -67,7 +67,10 @@ extension MaintenanceStatusExtension on MaintenanceStatus {
 class MaintenanceModel {
   final String id;
   final String tenantId;
-  final String unitId;
+  final String unitId;  
+  final String tenantName;
+  final String propertyName;
+  final String unitName;
   final String title;
   final String description;
   final MaintenancePriority priority;
@@ -80,6 +83,9 @@ class MaintenanceModel {
     required this.id,
     required this.tenantId,
     required this.unitId,
+    required this.tenantName,
+    required this.propertyName,
+    required this.unitName,
     required this.title,
     required this.description,
     required this.priority,
@@ -94,6 +100,9 @@ class MaintenanceModel {
     return {
       'tenantId': tenantId,
       'unitId': unitId,
+      'tenantName': tenantName,
+      'propertyName': propertyName,
+      'unitName': unitName,
       'title': title,
       'description': description,
       'priority': priority.value,
@@ -110,6 +119,9 @@ class MaintenanceModel {
       id: id,
       tenantId: map['tenantId'] as String? ?? '',
       unitId: map['unitId'] as String? ?? '',
+      tenantName: map['tenantName'] as String? ?? '',
+      propertyName: map['propertyName'] as String? ?? '',
+      unitName: map['unitName'] as String? ?? '',
       title: map['title'] as String? ?? '',
       description: map['description'] as String? ?? '',
       priority: MaintenancePriorityExtension.fromString(
@@ -135,6 +147,9 @@ class MaintenanceModel {
     String? id,
     String? tenantId,
     String? unitId,
+    String? tenantName,
+    String? propertyName,
+    String? unitName,
     String? title,
     String? description,
     MaintenancePriority? priority,
@@ -147,6 +162,9 @@ class MaintenanceModel {
       id: id ?? this.id,
       tenantId: tenantId ?? this.tenantId,
       unitId: unitId ?? this.unitId,
+      tenantName: tenantName ?? this.tenantName,
+      propertyName: propertyName ?? this.propertyName,
+      unitName: unitName ?? this.unitName,
       title: title ?? this.title,
       description: description ?? this.description,
       priority: priority ?? this.priority,
