@@ -24,6 +24,10 @@ class MaintenanceCard extends StatelessWidget {
         return 'In Progress';
       case MaintenanceStatus.completed:
         return 'Completed';
+      case MaintenanceStatus.onHold:
+        return 'On Hold';
+      case MaintenanceStatus.canceled:
+        return 'Request Canceled';
     }
   }
 
@@ -35,6 +39,10 @@ class MaintenanceCard extends StatelessWidget {
         return Colors.blue;
       case MaintenanceStatus.completed:
         return Colors.green;
+      case MaintenanceStatus.onHold:
+        return Colors.purple;
+      case MaintenanceStatus.canceled:
+        return Colors.grey;
     }
   }
 
@@ -46,6 +54,10 @@ class MaintenanceCard extends StatelessWidget {
         return FontAwesomeIcons.hammer;
       case MaintenanceStatus.completed:
         return FontAwesomeIcons.circleCheck;
+      case MaintenanceStatus.onHold:
+        return FontAwesomeIcons.circlePause;
+      case MaintenanceStatus.canceled:
+        return FontAwesomeIcons.circleXmark;
     }
   }
 

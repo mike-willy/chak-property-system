@@ -10,6 +10,8 @@ enum MaintenanceStatus {
   open,
   inProgress,
   completed,
+  onHold,
+  canceled,
 }
 
 extension MaintenancePriorityExtension on MaintenancePriority {
@@ -47,6 +49,10 @@ extension MaintenanceStatusExtension on MaintenanceStatus {
         return 'in-progress';
       case MaintenanceStatus.completed:
         return 'completed';
+      case MaintenanceStatus.onHold:
+        return 'on hold';
+      case MaintenanceStatus.canceled:
+        return 'request canceled';
     }
   }
 
@@ -58,6 +64,10 @@ extension MaintenanceStatusExtension on MaintenanceStatus {
         return MaintenanceStatus.inProgress;
       case 'completed':
         return MaintenanceStatus.completed;
+      case 'on hold':
+        return MaintenanceStatus.onHold;
+      case 'request canceled':
+        return MaintenanceStatus.canceled;
       default:
         return MaintenanceStatus.open;
     }
