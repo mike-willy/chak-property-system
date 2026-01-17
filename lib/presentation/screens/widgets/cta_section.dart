@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../properties/pages/property_list_page.dart'; // Add this import
 
 class CTASection extends StatelessWidget {
   const CTASection({super.key});
@@ -31,7 +32,15 @@ class CTASection extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           ElevatedButton(
-            onPressed: () {},
+            onPressed: () {
+              // Navigate to properties listing page using MaterialPageRoute
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const PropertyListPage(),
+                ),
+              );
+            },
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.white,
               foregroundColor: Colors.black,
