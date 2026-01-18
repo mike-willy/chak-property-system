@@ -1,19 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:intl/intl.dart';
 
 // Providers
 import '../../../providers/auth_provider.dart';
 import '../../../providers/property_provider.dart';
 import '../../../providers/tenant_provider.dart';
-import '../../../data/repositories/tenant_repository.dart';
-import '../../../data/repositories/payment_repository.dart';
 
 // Models
 import '../../../data/models/tenant_model.dart';
 import '../../../data/models/property_model.dart';
 import '../../../data/models/address_model.dart';
-import '../../../data/models/payment_model.dart';
 
 // Pages
 import '../properties/pages/property_list_page.dart';
@@ -102,7 +98,6 @@ class DashboardHome extends StatefulWidget {
 
 class _DashboardHomeState extends State<DashboardHome> {
   PropertyModel? _currentProperty;
-  bool _isLoadingProperty = false;
 
   @override
   void initState() {

@@ -1,10 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:cloud_firestore/cloud_firestore.dart'; // Still needed for DocumentSnapshot if UI depends on it for legacy reasons, but ideally should use ApplicationModel directly.
-// However, the original code used StreamBuilder with QuerySnapshot/DocumentSnapshot. 
-// We are switching to Stream<List<ApplicationModel>> from the provider.
-// This requires changing the _buildApplicationsSection to consume the model directly.
-
 import '../../../../providers/auth_provider.dart';
 import '../../../../providers/application_provider.dart';
 import '../../../../data/models/application_model.dart';

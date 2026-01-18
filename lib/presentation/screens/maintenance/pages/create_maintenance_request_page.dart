@@ -11,7 +11,6 @@ import '../../../../data/repositories/tenant_repository.dart';
 import '../../../../data/repositories/property_repository.dart';
 import '../../../../data/datasources/remote_datasource.dart';
 import '../../../../data/models/tenant_model.dart';
-import '../../../../data/models/unit_model.dart';
 import '../../../../data/models/property_model.dart';
 import '../../../../data/models/address_model.dart';
 

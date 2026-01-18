@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../../payments/payment_page.dart';
 import '../../auth/widgets/auth_gate.dart';
 
 class ApplicationStatusPage extends StatelessWidget {
