@@ -356,7 +356,7 @@ class _MaintenanceDetailPageState extends State<MaintenanceDetailPage> {
 
     switch (status) {
       case MaintenanceStatus.open:
-        statusText = 'Open';
+        statusText = 'Pending';
         statusColor = Colors.orange;
         statusIcon = FontAwesomeIcons.circleExclamation;
         break;
@@ -376,7 +376,7 @@ class _MaintenanceDetailPageState extends State<MaintenanceDetailPage> {
         statusIcon = FontAwesomeIcons.circlePause;
         break;
       case MaintenanceStatus.canceled:
-        statusText = 'Request Canceled';
+        statusText = 'Cancelled';
         statusColor = Colors.grey;
         statusIcon = FontAwesomeIcons.circleXmark;
         break;

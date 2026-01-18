@@ -147,8 +147,8 @@ class _MaintenanceListPageState extends State<MaintenanceListPage> {
             ),
             const SizedBox(width: 10),
             _buildFilterChip(
-              label: 'Open',
-              value: 'open',
+              label: 'Pending', // Changed label to Pending as well to be accurate
+              value: 'pending',
               icon: FontAwesomeIcons.circleExclamation,
               provider: provider,
             ),
@@ -169,14 +169,14 @@ class _MaintenanceListPageState extends State<MaintenanceListPage> {
             const SizedBox(width: 10),
             _buildFilterChip(
               label: 'On Hold',
-              value: 'on hold',
+              value: 'on-hold',
               icon: FontAwesomeIcons.circlePause,
               provider: provider,
             ),
             const SizedBox(width: 10),
             _buildFilterChip(
-              label: 'Canceled',
-              value: 'request canceled',
+              label: 'Cancelled',
+              value: 'cancelled',
               icon: FontAwesomeIcons.circleXmark,
               provider: provider,
             ),

@@ -19,7 +19,7 @@ class MaintenanceCard extends StatelessWidget {
   String getStatusText(MaintenanceStatus status) {
     switch (status) {
       case MaintenanceStatus.open:
-        return 'Open';
+        return 'Pending';
       case MaintenanceStatus.inProgress:
         return 'In Progress';
       case MaintenanceStatus.completed:
@@ -27,7 +27,7 @@ class MaintenanceCard extends StatelessWidget {
       case MaintenanceStatus.onHold:
         return 'On Hold';
       case MaintenanceStatus.canceled:
-        return 'Request Canceled';
+        return 'Cancelled';
     }
   }
 

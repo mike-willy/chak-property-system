@@ -328,10 +328,30 @@ class RemoteDataSource {
     MaintenanceStatus status,
   ) async {
     try {
-      await _firestore.collection('maintenance').doc(requestId).update({
+      final Map<String, dynamic> updates = {
         'status': status.value,
         'updatedAt': Timestamp.now(),
-      });
+      };
+
+      // Handle special timestamps for status changes
+      if (status == MaintenanceStatus.completed) {
+        updates['completedAt'] = Timestamp.now();
+        updates['onHoldAt'] = null; // Clear on-hold if completing
+      } else if (status == MaintenanceStatus.onHold) {
+        updates['onHoldAt'] = Timestamp.now();
+        updates['completedAt'] = null; // Clear completed if putting on hold
+      } else if (status == MaintenanceStatus.canceled) {
+        updates['cancelledAt'] = Timestamp.now();
+        updates['completedAt'] = null;
+        updates['onHoldAt'] = null;
+      } else if (status == MaintenanceStatus.open || status == MaintenanceStatus.inProgress) {
+        // Clear special timestamps when moving back to normal status
+        updates['completedAt'] = null;
+        updates['onHoldAt'] = null;
+        updates['cancelledAt'] = null;
+      }
+
+      await _firestore.collection('maintenance').doc(requestId).update(updates);
     } catch (e) {
       throw Exception('Failed to update maintenance status: $e');
     }

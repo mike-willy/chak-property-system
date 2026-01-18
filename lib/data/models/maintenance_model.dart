@@ -44,28 +44,31 @@ extension MaintenanceStatusExtension on MaintenanceStatus {
   String get value {
     switch (this) {
       case MaintenanceStatus.open:
-        return 'open';
+        return 'pending'; // Changed from 'open'
       case MaintenanceStatus.inProgress:
         return 'in-progress';
       case MaintenanceStatus.completed:
         return 'completed';
       case MaintenanceStatus.onHold:
-        return 'on hold';
+        return 'on-hold'; // Changed from 'on hold'
       case MaintenanceStatus.canceled:
-        return 'request canceled';
+        return 'cancelled'; // Changed from 'request canceled'
     }
   }
 
   static MaintenanceStatus fromString(String value) {
     switch (value) {
-      case 'open':
+      case 'pending': // Changed from 'open'
+      case 'open': // Keep for backward compatibility
         return MaintenanceStatus.open;
       case 'in-progress':
         return MaintenanceStatus.inProgress;
       case 'completed':
         return MaintenanceStatus.completed;
+      case 'on-hold': // Changed from 'on hold'
       case 'on hold':
         return MaintenanceStatus.onHold;
+      case 'cancelled': // Changed from 'request canceled'
       case 'request canceled':
         return MaintenanceStatus.canceled;
       default:
@@ -88,6 +91,10 @@ class MaintenanceModel {
   final List<String> images;
   final DateTime createdAt;
   final DateTime updatedAt;
+  final String? adminNotes; // New field
+  final DateTime? completedAt; // New field
+  final DateTime? onHoldAt; // New field
+  final DateTime? cancelledAt; // New field
 
   MaintenanceModel({
     required this.id,
@@ -103,6 +110,10 @@ class MaintenanceModel {
     required this.images,
     required this.createdAt,
     required this.updatedAt,
+    this.adminNotes,
+    this.completedAt,
+    this.onHoldAt,
+    this.cancelledAt,
   });
 
   // Convert to Firestore document
@@ -120,6 +131,10 @@ class MaintenanceModel {
       'images': images,
       'createdAt': Timestamp.fromDate(createdAt),
       'updatedAt': Timestamp.fromDate(updatedAt),
+      'adminNotes': adminNotes,
+      'completedAt': completedAt != null ? Timestamp.fromDate(completedAt!) : null,
+      'onHoldAt': onHoldAt != null ? Timestamp.fromDate(onHoldAt!) : null,
+      'cancelledAt': cancelledAt != null ? Timestamp.fromDate(cancelledAt!) : null,
     };
   }
 
@@ -138,11 +153,15 @@ class MaintenanceModel {
         map['priority'] as String? ?? 'medium',
       ),
       status: MaintenanceStatusExtension.fromString(
-        map['status'] as String? ?? 'open',
+        map['status'] as String? ?? 'pending',
       ),
       images: List<String>.from(map['images'] as List? ?? []),
       createdAt: (map['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       updatedAt: (map['updatedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      adminNotes: map['adminNotes'] as String?,
+      completedAt: (map['completedAt'] as Timestamp?)?.toDate(),
+      onHoldAt: (map['onHoldAt'] as Timestamp?)?.toDate(),
+      cancelledAt: (map['cancelledAt'] as Timestamp?)?.toDate(),
     );
   }
 
@@ -167,6 +186,10 @@ class MaintenanceModel {
     List<String>? images,
     DateTime? createdAt,
     DateTime? updatedAt,
+    String? adminNotes,
+    DateTime? completedAt,
+    DateTime? onHoldAt,
+    DateTime? cancelledAt,
   }) {
     return MaintenanceModel(
       id: id ?? this.id,
@@ -182,6 +205,10 @@ class MaintenanceModel {
       images: images ?? this.images,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
+      adminNotes: adminNotes ?? this.adminNotes,
+      completedAt: completedAt ?? this.completedAt,
+      onHoldAt: onHoldAt ?? this.onHoldAt,
+      cancelledAt: cancelledAt ?? this.cancelledAt,
     );
   }
 }
