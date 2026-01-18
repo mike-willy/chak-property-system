@@ -15,7 +15,10 @@ class SignupPage extends StatefulWidget {
 
 class _SignupPageState extends State<SignupPage> {
   final _formKey = GlobalKey<FormState>();
+  final _nameController = TextEditingController();
   final _emailController = TextEditingController();
+  final _phoneController = TextEditingController();
+  final _idNumberController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
   
@@ -28,7 +31,10 @@ class _SignupPageState extends State<SignupPage> {
 
   @override
   void dispose() {
+    _nameController.dispose();
     _emailController.dispose();
+    _phoneController.dispose();
+    _idNumberController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
     super.dispose();
@@ -58,10 +64,12 @@ class _SignupPageState extends State<SignupPage> {
     try {
       final authProvider = context.read<AuthProvider>();
       final errorMessage = await authProvider.signUpWithEmail(
-        _emailController.text.trim().split('@')[0], // Use email prefix as name
-        _emailController.text.trim(),
-        _passwordController.text,
-        _selectedRole!,
+        name: _nameController.text.trim(),
+        email: _emailController.text.trim(),
+        password: _passwordController.text,
+        role: _selectedRole!,
+        phone: _phoneController.text.trim(),
+        idNumber: _idNumberController.text.trim(),
       );
 
       if (!mounted) return;
@@ -285,6 +293,42 @@ class _SignupPageState extends State<SignupPage> {
                   ],
                 ),
                 const SizedBox(height: 32),
+
+                // Full Name Field
+                TextFormField(
+                  controller: _nameController,
+                  keyboardType: TextInputType.name,
+                  decoration: InputDecoration(
+                    labelText: 'Full Name',
+                    prefixIcon: Icon(Icons.person_outline, color: AppColors.onSurfaceVariant),
+                  ),
+                  validator: (value) => Validators.validateRequired(value, 'Full Name'),
+                ),
+                const SizedBox(height: 16),
+
+                // Phone Number Field
+                TextFormField(
+                  controller: _phoneController,
+                  keyboardType: TextInputType.phone,
+                  decoration: InputDecoration(
+                    labelText: 'Phone Number',
+                    prefixIcon: Icon(Icons.phone_outlined, color: AppColors.onSurfaceVariant),
+                  ),
+                  validator: (value) => Validators.validateRequired(value, 'Phone Number'),
+                ),
+                const SizedBox(height: 16),
+
+                // ID Number Field
+                TextFormField(
+                  controller: _idNumberController,
+                  keyboardType: TextInputType.text,
+                  decoration: InputDecoration(
+                    labelText: 'ID Number',
+                    prefixIcon: Icon(Icons.badge_outlined, color: AppColors.onSurfaceVariant),
+                  ),
+                  validator: (value) => Validators.validateRequired(value, 'ID Number'),
+                ),
+                const SizedBox(height: 16),
 
                 // Email Field
                 TextFormField(

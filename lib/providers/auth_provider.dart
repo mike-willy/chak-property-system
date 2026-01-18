@@ -86,8 +86,14 @@ class AuthProvider extends ChangeNotifier {
   // ----------------------------
   // Email/Password Sign-Up
   // ----------------------------
-  Future<String?> signUpWithEmail(
-      String name, String email, String password, UserRole role) async {
+  Future<String?> signUpWithEmail({
+    required String name,
+    required String email,
+    required String password,
+    required UserRole role,
+    required String phone,
+    required String idNumber,
+  }) async {
     if (!_firebaseAvailable || _auth == null) {
       return 'Firebase Authentication is not available. Please try again later.';
     }
@@ -111,11 +117,11 @@ class AuthProvider extends ChangeNotifier {
           id: firebaseUser!.uid,
           name: name,
           email: email,
-          phone: '',
+          phone: phone,
           role: role,
           createdAt: DateTime.now(),
           isVerified: false,
-          idNumber: '',
+          idNumber: idNumber,
         );
 
         final result = await _authRepository!.createUserProfile(userModel);

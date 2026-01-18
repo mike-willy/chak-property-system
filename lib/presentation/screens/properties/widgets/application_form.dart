@@ -87,6 +87,7 @@ class _ApplicationFormState extends State<ApplicationForm> {
     _nameCtrl.text = auth.userProfile?.name ?? '';
     _emailCtrl.text = auth.userProfile?.email ?? '';
     _phoneCtrl.text = auth.userProfile?.phone ?? '';
+    _idNumberCtrl.text = auth.userProfile?.idNumber ?? '';
   }
 
   Future<void> _loadPropertyData() async {
@@ -539,24 +540,6 @@ class _ApplicationFormState extends State<ApplicationForm> {
       });
 
 
-
-      // Update User Profile with latest details
-      try {
-        await FirebaseFirestore.instance.collection('users').doc(auth.firebaseUser!.uid).update({
-          'name': _nameCtrl.text.trim(),
-          'phone': _phoneCtrl.text.trim(),
-          'idNumber': _idNumberCtrl.text.trim(), // Assuming you want to save this
-          // Add other fields if necessary
-        });
-        
-        // Force reload of local user profile if possible, or just let the stream handle it
-        // The AuthProvider listens to changes if configured, otherwise next fetch will get it.
-        // If AuthProvider doesn't listen to doc changes real-time, we might need to manually trigger refresh,
-        // but for now, the Firestore update is the source of truth.
-      } catch (e) {
-        print('Error updating user profile: $e');
-        // Non-critical error, continue to navigation
-      }
 
       if (!mounted) return;
 
@@ -1340,6 +1323,7 @@ class _ApplicationFormState extends State<ApplicationForm> {
         _buildTextField(
           controller: _nameCtrl,
           label: 'Full Name *',
+          readOnly: true,
           validator: (value) {
             if (value == null || value.isEmpty) {
               return 'Please enter your full name';
@@ -1352,6 +1336,7 @@ class _ApplicationFormState extends State<ApplicationForm> {
           controller: _emailCtrl,
           label: 'Email Address *',
           keyboardType: TextInputType.emailAddress,
+          readOnly: true,
           validator: (value) {
             if (value == null || value.isEmpty) {
               return 'Please enter your email';
@@ -1367,6 +1352,7 @@ class _ApplicationFormState extends State<ApplicationForm> {
           controller: _phoneCtrl,
           label: 'Phone Number *',
           keyboardType: TextInputType.phone,
+          readOnly: true,
           validator: (value) {
             if (value == null || value.isEmpty) {
               return 'Please enter your phone number';
@@ -1378,6 +1364,7 @@ class _ApplicationFormState extends State<ApplicationForm> {
         _buildTextField(
           controller: _idNumberCtrl,
           label: 'ID/Passport Number *',
+          readOnly: true,
           validator: (value) {
             if (value == null || value.isEmpty) {
               return 'Please enter your ID/Passport number';
@@ -2036,15 +2023,20 @@ class _ApplicationFormState extends State<ApplicationForm> {
     TextInputType keyboardType = TextInputType.text,
     String? hintText,
     String? Function(String?)? validator,
+    bool readOnly = false,
   }) {
     return TextFormField(
       controller: controller,
       keyboardType: keyboardType,
       validator: validator,
+      readOnly: readOnly,
+      style: readOnly ? TextStyle(color: Colors.grey.shade600) : null,
       decoration: InputDecoration(
         labelText: label,
         hintText: hintText,
         border: const OutlineInputBorder(),
+        filled: readOnly,
+        fillColor: readOnly ? Colors.grey.shade100 : null,
         contentPadding: const EdgeInsets.symmetric(
           horizontal: 16,
           vertical: 14,
