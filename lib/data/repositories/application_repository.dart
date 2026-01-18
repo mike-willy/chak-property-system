@@ -15,6 +15,17 @@ class ApplicationRepository {
         .map((d) => ApplicationModel.fromFirestore(d))
         .toList();
   }
+  
+  Future<List<ApplicationModel>> getApplicationsByProperty(String propertyId) async {
+    final snap = await _ref
+        .where('propertyId', isEqualTo: propertyId)
+        .where('status', isEqualTo: 'pending')
+        .get();
+        
+    return snap.docs
+        .map((d) => ApplicationModel.fromFirestore(d))
+        .toList();
+  }
 
   Stream<List<ApplicationModel>> getTenantApplicationsStream(String tenantId) {
     return _ref

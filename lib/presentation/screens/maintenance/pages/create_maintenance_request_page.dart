@@ -120,25 +120,55 @@ class _CreateMaintenanceRequestPageState extends State<CreateMaintenanceRequestP
     });
 
     try {
-      final tenantRepo = TenantRepository(); // Instantiate TenantRepository
-      final tenant = await tenantRepo.getTenantByUserId(userId);
+      final authProvider = context.read<AuthProvider>();
+      final tenantRepo = TenantRepository();
+      
+      // 1. Primary Lookup: By userId
+      TenantModel? tenant = await tenantRepo.getTenantByUserId(userId);
+      debugPrint("Maintenance: Query by userId: $userId found: ${tenant?.id}");
+      
+      // 2. Fallback 1: By document ID (some systems use UID as doc ID)
+      if (tenant == null) {
+        try {
+          tenant = await tenantRepo.getTenantById(userId);
+          if (tenant != null) {
+            debugPrint("Maintenance: Found tenant by document ID fallback: ${tenant.id}");
+          }
+        } catch (e) {
+          debugPrint("Maintenance: Document ID fallback failed: $e");
+        }
+      }
+      
+      // 3. Fallback 2: By Email
+      if (tenant == null && authProvider.firebaseUser?.email != null) {
+        tenant = await tenantRepo.getTenantByEmail(authProvider.firebaseUser!.email!);
+        if (tenant != null) {
+          debugPrint("Maintenance: Found tenant by email: ${authProvider.firebaseUser!.email}");
+          // Automatically link UID if missing or different
+          if (tenant.userId != userId) {
+            await tenantRepo.updateTenant(tenant.id, {'userId': userId});
+            tenant = tenant.copyWith(userId: userId);
+            debugPrint("Maintenance: Linked tenant record to UID: $userId");
+          }
+        }
+      }
       
       if (tenant != null) {
         setState(() {
           _currentTenant = tenant;
-          if (tenant.unitId.isNotEmpty) {
-            _selectedUnitId = tenant.unitId;
+          if (tenant!.unitId.isNotEmpty) {
+            _selectedUnitId = tenant!.unitId;
           }
-          if (tenant.propertyId.isNotEmpty) {
-            _selectedPropertyId = tenant.propertyId;
+          if (tenant!.propertyId.isNotEmpty) {
+            _selectedPropertyId = tenant!.propertyId;
           }
           
           // Resolve building and unit names if they are IDs or empty
-          _resolveHumanReadableNames(tenant);
+          _resolveHumanReadableNames(tenant!);
         });
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Unable to load your profile. Please contact support.')),
+          const SnackBar(content: Text('Active lease record not found. Please contact support.')),
         );
       }
     } catch (e) {
@@ -146,9 +176,11 @@ class _CreateMaintenanceRequestPageState extends State<CreateMaintenanceRequestP
         SnackBar(content: Text('Error loading unit: $e')),
       );
     } finally {
-      setState(() {
-        _isLoadingUnit = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isLoadingUnit = false;
+        });
+      }
     }
   }
 

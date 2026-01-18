@@ -37,6 +37,7 @@ class ApplicationModel {
   /// Immutable identity fields (tenant-controlled ONLY at creation)
   final String tenantId;
   final String unitId;
+  final String? propertyId; // Added propertyId
 
   /// State (admin-controlled after submission)
   final ApplicationStatus status;
@@ -56,6 +57,12 @@ class ApplicationModel {
   final String? unitName;
   final String? unitNumber;
   final double? monthlyRent;
+  final String? fullName;
+  final String? email;
+  final String? phone;
+  final DateTime? leaseStart;
+  final DateTime? leaseEnd;
+  // final String? propertyId; // Added propertyId
 
   const ApplicationModel({
     required this.id,
@@ -70,6 +77,12 @@ class ApplicationModel {
     this.unitName,
     this.unitNumber,
     this.monthlyRent,
+    this.propertyId,
+    this.fullName,
+    this.email,
+    this.phone,
+    this.leaseStart,
+    this.leaseEnd,
   });
 
   // ----------------------------
@@ -84,6 +97,7 @@ class ApplicationModel {
       id: id,
       tenantId: tenantId,
       unitId: unitId,
+      propertyId: null, // Fill if needed, or update if propertyId is available
       status: ApplicationStatus.pending,
       documents: const [],
       appliedDate: DateTime.now(),
@@ -107,6 +121,12 @@ class ApplicationModel {
       'unitName': unitName,
       'unitNumber': unitNumber,
       'monthlyRent': monthlyRent,
+      'propertyId': propertyId,
+      'fullName': fullName,
+      'email': email,
+      'phone': phone,
+      'leaseStart': leaseStart != null ? Timestamp.fromDate(leaseStart!) : null,
+      'leaseEnd': leaseEnd != null ? Timestamp.fromDate(leaseEnd!) : null,
     };
   }
 
@@ -127,6 +147,12 @@ class ApplicationModel {
       unitName: map['unitName'],
       unitNumber: map['unitNumber']?.toString(), // Handle simplified int storage
       monthlyRent: (map['monthlyRent'] as num?)?.toDouble(),
+      propertyId: map['propertyId'],
+      fullName: map['fullName'],
+      email: map['email'],
+      phone: map['phone'],
+      leaseStart: (map['leaseStart'] as Timestamp?)?.toDate(),
+      leaseEnd: (map['leaseEnd'] as Timestamp?)?.toDate(),
     );
   }
 
@@ -180,6 +206,7 @@ class ApplicationModel {
       unitName: unitName ?? this.unitName,
       unitNumber: unitNumber ?? this.unitNumber,
       monthlyRent: monthlyRent ?? this.monthlyRent,
+      propertyId: propertyId ?? this.propertyId, // Added propertyId
     );
   }
 }

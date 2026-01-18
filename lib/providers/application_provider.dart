@@ -20,6 +20,23 @@ class ApplicationProvider extends ChangeNotifier {
     applications = await _applicationRepo.getPendingApplications();
     notifyListeners();
   }
+  
+  Future<void> loadLandlordApplications(List<String> propertyIds) async {
+    loading = true;
+    notifyListeners();
+    
+    try {
+      List<ApplicationModel> allApps = [];
+      for (final id in propertyIds) {
+        final apps = await _applicationRepo.getApplicationsByProperty(id);
+        allApps.addAll(apps);
+      }
+      applications = allApps;
+    } finally {
+      loading = false;
+      notifyListeners();
+    }
+  }
 
   Stream<List<ApplicationModel>> getTenantApplicationsStream(String tenantId) =>
       _applicationRepo.getTenantApplicationsStream(tenantId);

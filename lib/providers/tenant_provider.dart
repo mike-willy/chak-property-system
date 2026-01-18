@@ -15,6 +15,7 @@ class TenantProvider with ChangeNotifier {
 
   TenantModel? _tenant;
   List<PaymentModel> _payments = [];
+  List<TenantModel> _tenantsList = []; // Added for landlords/admins
   UnitModel? _unit; // Added unit
   bool _isLoading = false;
   String? _error;
@@ -35,6 +36,7 @@ class TenantProvider with ChangeNotifier {
 
   TenantModel? get tenant => _tenant;
   List<PaymentModel> get payments => _payments;
+  List<TenantModel> get tenantsList => _tenantsList; // Added getter
   UnitModel? get unit => _unit; // Added getter
 
   bool get isLoading => _isLoading;
@@ -55,9 +57,11 @@ class TenantProvider with ChangeNotifier {
 
   Future<void> loadTenantData() async {
     final user = _authProvider.firebaseUser;
+    debugPrint("TenantProvider: loadTenantData for user: ${user?.uid}");
     if (user == null) {
       _tenant = null;
       _payments = [];
+      _tenantsList = [];
       notifyListeners();
       return;
     }
@@ -69,6 +73,34 @@ class TenantProvider with ChangeNotifier {
     try {
       // 1. Fetch Tenant
       _tenant = await _tenantRepository.getTenantByUserId(user.uid);
+      debugPrint("TenantProvider: Query by userId: ${user.uid} found: ${_tenant?.id}");
+      
+      // Fallback 1: Check if document ID is the userId (some systems use UID as doc ID)
+      if (_tenant == null) {
+         try {
+           final doc = await _tenantRepository.getTenantById(user.uid);
+           if (doc != null) {
+             _tenant = doc;
+             debugPrint("TenantProvider: Found tenant by document ID fallback: ${_tenant?.id}");
+           }
+         } catch (e) {
+           debugPrint("TenantProvider: Fallback fetch failed: $e");
+         }
+      }
+      
+      // Fallback 2: Email (very useful for legacy records or pre-registrations)
+      if (_tenant == null && user.email != null) {
+          _tenant = await _tenantRepository.getTenantByEmail(user.email!);
+          if (_tenant != null) {
+             debugPrint("TenantProvider: Found tenant by email: ${user.email}");
+             // Automatically link UID if it's missing or different, to speed up future lookups
+             if (_tenant!.userId != user.uid) {
+                await _tenantRepository.updateTenant(_tenant!.id, {'userId': user.uid});
+                _tenant = _tenant!.copyWith(userId: user.uid);
+                debugPrint("TenantProvider: Linked tenant record to UID: ${user.uid}");
+             }
+          }
+      }
       
       if (_tenant != null) {
         // 2. Fetch Payments if tenant exists
@@ -97,9 +129,55 @@ class TenantProvider with ChangeNotifier {
     }
   }
 
+  Future<void> loadAllTenants() async {
+    debugPrint("TenantProvider: loadAllTenants");
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      _tenantsList = await _tenantRepository.getAllTenants();
+    } catch (e) {
+      _error = e.toString();
+      debugPrint("TenantProvider: Error loading all tenants: $e");
+    } finally {
+      if (!_disposed) {
+        _isLoading = false;
+        notifyListeners();
+      }
+    }
+  }
+
+  Future<void> loadLandlordTenants(List<String> propertyIds) async {
+    debugPrint("TenantProvider: loadLandlordTenants for ${propertyIds.length} properties");
+    if (propertyIds.isEmpty) {
+      _tenantsList = [];
+      notifyListeners();
+      return;
+    }
+
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      final allTenants = await _tenantRepository.getAllTenants();
+      _tenantsList = allTenants.where((t) => propertyIds.contains(t.propertyId)).toList();
+    } catch (e) {
+      _error = e.toString();
+      debugPrint("TenantProvider: Error loading landlord tenants: $e");
+    } finally {
+      if (!_disposed) {
+        _isLoading = false;
+        notifyListeners();
+      }
+    }
+  }
+
   void clearData() {
     _tenant = null;
     _payments = [];
+    _tenantsList = [];
     _error = null;
     notifyListeners();
   }

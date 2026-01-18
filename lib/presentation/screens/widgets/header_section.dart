@@ -55,14 +55,31 @@ class HeaderSection extends StatelessWidget {
                       color: Colors.white, // Dark theme text
                     ),
                   ),
-                  if (tenantId != null)
-                    Text(
-                      'Tenant ID: #$tenantId',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey.shade400,
+                  Row(
+                    children: [
+                      Text(
+                        userRole,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.blue.shade300,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
-                    ),
+                      if (tenantId != null) ...[
+                        Text(
+                          ' • ',
+                          style: TextStyle(color: Colors.grey.shade600),
+                        ),
+                        Text(
+                          'ID: #$tenantId',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey.shade400,
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
                 ],
               ),
             ],

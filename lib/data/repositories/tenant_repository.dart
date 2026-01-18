@@ -23,6 +23,37 @@ class TenantRepository {
     }
   }
 
+  // Get tenant by email
+  Future<TenantModel?> getTenantByEmail(String email) async {
+    try {
+      final querySnapshot = await _firestore
+          .collection(_collection)
+          .where('email', isEqualTo: email)
+          .limit(1)
+          .get();
+
+      if (querySnapshot.docs.isNotEmpty) {
+        return TenantModel.fromFirestore(querySnapshot.docs.first);
+      }
+      return null;
+    } catch (e) {
+      throw Exception('Failed to fetch tenant by email: $e');
+    }
+  }
+  
+  // Get tenant by document ID
+  Future<TenantModel?> getTenantById(String id) async {
+    try {
+      final doc = await _firestore.collection(_collection).doc(id).get();
+      if (doc.exists) {
+        return TenantModel.fromFirestore(doc);
+      }
+      return null;
+    } catch (e) {
+      throw Exception('Failed to fetch tenant by id: $e');
+    }
+  }
+
   // Create a new tenant
   Future<DocumentReference> createTenant(Map<String, dynamic> tenantData) async {
     try {

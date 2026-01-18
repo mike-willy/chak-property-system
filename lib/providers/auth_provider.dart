@@ -55,6 +55,7 @@ class AuthProvider extends ChangeNotifier {
   UserModel? get userProfile => _userProfile;
   bool get isLandlord => _userProfile?.role == UserRole.landlord;
   bool get isTenant => _userProfile?.role == UserRole.tenant;
+  bool get isAdmin => _userProfile?.role == UserRole.admin;
   
   // Compatibility getters
   fb.User? get currentUser => firebaseUser;
