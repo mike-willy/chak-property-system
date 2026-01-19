@@ -1,4 +1,3 @@
-// presentation/screens/maintenance/pages/create_maintenance_request_page.dart
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:provider/provider.dart';
@@ -18,58 +17,53 @@ class CreateMaintenanceRequestPage extends StatefulWidget {
   final String? unitId;
   final String? propertyId;
 
-  const CreateMaintenanceRequestPage({
-    super.key,
-    this.unitId,
-    this.propertyId,
-  });
+  const CreateMaintenanceRequestPage({super.key, this.unitId, this.propertyId});
 
   @override
-  State<CreateMaintenanceRequestPage> createState() => _CreateMaintenanceRequestPageState();
+  State<CreateMaintenanceRequestPage> createState() =>
+      _CreateMaintenanceRequestPageState();
 }
 
-class _CreateMaintenanceRequestPageState extends State<CreateMaintenanceRequestPage> {
+class _CreateMaintenanceRequestPageState
+    extends State<CreateMaintenanceRequestPage> {
   final _formKey = GlobalKey<FormState>();
   final _descriptionController = TextEditingController();
   MaintenancePriority _selectedPriority = MaintenancePriority.medium;
+
   String? _selectedPropertyId;
   String? _selectedUnitId;
-  String? _selectedUnitName;
   String? _selectedPropertyName;
-  String? _selectedTitle; // Changed from controller to string for dropdown
+  String? _selectedUnitName;
+  String? _selectedTitle;
   List<String> _images = [];
-  bool _isSubmitting = false;
-  bool _isLoadingUnit = false; // For loading tenant unit
-  bool _isLoadingUnits = false; // For loading property units
-  List<Map<String, dynamic>> _propertyUnits = [];
-  TenantModel? _currentTenant; // Store the tenant model
 
-  // Predefined title options
-  // final List<String> _titleOptions = ['Water', 'Drainage', 'Electricity', 'Walks', 'Roof'];
+  bool _isSubmitting = false;
+  bool _isLoadingUnit = false;
+  bool _isLoadingUnits = false;
+
+  List<Map<String, dynamic>> _propertyUnits = [];
+  TenantModel? _currentTenant;
 
   @override
   void initState() {
     super.initState();
     _selectedUnitId = widget.unitId;
     _selectedPropertyId = widget.propertyId;
-    _selectedTitle = null; // Default to null for dynamic list
+    _selectedTitle = null;
 
-    // Load properties/units if needed
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final maintenanceProvider = context.read<MaintenanceProvider>();
-      maintenanceProvider.loadCategories(); // Load categories
+      maintenanceProvider.loadCategories();
 
       final propertyProvider = context.read<PropertyProvider>();
       if (propertyProvider.properties.isEmpty) {
         propertyProvider.loadProperties();
       }
 
-      // For tenants, fetch their associated unit
       final authProvider = context.read<AuthProvider>();
       if (authProvider.isTenant) {
         _loadTenantUnit(authProvider.firebaseUser?.uid);
       } else if (_selectedPropertyId != null) {
-        // For landlords, if propertyId is provided, load its units
         _loadPropertyUnits(_selectedPropertyId!);
       }
     });
@@ -82,23 +76,20 @@ class _CreateMaintenanceRequestPageState extends State<CreateMaintenanceRequestP
     });
 
     try {
-      final propertyRepo = PropertyRepository(RemoteDataSource(FirebaseFirestore.instance));
+      final propertyRepo =
+          PropertyRepository(RemoteDataSource(FirebaseFirestore.instance));
       final result = await propertyRepo.getPropertyUnits(propertyId);
-      
+
       result.fold(
         (failure) => debugPrint('Error loading units: ${failure.message}'),
         (units) {
           setState(() {
             _propertyUnits = units;
-            // If unitId was pre-selected, resolve its name
             if (_selectedUnitId != null) {
               final unitMap = units.firstWhere(
-                (u) => u['id'] == _selectedUnitId,
-                orElse: () => {},
-              );
-              if (unitMap.isNotEmpty) {
-                _selectedUnitName = unitMap['unitNumber'];
-              }
+                  (u) => u['id'] == _selectedUnitId,
+                  orElse: () => {});
+              if (unitMap.isNotEmpty) _selectedUnitName = unitMap['unitNumber'];
             }
           });
         },
@@ -113,110 +104,69 @@ class _CreateMaintenanceRequestPageState extends State<CreateMaintenanceRequestP
   }
 
   Future<void> _loadTenantUnit(String? userId) async {
-  if (userId == null) return;
+    if (userId == null) return;
 
-  setState(() {
-    _isLoadingUnit = true;
-  });
+    setState(() {
+      _isLoadingUnit = true;
+    });
 
-  try {
-    final authProvider = context.read<AuthProvider>();
-    final tenantRepo = TenantRepository();
+    try {
+      final authProvider = context.read<AuthProvider>();
+      final tenantRepo = TenantRepository();
+      TenantModel? tenant;
 
-    TenantModel? tenant;
+      tenant = await tenantRepo.getTenantByUserId(userId);
 
-    // 1️⃣ Primary: lookup by userId field
-    tenant = await tenantRepo.getTenantByUserId(userId);
-    debugPrint("Maintenance: Query by userId: $userId found: ${tenant?.id}");
-
-    // 2️⃣ Fallback: document ID == UID
-    if (tenant == null) {
-      try {
+      if (tenant == null) {
         tenant = await tenantRepo.getTenantById(userId);
-        if (tenant != null) {
-          debugPrint("Maintenance: Found tenant by document ID fallback: ${tenant.id}");
-        }
-      } catch (_) {
-        // ignore
       }
-    }
 
-    // 3️⃣ Fallback: lookup by email (READ-ONLY)
-    if (tenant == null && authProvider.firebaseUser?.email != null) {
-      tenant = await tenantRepo.getTenantByEmail(
-        authProvider.firebaseUser!.email!,
-      );
-
-      if (tenant != null) {
-        debugPrint(
-          "Maintenance: Found tenant by email (read-only): ${authProvider.firebaseUser!.email}",
-        );
+      if (tenant == null && authProvider.firebaseUser?.email != null) {
+        tenant = await tenantRepo.getTenantByEmail(
+            authProvider.firebaseUser!.email!);
       }
-    }
 
-    // ❌ NO UPDATES
-    // ❌ NO LINKING
-    // ❌ NO WRITES
+      if (tenant == null) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text(
+                'Your account is not linked to a tenant record. Please contact management.')));
+        return;
+      }
 
-    if (tenant == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Your account is not linked to a tenant record. Please contact management.',
-          ),
-        ),
-      );
-      return;
-    }
+      _currentTenant = tenant;
+      _selectedUnitId =
+          tenant.unitId.isNotEmpty ? tenant.unitId : null;
+      _selectedPropertyId =
+          tenant.propertyId.isNotEmpty ? tenant.propertyId : null;
 
-    final resolvedTenant = tenant; // promote to non-null
-
-setState(() {
-  _currentTenant = resolvedTenant;
-  _selectedUnitId =
-      resolvedTenant.unitId.isNotEmpty ? resolvedTenant.unitId : null;
-  _selectedPropertyId =
-      resolvedTenant.propertyId.isNotEmpty ? resolvedTenant.propertyId : null;
-});
-
-
-    await _resolveHumanReadableNames(tenant);
-  } catch (e) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Error loading tenant info: $e')),
-    );
-  } finally {
-    if (mounted) {
-      setState(() {
-        _isLoadingUnit = false;
-      });
+      await _resolveHumanReadableNames(tenant);
+    } catch (e) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('Error loading tenant info: $e')));
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoadingUnit = false;
+        });
+      }
     }
   }
-}
-
 
   Future<void> _resolveHumanReadableNames(TenantModel tenant) async {
     String pName = tenant.propertyName;
     String uName = tenant.unitNumber;
 
-    final propertyRepo = PropertyRepository(RemoteDataSource(FirebaseFirestore.instance));
+    final propertyRepo =
+        PropertyRepository(RemoteDataSource(FirebaseFirestore.instance));
 
-    // If property name is an ID or empty
     if (pName.isEmpty || pName == tenant.propertyId) {
       final pResult = await propertyRepo.getPropertyById(tenant.propertyId);
-      pResult.fold(
-        (_) {},
-        (prop) => pName = prop.title,
-      );
+      pResult.fold((_) {}, (prop) => pName = prop.title);
     }
 
-    // If unit name is an ID or empty
     if (uName.isEmpty || uName == tenant.unitId) {
       final uResult = await propertyRepo.getPropertyUnit(tenant.propertyId, tenant.unitId);
-      uResult.fold(
-        (_) {},
-        (unit) => uName = unit.unitNumber,
-      );
+      uResult.fold((_) {}, (unit) => uName = unit.unitNumber);
     }
 
     if (mounted) {
@@ -234,68 +184,52 @@ setState(() {
   }
 
   Future<void> _submitRequest() async {
-    if (!_formKey.currentState!.validate()) {
-      return;
-    }
-
-    if (_selectedUnitId == null || _selectedUnitId!.isEmpty) {
+    if (!_formKey.currentState!.validate()) return;
+    if (_selectedUnitId == null || _selectedTitle == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select a unit')),
-      );
+          const SnackBar(content: Text('Please select unit and category')));
       return;
     }
 
-    if (_selectedTitle == null || _selectedTitle!.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select a title')),
-      );
-      return;
-    }
-
-    setState(() {
-      _isSubmitting = true;
-    });
+    setState(() => _isSubmitting = true);
 
     final provider = context.read<MaintenanceProvider>();
     final propertyProvider = context.read<PropertyProvider>();
-    
-    // Resolve names for submission
+
     String finalPropertyName = _selectedPropertyName ?? 'Unknown';
     String finalUnitName = _selectedUnitName ?? 'Unknown';
     String finalTenantName = _currentTenant?.fullName ?? 'Unknown';
 
-    // Last ditch resolution if still unknown (mostly for landlords who just selected from dropdown)
     if (finalPropertyName == 'Unknown' && _selectedPropertyId != null) {
       final prop = propertyProvider.properties.firstWhere(
-        (p) => p.id == _selectedPropertyId,
-        orElse: () => PropertyModel(
-          id: '', 
-          title: 'Unknown', 
-          description: '', 
-          unitId: '', 
-          address: AddressModel(street: '', city: '', state: '', zipCode: ''), 
-          ownerId: '', 
-          ownerName: '', 
-          price: 0, 
-          deposit: 0, 
-          bedrooms: 0, 
-          bathrooms: 0, 
-          squareFeet: 0, 
-          amenities: [], 
-          images: [], 
-          status: PropertyStatus.vacant, 
-          createdAt: DateTime.now(), 
-          updatedAt: DateTime.now()
-        ),
-      );
+          (p) => p.id == _selectedPropertyId,
+          orElse: () => PropertyModel(
+              id: '',
+              title: 'Unknown',
+              description: '',
+              unitId: '',
+              address: AddressModel(street: '', city: '', state: '', zipCode: ''),
+              ownerId: '',
+              ownerName: '',
+              price: 0,
+              deposit: 0,
+              bedrooms: 0,
+              bathrooms: 0,
+              squareFeet: 0,
+              amenities: [],
+              images: [],
+              status: PropertyStatus.vacant,
+              createdAt: DateTime.now(),
+              updatedAt: DateTime.now()));
       if (prop.id.isNotEmpty) finalPropertyName = prop.title;
     }
 
-    if (finalUnitName == 'Unknown' && _selectedUnitId != null && _propertyUnits.isNotEmpty) {
+    if (finalUnitName == 'Unknown' &&
+        _selectedUnitId != null &&
+        _propertyUnits.isNotEmpty) {
       final unitMap = _propertyUnits.firstWhere(
-        (u) => u['id'] == _selectedUnitId,
-        orElse: () => {},
-      );
+          (u) => u['id'] == _selectedUnitId,
+          orElse: () => {});
       if (unitMap.isNotEmpty) finalUnitName = unitMap['unitNumber'] ?? _selectedUnitId!;
     }
 
@@ -311,18 +245,15 @@ setState(() {
     );
 
     if (!mounted) return;
-    setState(() {
-      _isSubmitting = false;
-    });
+
+    setState(() => _isSubmitting = false);
 
     if (provider.error != null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(provider.error!)),
-      );
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(provider.error!)));
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Maintenance request submitted successfully!')),
-      );
+          const SnackBar(content: Text('Maintenance request submitted successfully!')));
       Navigator.pop(context);
     }
   }
@@ -332,253 +263,186 @@ setState(() {
     final authProvider = context.watch<AuthProvider>();
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('New Maintenance Request'),
-        elevation: 0,
-      ),
+      appBar: AppBar(title: const Text('New Maintenance Request'), elevation: 0),
       body: Form(
         key: _formKey,
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            // Unit Selection
             if (_isLoadingUnit)
               const Center(child: CircularProgressIndicator())
             else
-              Consumer<PropertyProvider>(
-                builder: (context, propertyProvider, _) {
-                  if (authProvider.isTenant) {
-                    // For tenants, show the auto-selected unit (read-only)
-                    return Column(
-                      children: [
-                        TextFormField(
-                          key: ValueKey('prop_${_selectedPropertyName}'),
-                          initialValue: _selectedPropertyName ?? 'Loading building...',
-                          decoration: const InputDecoration(
-                            labelText: 'Building',
-                            prefixIcon: Icon(FontAwesomeIcons.building),
-                            border: OutlineInputBorder(),
-                          ),
-                          readOnly: true,
-                        ),
-                        const SizedBox(height: 16),
-                        TextFormField(
-                          key: ValueKey('unit_${_selectedUnitName}'),
-                          initialValue: _selectedUnitName ?? 'Loading unit...',
-                          decoration: const InputDecoration(
-                            labelText: 'Unit / Door Number',
-                            prefixIcon: Icon(FontAwesomeIcons.doorOpen),
-                            border: OutlineInputBorder(),
-                          ),
-                          readOnly: true,
-                          validator: (value) {
-                            if (_selectedUnitId == null || _selectedUnitId!.isEmpty) {
-                              return 'Unit information not found.';
-                            }
-                            return null;
-                          },
-                        ),
-                      ],
-                    );
-                  } else {
-                    // For landlords, show dropdown of their properties and then units
-                    return Column(
-                      children: [
-                        DropdownButtonFormField<String>(
-                          value: _selectedPropertyId,
-                          decoration: const InputDecoration(
-                            labelText: 'Select Property',
-                            prefixIcon: Icon(FontAwesomeIcons.building),
-                            border: OutlineInputBorder(),
-                          ),
-                          items: propertyProvider.properties
-                              .map((property) => DropdownMenuItem(
-                                    value: property.id,
-                                    child: Text(property.title),
-                                  ))
-                              .toList(),
-                          onChanged: (value) {
-                            setState(() {
-                              _selectedPropertyId = value;
-                              _selectedUnitId = null;
-                              _selectedUnitName = null;
-                              _selectedPropertyName = propertyProvider.properties
-                                  .firstWhere((p) => p.id == value).title;
-                              if (value != null) {
-                                _loadPropertyUnits(value);
-                              }
-                            });
-                          },
-                          validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return 'Please select a property';
-                            }
-                            return null;
-                          },
-                        ),
-                        const SizedBox(height: 16),
-                        if (_isLoadingUnits)
-                          const LinearProgressIndicator()
-                        else
-                          DropdownButtonFormField<String>(
-                            value: _selectedUnitId,
-                            decoration: const InputDecoration(
-                              labelText: 'Select Unit',
-                              prefixIcon: Icon(FontAwesomeIcons.doorOpen),
-                              border: OutlineInputBorder(),
-                            ),
-                            items: _propertyUnits
-                                .map((unit) => DropdownMenuItem(
-                                      value: unit['id'] as String,
-                                      child: Text('Unit: ${unit['unitNumber'] ?? unit['id']}'),
-                                    ))
-                                .toList(),
-                            onChanged: (value) {
-                              setState(() {
-                                _selectedUnitId = value;
-                                final unitMap = _propertyUnits.firstWhere((u) => u['id'] == value);
-                                _selectedUnitName = unitMap['unitNumber'];
-                              });
-                            },
-                            validator: (value) {
-                              if (value == null || value.isEmpty) {
-                                return 'Please select a unit';
-                              }
-                              return null;
-                            },
-                          ),
-                      ],
-                    );
-                  }
-                },
-              ),
-
+              _buildUnitSelection(authProvider),
             const SizedBox(height: 24),
-
-            // Title Dropdown
-            Consumer<MaintenanceProvider>(
-              builder: (context, maintenanceProvider, child) {
-                 final categories = maintenanceProvider.categories;
-                 
-                 return DropdownButtonFormField<String>(
-                  value: _selectedTitle,
-                  decoration: const InputDecoration(
-                    labelText: 'Issue Category',
-                    hintText: 'Select the type of issue',
-                    prefixIcon: Icon(FontAwesomeIcons.list),
-                    border: OutlineInputBorder(),
-                  ),
-                  items: categories.isEmpty 
-                    ? [] 
-                    : categories.map((category) {
-                    return DropdownMenuItem<String>(
-                      value: category.name,
-                      child: Text(category.name),
-                    );
-                  }).toList(),
-                  onChanged: (value) {
-                    setState(() {
-                      _selectedTitle = value;
-                    });
-                  },
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Please select an issue category';
-                    }
-                    return null;
-                  },
-                );
-              }
-            ),
-
+            _buildTitleDropdown(),
             const SizedBox(height: 16),
-
-            // Description Field
-            TextFormField(
-              controller: _descriptionController,
-              decoration: const InputDecoration(
-                labelText: 'Description',
-                hintText: 'Detailed description of the maintenance issue',
-                prefixIcon: Icon(FontAwesomeIcons.fileLines),
-                border: OutlineInputBorder(),
-                alignLabelWithHint: true,
-              ),
-              maxLines: 5,
-              validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return 'Please enter a description';
-                }
-                if (value.length < 10) {
-                  return 'Description must be at least 10 characters';
-                }
-                return null;
-              },
-            ),
-
+            _buildDescriptionField(),
             const SizedBox(height: 16),
-
-            // Priority Selection
-            const Text(
-              'Priority',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
+            const Text('Priority', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
             const SizedBox(height: 8),
             Row(
               children: [
-                Expanded(
-                  child: _buildPriorityChip(
-                    priority: MaintenancePriority.low,
-                    label: 'Low',
-                    color: Colors.green,
-                  ),
-                ),
+                Expanded(child: _buildPriorityChip(priority: MaintenancePriority.low, label: 'Low', color: Colors.green)),
                 const SizedBox(width: 8),
-                Expanded(
-                  child: _buildPriorityChip(
-                    priority: MaintenancePriority.medium,
-                    label: 'Medium',
-                    color: Colors.orange,
-                  ),
-                ),
+                Expanded(child: _buildPriorityChip(priority: MaintenancePriority.medium, label: 'Medium', color: Colors.orange)),
                 const SizedBox(width: 8),
-                Expanded(
-                  child: _buildPriorityChip(
-                    priority: MaintenancePriority.high,
-                    label: 'High',
-                    color: Colors.red,
-                  ),
-                ),
+                Expanded(child: _buildPriorityChip(priority: MaintenancePriority.high, label: 'High', color: Colors.red)),
               ],
             ),
-
             const SizedBox(height: 32),
-
-            // Submit Button
             SizedBox(
               width: double.infinity,
               height: 50,
               child: ElevatedButton.icon(
                 onPressed: _isSubmitting ? null : _submitRequest,
                 icon: _isSubmitting
-                    ? const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
+                    ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
                     : const Icon(FontAwesomeIcons.paperPlane),
                 label: Text(_isSubmitting ? 'Submitting...' : 'Submit Request'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blue,
-                  foregroundColor: Colors.white,
-                ),
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.blue, foregroundColor: Colors.white),
               ),
             ),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildUnitSelection(AuthProvider authProvider) {
+    return Consumer<PropertyProvider>(
+      builder: (context, propertyProvider, _) {
+        if (authProvider.isTenant) {
+          return Column(
+            children: [
+              TextFormField(
+                key: ValueKey('prop_${_selectedPropertyName}'),
+                initialValue: _selectedPropertyName ?? 'Loading building...',
+                decoration: const InputDecoration(
+                  labelText: 'Building',
+                  prefixIcon: Icon(FontAwesomeIcons.building),
+                  border: OutlineInputBorder(),
+                ),
+                readOnly: true,
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                key: ValueKey('unit_${_selectedUnitName}'),
+                initialValue: _selectedUnitName ?? 'Loading unit...',
+                decoration: const InputDecoration(
+                  labelText: 'Unit / Door Number',
+                  prefixIcon: Icon(FontAwesomeIcons.doorOpen),
+                  border: OutlineInputBorder(),
+                ),
+                readOnly: true,
+                validator: (value) => _selectedUnitId == null ? 'Unit information not found.' : null,
+              ),
+            ],
+          );
+        } else {
+          return Column(
+            children: [
+              DropdownButtonFormField<String>(
+                value: _selectedPropertyId,
+                decoration: const InputDecoration(
+                  labelText: 'Select Property',
+                  prefixIcon: Icon(FontAwesomeIcons.building),
+                  border: OutlineInputBorder(),
+                ),
+                items: propertyProvider.properties
+                    .map((property) => DropdownMenuItem(
+                          value: property.id,
+                          child: Text(property.title),
+                        ))
+                    .toList(),
+                onChanged: (value) {
+                  setState(() {
+                    _selectedPropertyId = value;
+                    _selectedUnitId = null;
+                    _selectedUnitName = null;
+                    _selectedPropertyName =
+                        propertyProvider.properties.firstWhere((p) => p.id == value).title;
+                    if (value != null) _loadPropertyUnits(value);
+                  });
+                },
+                validator: (value) =>
+                    value == null || value.isEmpty ? 'Please select a property' : null,
+              ),
+              const SizedBox(height: 16),
+              if (_isLoadingUnits)
+                const LinearProgressIndicator()
+              else
+                DropdownButtonFormField<String>(
+                  value: _selectedUnitId,
+                  decoration: const InputDecoration(
+                    labelText: 'Select Unit',
+                    prefixIcon: Icon(FontAwesomeIcons.doorOpen),
+                    border: OutlineInputBorder(),
+                  ),
+                  items: _propertyUnits
+                      .map((unit) => DropdownMenuItem(
+                            value: unit['id'] as String,
+                            child: Text('Unit: ${unit['unitNumber'] ?? unit['id']}'),
+                          ))
+                      .toList(),
+                  onChanged: (value) {
+                    setState(() {
+                      _selectedUnitId = value;
+                      final unitMap = _propertyUnits.firstWhere((u) => u['id'] == value);
+                      _selectedUnitName = unitMap['unitNumber'];
+                    });
+                  },
+                  validator: (value) =>
+                      value == null || value.isEmpty ? 'Please select a unit' : null,
+                ),
+            ],
+          );
+        }
+      },
+    );
+  }
+
+  Widget _buildTitleDropdown() {
+    return Consumer<MaintenanceProvider>(
+      builder: (context, maintenanceProvider, _) {
+        final categories = maintenanceProvider.categories;
+        return DropdownButtonFormField<String>(
+          value: _selectedTitle,
+          decoration: const InputDecoration(
+            labelText: 'Issue Category',
+            hintText: 'Select the type of issue',
+            prefixIcon: Icon(FontAwesomeIcons.list),
+            border: OutlineInputBorder(),
+          ),
+          items: categories
+              .map((category) => DropdownMenuItem(
+                    value: category.name,
+                    child: Text(category.name),
+                  ))
+              .toList(),
+          onChanged: (value) => setState(() => _selectedTitle = value),
+          validator: (value) =>
+              value == null || value.isEmpty ? 'Please select an issue category' : null,
+        );
+      },
+    );
+  }
+
+  Widget _buildDescriptionField() {
+    return TextFormField(
+      controller: _descriptionController,
+      decoration: const InputDecoration(
+        labelText: 'Description',
+        hintText: 'Detailed description of the maintenance issue',
+        prefixIcon: Icon(FontAwesomeIcons.fileLines),
+        border: OutlineInputBorder(),
+        alignLabelWithHint: true,
+      ),
+      maxLines: 5,
+      validator: (value) {
+        if (value == null || value.isEmpty) return 'Please enter a description';
+        if (value.length < 10) return 'Description must be at least 10 characters';
+        return null;
+      },
     );
   }
 
@@ -589,11 +453,7 @@ setState(() {
   }) {
     final isSelected = _selectedPriority == priority;
     return InkWell(
-      onTap: () {
-        setState(() {
-          _selectedPriority = priority;
-        });
-      },
+      onTap: () => setState(() => _selectedPriority = priority),
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 12),
         decoration: BoxDecoration(
@@ -606,23 +466,16 @@ setState(() {
         ),
         child: Column(
           children: [
-            Icon(
-              FontAwesomeIcons.exclamationTriangle,
-              color: isSelected ? color : Colors.grey,
-              size: 20,
-            ),
+            Icon(FontAwesomeIcons.exclamationTriangle,
+                color: isSelected ? color : Colors.grey, size: 20),
             const SizedBox(height: 4),
-            Text(
-              label,
-              style: TextStyle(
-                color: isSelected ? color : Colors.grey.shade700,
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-              ),
-            ),
+            Text(label,
+                style: TextStyle(
+                    color: isSelected ? color : Colors.grey.shade700,
+                    fontWeight: isSelected ? FontWeight.bold : FontWeight.normal)),
           ],
         ),
       ),
     );
   }
 }
-
