@@ -70,6 +70,21 @@ class ApplicationStatusPage extends StatelessWidget {
                   style: Theme.of(context).textTheme.bodyMedium,
                   textAlign: TextAlign.center,
                 ),
+                if (status == 'rejected' && data['rejectionReason'] != null) ...[
+                  const SizedBox(height: 16),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.red.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      'Reason: ${data['rejectionReason']}',
+                      style: const TextStyle(color: Colors.red, fontWeight: FontWeight.w500),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 48),
                 if (status == 'approved')
                   ElevatedButton(

@@ -152,7 +152,7 @@ class ProfilePage extends StatelessWidget {
 
   Widget _buildApplicationsSection(BuildContext context, String userId) {
     // Access application provider
-    final applicationProvider = context.read<ApplicationProvider>();
+    final applicationProvider = context.watch<ApplicationProvider>();
     
     return StreamBuilder<List<ApplicationModel>>(
       stream: applicationProvider.getTenantApplicationsStream(userId),
@@ -213,28 +213,29 @@ class ProfilePage extends StatelessWidget {
 
         // Sort applications to prioritize Approved > Pending > Rejected
         // Secondary sort by date descending
-        final sortedApplications = List<ApplicationModel>.from(snapshot.data!);
-        sortedApplications.sort((a, b) {
-          // Define priority: Approved (2) > Pending (1) > Rejected (0)
-          int getPriority(String status) {
-            switch (status.toLowerCase()) {
-              case 'approved': return 2;
-              case 'pending': return 1;
-              default: return 0;
-            }
-          }
+      final applications = List<ApplicationModel>.from(snapshot.data!);
 
-          final priorityA = getPriority(a.status.value);
-          final priorityB = getPriority(b.status.value);
+// Priority: Pending > Approved > Rejected
+int priority(ApplicationModel a) {
+  switch (a.status.value.toLowerCase()) {
+    case 'pending':
+      return 3;
+    case 'approved':
+      return 2;
+    case 'rejected':
+    default:
+      return 1;
+  }
+}
 
-          if (priorityA != priorityB) {
-            return priorityB.compareTo(priorityA); // Descending priority
-          }
-          return b.appliedDate.compareTo(a.appliedDate); // Descending date
-        });
+applications.sort((a, b) {
+  final p = priority(b).compareTo(priority(a));
+  if (p != 0) return p;
+  return b.appliedDate.compareTo(a.appliedDate);
+});
 
-        final applications = sortedApplications;
 
+       
         return Column(
           children: [
             // Show the most relevant application (highest priority)
@@ -388,21 +389,47 @@ class ProfilePage extends StatelessWidget {
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  application.propertyName ?? 'Property Application',
+                  application.propertyName ?? 'Unit Application',
                   style: const TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
                     color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
-                if (application.unitNumber != null || application.unitName != null) ...[
-                  const SizedBox(height: 6),
-                  Text(
-                    'Unit: ${application.unitNumber ?? application.unitName}',
-                    style: TextStyle(
-                      color: Colors.grey.shade400,
-                      fontWeight: FontWeight.w500,
-                      fontSize: 15,
+                const SizedBox(height: 6),
+                Text(
+                  'Unit: ${application.unitNumber ?? application.unitName ?? application.unitId}',
+                  style: TextStyle(
+                    color: Colors.grey.shade400,
+                    fontWeight: FontWeight.w500,
+                    fontSize: 14,
+                  ),
+                ),
+                if (status.toLowerCase() == 'rejected' && application.rejectionReason != null) ...[
+                  const SizedBox(height: 12),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.redAccent.withOpacity(0.05),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.redAccent.withOpacity(0.1)),
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Icon(Icons.info_outline, color: Colors.redAccent, size: 16),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'Reason: ${application.rejectionReason}',
+                            style: const TextStyle(
+                              color: Colors.redAccent,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],

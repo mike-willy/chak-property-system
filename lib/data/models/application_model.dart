@@ -37,7 +37,7 @@ class ApplicationModel {
   /// Immutable identity fields (tenant-controlled ONLY at creation)
   final String tenantId;
   final String unitId;
-  final String? propertyId; // Added propertyId
+  final String? propertyId;
 
   /// State (admin-controlled after submission)
   final ApplicationStatus status;
@@ -49,10 +49,7 @@ class ApplicationModel {
   final DateTime appliedDate;
   final DateTime? decisionDate;
 
-  /// Admin-only feedback
-  final String? notes;
-
-  /// Denormalized fields for display
+  final String? rejectionReason;
   final String? propertyName;
   final String? unitName;
   final String? unitNumber;
@@ -60,9 +57,9 @@ class ApplicationModel {
   final String? fullName;
   final String? email;
   final String? phone;
+  final String? notes;
   final DateTime? leaseStart;
   final DateTime? leaseEnd;
-  // final String? propertyId; // Added propertyId
 
   const ApplicationModel({
     required this.id,
@@ -72,7 +69,7 @@ class ApplicationModel {
     required this.documents,
     required this.appliedDate,
     this.decisionDate,
-    this.notes,
+    this.rejectionReason,
     this.propertyName,
     this.unitName,
     this.unitNumber,
@@ -81,6 +78,7 @@ class ApplicationModel {
     this.fullName,
     this.email,
     this.phone,
+    this.notes,
     this.leaseStart,
     this.leaseEnd,
   });
@@ -92,12 +90,13 @@ class ApplicationModel {
     required String id,
     required String tenantId,
     required String unitId,
+    String? propertyId,
   }) {
     return ApplicationModel(
       id: id,
       tenantId: tenantId,
       unitId: unitId,
-      propertyId: null, // Fill if needed, or update if propertyId is available
+      propertyId: propertyId,
       status: ApplicationStatus.pending,
       documents: const [],
       appliedDate: DateTime.now(),
@@ -116,7 +115,7 @@ class ApplicationModel {
       'appliedDate': Timestamp.fromDate(appliedDate),
       'decisionDate':
           decisionDate != null ? Timestamp.fromDate(decisionDate!) : null,
-      'notes': notes,
+      'rejectionReason': rejectionReason,
       'propertyName': propertyName,
       'unitName': unitName,
       'unitNumber': unitNumber,
@@ -125,6 +124,7 @@ class ApplicationModel {
       'fullName': fullName,
       'email': email,
       'phone': phone,
+      'notes': notes,
       'leaseStart': leaseStart != null ? Timestamp.fromDate(leaseStart!) : null,
       'leaseEnd': leaseEnd != null ? Timestamp.fromDate(leaseEnd!) : null,
     };
@@ -142,15 +142,16 @@ class ApplicationModel {
       appliedDate:
           (map['appliedDate'] as Timestamp?)?.toDate() ?? DateTime.now(),
       decisionDate: (map['decisionDate'] as Timestamp?)?.toDate(),
-      notes: map['notes'],
+      rejectionReason: map['rejectionReason'] ?? map['notes'],
       propertyName: map['propertyName'],
       unitName: map['unitName'],
-      unitNumber: map['unitNumber']?.toString(), // Handle simplified int storage
+      unitNumber: map['unitNumber']?.toString(),
       monthlyRent: (map['monthlyRent'] as num?)?.toDouble(),
       propertyId: map['propertyId'],
       fullName: map['fullName'],
       email: map['email'],
       phone: map['phone'],
+      notes: map['notes'],
       leaseStart: (map['leaseStart'] as Timestamp?)?.toDate(),
       leaseEnd: (map['leaseEnd'] as Timestamp?)?.toDate(),
     );
@@ -175,11 +176,11 @@ class ApplicationModel {
   }
 
   /// Admin rejection
-  ApplicationModel reject({String? notes}) {
+  ApplicationModel reject({String? reason}) {
     return copyWith(
       status: ApplicationStatus.rejected,
       decisionDate: DateTime.now(),
-      notes: notes,
+      rejectionReason: reason,
     );
   }
 
@@ -187,11 +188,18 @@ class ApplicationModel {
     ApplicationStatus? status,
     List<String>? documents,
     DateTime? decisionDate,
-    String? notes,
+    String? rejectionReason,
     String? propertyName,
     String? unitName,
     String? unitNumber,
     double? monthlyRent,
+    String? propertyId,
+    String? fullName,
+    String? email,
+    String? phone,
+    String? notes,
+    DateTime? leaseStart,
+    DateTime? leaseEnd,
   }) {
     return ApplicationModel(
       id: id,
@@ -201,12 +209,18 @@ class ApplicationModel {
       documents: documents ?? this.documents,
       appliedDate: appliedDate,
       decisionDate: decisionDate ?? this.decisionDate,
-      notes: notes ?? this.notes,
+      rejectionReason: rejectionReason ?? this.rejectionReason,
       propertyName: propertyName ?? this.propertyName,
       unitName: unitName ?? this.unitName,
       unitNumber: unitNumber ?? this.unitNumber,
       monthlyRent: monthlyRent ?? this.monthlyRent,
-      propertyId: propertyId ?? this.propertyId, // Added propertyId
+      propertyId: propertyId ?? this.propertyId,
+      fullName: fullName ?? this.fullName,
+      email: email ?? this.email,
+      phone: phone ?? this.phone,
+      notes: notes ?? this.notes,
+      leaseStart: leaseStart ?? this.leaseStart,
+      leaseEnd: leaseEnd ?? this.leaseEnd,
     );
   }
 }
