@@ -38,8 +38,15 @@ class ApplicationProvider extends ChangeNotifier {
     }
   }
 
-  Stream<List<ApplicationModel>> getTenantApplicationsStream(String tenantId) =>
-      _applicationRepo.getTenantApplicationsStream(tenantId);
+  // UPDATED: Now accepts email as optional parameter
+  Stream<List<ApplicationModel>> getTenantApplicationsStream(String tenantId, {String? email}) {
+    // If email is provided, use it (more reliable for finding all user applications)
+    if (email != null && email.isNotEmpty) {
+      return _applicationRepo.getApplicationsByEmailStream(email);
+    }
+    // Otherwise fall back to tenantId
+    return _applicationRepo.getTenantApplicationsStream(tenantId);
+  }
 
   Future<void> convertToTenant({
     required ApplicationModel application,

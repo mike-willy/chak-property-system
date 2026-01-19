@@ -19,7 +19,7 @@ extension ApplicationStatusExtension on ApplicationStatus {
   }
 
   static ApplicationStatus fromString(String value) {
-    switch (value) {
+    switch (value.toLowerCase()) {
       case 'approved':
         return ApplicationStatus.approved;
       case 'rejected':

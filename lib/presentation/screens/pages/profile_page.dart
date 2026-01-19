@@ -135,27 +135,28 @@ class ProfilePage extends StatelessWidget {
 
             const SizedBox(height: 32),
 
-            // Active Application Section
+            // Latest Application Status Section
             const Text(
-              'Current Activity',
+              'Latest Application',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
             ),
             const SizedBox(height: 16),
             
-            // Application Section
-            _buildApplicationsSection(context, user.id),
+            // Application Section - Show only latest
+            _buildLatestApplicationSection(context, user.id),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildApplicationsSection(BuildContext context, String userId) {
-    // Access application provider
+  Widget _buildLatestApplicationSection(BuildContext context, String userId) {
     final applicationProvider = context.watch<ApplicationProvider>();
+    final auth = context.watch<AuthProvider>();
+    final userEmail = auth.userProfile?.email;
     
     return StreamBuilder<List<ApplicationModel>>(
-      stream: applicationProvider.getTenantApplicationsStream(userId),
+      stream: applicationProvider.getTenantApplicationsStream(userId, email: userEmail),
       builder: (context, snapshot) {
         if (snapshot.hasError) {
           return Container(
@@ -171,7 +172,7 @@ class ProfilePage extends StatelessWidget {
                 const SizedBox(width: 16),
                 Expanded(
                   child: Text(
-                    'Error loading applications: ${snapshot.error}',
+                    'Error loading application',
                     style: const TextStyle(color: Colors.redAccent),
                   ),
                 ),
@@ -192,131 +193,35 @@ class ProfilePage extends StatelessWidget {
               borderRadius: BorderRadius.circular(16),
             ),
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  children: [
-                   Icon(Icons.info_outline, color: Colors.grey.shade400),
-                    const SizedBox(width: 16),
-                    const Text('No applications found', style: TextStyle(color: Colors.white)),
-                  ],
+                Icon(Icons.assignment_outlined, size: 48, color: Colors.grey.shade600),
+                const SizedBox(height: 12),
+                const Text(
+                  'No applications yet',
+                  style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600),
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Submit an application to see your status here',
-                  style: TextStyle(color: Colors.grey.shade500),
+                  'Submit an application to track your status here',
+                  style: TextStyle(color: Colors.grey.shade500, fontSize: 14),
+                  textAlign: TextAlign.center,
                 ),
               ],
             ),
           );
         }
 
-        // Sort applications to prioritize Approved > Pending > Rejected
-        // Secondary sort by date descending
-      final applications = List<ApplicationModel>.from(snapshot.data!);
+        // Get only the most recent application
+        final applications = List<ApplicationModel>.from(snapshot.data!);
+        applications.sort((a, b) => b.appliedDate.compareTo(a.appliedDate));
+        final latestApplication = applications.first;
 
-// Priority: Pending > Approved > Rejected
-int priority(ApplicationModel a) {
-  switch (a.status.value.toLowerCase()) {
-    case 'pending':
-      return 3;
-    case 'approved':
-      return 2;
-    case 'rejected':
-    default:
-      return 1;
-  }
-}
-
-applications.sort((a, b) {
-  final p = priority(b).compareTo(priority(a));
-  if (p != 0) return p;
-  return b.appliedDate.compareTo(a.appliedDate);
-});
-
-
-       
-        return Column(
-          children: [
-            // Show the most relevant application (highest priority)
-            _buildApplicationCard(context, applications.first),
-            
-            // Show count of other applications
-            if (applications.length > 1) ...[
-              const SizedBox(height: 16),
-              const SizedBox(height: 16),
-              Container(
-                decoration: BoxDecoration(
-                  color: const Color(0xFF1E2235),
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        '${applications.length - 1} other application${applications.length > 2 ? 's' : ''}',
-                        style: const TextStyle(fontWeight: FontWeight.w500, color: Colors.white),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.history, color: Colors.white70),
-                        onPressed: () {
-                          // Navigate to application history page
-                          _showAllApplications(context, applications);
-                        },
-                        tooltip: 'View application history',
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ],
-        );
+        return _buildLatestApplicationCard(context, latestApplication, applications.length);
       },
     );
   }
 
-  Widget _buildApplicationCard(BuildContext context, ApplicationModel application) {
-    // Note: ApplicationModel currently doesn't have propertyName or unitName directly visible in the code shown in previous turns, 
-    // but the original code accessed data['propertyName']. 
-    // I need to check if the model has these fields or if I need to fetch them.
-    // The previous view_file of ApplicationModel showed it does NOT have propertyName. 
-    // It has tenantId, unitId, status, documents, appliedDate.
-    // However, the original Firestore document HAD propertyName stored on it (denormalized). 
-    // The fromMap method in ApplicationModel might need update if we want to access these denormalized fields safely,
-    // OR we rely on the fact that the original code showed those fields existing in Firestore.
-    // Since I cannot easily update the Model right now without verifying if those fields are in the Model definition (I saw they were NOT in the class fields),
-    // I will check the ApplicationModel View again or assume I can't access them directly via the typed model unless I update it.
-    
-    // Wait! I saw ApplicationModel earlier. It did NOT have propertyName.
-    // But the Firestore document DOES have it.
-    // The previous code used data['propertyName'].
-    // If I switch to ApplicationModel, I lose access to 'propertyName' unless I add it to the model.
-    // Adding propertyName to ApplicationModel is the Clean Architecture way if it's stored in the doc.
-    
-    // For now, to avoid breaking the UI which expects propertyName, I will assume the ApplicationModel *should* have these if it's from the same doc.
-    // But since I didn't update the model to add propertyName, I can't access it.
-    
-    // CRITICAL FIX: I should have updated ApplicationModel to include propertyName and unitName since they are used in the UI and stored in Firestore.
-    // I will proceed with this edit, but I will comment out the property name display or use a placeholder until I can update the model in a subsequent step if needed.
-    // OR, better: I will cast the model to dynamic or map if I have to, but that defeats the purpose.
-    // Let's check if I can access the underlying map... no.
-    
-    // Actually, I should update the model. But to save this turn, I will use "Application" as placeholder
-    // and recommend updating the model to include denormalized fields.
-    
-    // Re-reading the Plan: I am supposed to follow Clean Architecture. 
-    // The clean way is: Model should reflect data needed.
-    // I already updated UserModel. I should probably have updated ApplicationModel too.
-    // I will assume for this step that I can use generic text or the id, 
-    // or I will do a quick fix to the model in Parallel? No, sequential.
-    
-    // Let's stick to the plan. I will implement the UI. 
-    // Since I can't access propertyName from the model yet, I will use a placeholder 
-    // and detailed comment or (better) just use the unitId/date.
-    
+  Widget _buildLatestApplicationCard(BuildContext context, ApplicationModel application, int totalApplications) {
     final status = application.status.value;
     final statusColor = _getStatusColor(status);
     final statusIcon = _getStatusIcon(status);
@@ -327,8 +232,8 @@ applications.sort((a, b) {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.2),
-            blurRadius: 8,
+            color: Colors.black.withOpacity(0.3),
+            blurRadius: 10,
             offset: const Offset(0, 4),
           ),
         ],
@@ -341,9 +246,7 @@ applications.sort((a, b) {
             Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (context) => ApplicationStatusPage(
-                  applicationId: application.id,
-                ),
+                builder: (context) => ApplicationStatusPage(applicationId: application.id),
               ),
             );
           },
@@ -352,122 +255,270 @@ applications.sort((a, b) {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Row(
+                // Status Badge - Large and centered
+                Center(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                    decoration: BoxDecoration(
+                      color: statusColor.withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(30),
+                      border: Border.all(color: statusColor, width: 2),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(statusIcon, color: statusColor, size: 18),
-                        const SizedBox(width: 8),
+                        Icon(statusIcon, color: statusColor, size: 24),
+                        const SizedBox(width: 12),
                         Text(
-                          'Application Status',
+                          status.toUpperCase(),
                           style: TextStyle(
-                            color: Colors.grey.shade400,
-                            fontWeight: FontWeight.w500,
-                            fontSize: 13,
+                            color: statusColor,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                            letterSpacing: 1.2,
                           ),
                         ),
                       ],
                     ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: statusColor.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: statusColor.withOpacity(0.3)),
-                      ),
-                      child: Text(
-                        status.toUpperCase(),
-                        style: TextStyle(
-                          color: statusColor,
+                  ),
+                ),
+                
+                const SizedBox(height: 24),
+                
+                // Property Info
+                Center(
+                  child: Column(
+                    children: [
+                      Text(
+                        application.propertyName ?? 'Property Application',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 20,
                           fontWeight: FontWeight.bold,
-                          fontSize: 11,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF4E95FF).withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          'Unit ${application.unitNumber ?? application.unitName ?? application.unitId}',
+                          style: const TextStyle(
+                            color: Color(0xFF4E95FF),
+                            fontWeight: FontWeight.w600,
+                            fontSize: 14,
+                          ),
                         ),
                       ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  application.propertyName ?? 'Unit Application',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
+                    ],
                   ),
                 ),
-                const SizedBox(height: 6),
-                Text(
-                  'Unit: ${application.unitNumber ?? application.unitName ?? application.unitId}',
-                  style: TextStyle(
-                    color: Colors.grey.shade400,
-                    fontWeight: FontWeight.w500,
-                    fontSize: 14,
-                  ),
-                ),
-                if (status.toLowerCase() == 'rejected' && application.rejectionReason != null) ...[
-                  const SizedBox(height: 12),
+
+                const SizedBox(height: 20),
+
+                // Status Message
+                if (status.toLowerCase() == 'rejected' && application.rejectionReason != null)
                   Container(
-                    padding: const EdgeInsets.all(12),
+                    padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: Colors.redAccent.withOpacity(0.05),
+                      color: Colors.redAccent.withOpacity(0.08),
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.redAccent.withOpacity(0.1)),
+                      border: Border.all(color: Colors.redAccent.withOpacity(0.2)),
                     ),
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Icon(Icons.info_outline, color: Colors.redAccent, size: 16),
-                        const SizedBox(width: 8),
+                        const Icon(Icons.info_outline, color: Colors.redAccent, size: 20),
+                        const SizedBox(width: 12),
                         Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'Rejection Reason',
+                                style: TextStyle(
+                                  color: Colors.redAccent,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                application.rejectionReason!,
+                                style: const TextStyle(
+                                  color: Colors.redAccent,
+                                  fontSize: 14,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
+                else if (status.toLowerCase() == 'approved')
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.green.withOpacity(0.08),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.green.withOpacity(0.2)),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.celebration_outlined, color: Colors.green, size: 20),
+                        const SizedBox(width: 12),
+                        const Expanded(
                           child: Text(
-                            'Reason: ${application.rejectionReason}',
-                            style: const TextStyle(
-                              color: Colors.redAccent,
-                              fontSize: 13,
-                              fontWeight: FontWeight.w500,
+                            'Congratulations! Your application has been approved',
+                            style: TextStyle(
+                              color: Colors.green,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
+                else if (status.toLowerCase() == 'pending')
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.orange.withOpacity(0.08),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.orange.withOpacity(0.2)),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.schedule, color: Colors.orange, size: 20),
+                        const SizedBox(width: 12),
+                        const Expanded(
+                          child: Text(
+                            'Your application is being reviewed',
+                            style: TextStyle(
+                              color: Colors.orange,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
                             ),
                           ),
                         ),
                       ],
                     ),
                   ),
-                ],
-                const SizedBox(height: 16),
-                Row(
-                  children: [
-                    Icon(Icons.calendar_today, size: 14, color: Colors.grey.shade600),
-                    const SizedBox(width: 6),
-                    Text(
-                      'Applied: ${_formatDate(application.appliedDate)}',
-                      style: TextStyle(fontSize: 13, color: Colors.grey.shade500),
-                    ),
-                    if (application.monthlyRent != null) ...[
-                      const SizedBox(width: 20),
-                      Icon(Icons.attach_money, size: 14, color: Colors.grey.shade600),
-                      const SizedBox(width: 4),
-                      Text(
-                        'Rent: ${application.monthlyRent!.toStringAsFixed(0)}',
-                        style: TextStyle(fontSize: 13, color: Colors.grey.shade500),
-                      ),
-                    ],
-                  ],
-                ),
+
                 const SizedBox(height: 20),
-                const Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    Text(
-                      'View Details',
+
+                // Application Details
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Column(
+                    children: [
+                      Row(
+                        children: [
+                          Icon(Icons.calendar_today, size: 16, color: Colors.grey.shade400),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Applied on:',
+                            style: TextStyle(fontSize: 13, color: Colors.grey.shade500),
+                          ),
+                          const Spacer(),
+                          Text(
+                            _formatDate(application.appliedDate),
+                            style: const TextStyle(
+                              fontSize: 14,
+                              color: Colors.white,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                      if (application.monthlyRent != null) ...[
+                        const SizedBox(height: 12),
+                        Divider(height: 1, color: Colors.grey.shade800),
+                        const SizedBox(height: 12),
+                        Row(
+                          children: [
+                            Icon(Icons.attach_money, size: 16, color: Colors.grey.shade400),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Monthly Rent:',
+                              style: TextStyle(fontSize: 13, color: Colors.grey.shade500),
+                            ),
+                            const Spacer(),
+                            Text(
+                              'KES ${application.monthlyRent!.toStringAsFixed(0)}',
+                              style: const TextStyle(
+                                fontSize: 14,
+                                color: Colors.white,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: 20),
+
+                // View Details Button
+                Center(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFF4E95FF), Color(0xFF3B7DD8)],
+                      ),
+                      borderRadius: BorderRadius.circular(25),
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFF4E95FF).withOpacity(0.3),
+                          blurRadius: 8,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          'View Full Details',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                          ),
+                        ),
+                        SizedBox(width: 8),
+                        Icon(Icons.arrow_forward, size: 18, color: Colors.white),
+                      ],
+                    ),
+                  ),
+                ),
+
+                // Show total applications count if more than 1
+                if (totalApplications > 1) ...[
+                  const SizedBox(height: 16),
+                  Center(
+                    child: Text(
+                      'You have ${totalApplications - 1} other application${totalApplications > 2 ? 's' : ''}',
                       style: TextStyle(
-                        color: Color(0xFF4E95FF),
-                        fontWeight: FontWeight.w600,
+                        color: Colors.grey.shade600,
+                        fontSize: 12,
                       ),
                     ),
-                    SizedBox(width: 6),
-                    Icon(Icons.arrow_forward, size: 16, color: Color(0xFF4E95FF)),
-                  ],
-                ),
+                  ),
+                ],
               ],
             ),
           ),
@@ -476,79 +527,9 @@ applications.sort((a, b) {
     );
   }
 
-  void _showAllApplications(BuildContext context, List<ApplicationModel> applications) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF1E2235),
-        title: const Text('All Applications', style: TextStyle(color: Colors.white)),
-        content: SizedBox(
-          width: double.maxFinite,
-          child: ListView.builder(
-            shrinkWrap: true,
-            itemCount: applications.length,
-            itemBuilder: (context, index) {
-              final application = applications[index];
-              final status = application.status.value;
-              
-              return ListTile(
-                title: Text(
-                  application.propertyName ?? 'Property Application',
-                  style: const TextStyle(color: Colors.white),
-                ),
-                subtitle: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    if (application.unitNumber != null || application.unitName != null)
-                      Text(
-                        'Unit: ${application.unitNumber ?? application.unitName}',
-                        style: TextStyle(color: Colors.grey.shade400),
-                      ),
-                    Text(
-                      'Submitted: ${_formatDate(application.appliedDate)}',
-                      style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
-                    ),
-                  ],
-                ),
-                trailing: Chip(
-                  label: Text(
-                    status.toUpperCase(),
-                    style: TextStyle(
-                      color: _getStatusColor(status),
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold
-                    ),
-                  ),
-                  backgroundColor: _getStatusColor(status).withOpacity(0.1),
-                  side: BorderSide.none,
-                ),
-                onTap: () {
-                  Navigator.pop(context);
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => ApplicationStatusPage(
-                        applicationId: application.id,
-                      ),
-                    ),
-                  );
-                },
-              );
-            },
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Close', style: TextStyle(color: Colors.white)),
-          ),
-        ],
-      ),
-    );
-  }
-
   String _formatDate(DateTime date) {
-    return '${date.day}/${date.month}/${date.year}';
+    final months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    return '${date.day} ${months[date.month - 1]} ${date.year}';
   }
 
   Color _getStatusColor(String status) {

@@ -37,6 +37,17 @@ class ApplicationRepository {
             .toList());
   }
 
+  // NEW METHOD: Get applications by user email (more reliable)
+  Stream<List<ApplicationModel>> getApplicationsByEmailStream(String email) {
+    return _ref
+        .where('email', isEqualTo: email)
+        .orderBy('appliedDate', descending: true)
+        .snapshots()
+        .map((snapshot) => snapshot.docs
+            .map((d) => ApplicationModel.fromFirestore(d))
+            .toList());
+  }
+
   Future<void> approveApplication({
     required ApplicationModel application,
     required String generatedTenantId,
