@@ -113,76 +113,87 @@ class _CreateMaintenanceRequestPageState extends State<CreateMaintenanceRequestP
   }
 
   Future<void> _loadTenantUnit(String? userId) async {
-    if (userId == null) return;
+  if (userId == null) return;
 
-    setState(() {
-      _isLoadingUnit = true;
-    });
+  setState(() {
+    _isLoadingUnit = true;
+  });
 
-    try {
-      final authProvider = context.read<AuthProvider>();
-      final tenantRepo = TenantRepository();
-      
-      // 1. Primary Lookup: By userId
-      TenantModel? tenant = await tenantRepo.getTenantByUserId(userId);
-      debugPrint("Maintenance: Query by userId: $userId found: ${tenant?.id}");
-      
-      // 2. Fallback 1: By document ID (some systems use UID as doc ID)
-      if (tenant == null) {
-        try {
-          tenant = await tenantRepo.getTenantById(userId);
-          if (tenant != null) {
-            debugPrint("Maintenance: Found tenant by document ID fallback: ${tenant.id}");
-          }
-        } catch (e) {
-          debugPrint("Maintenance: Document ID fallback failed: $e");
-        }
-      }
-      
-      // 3. Fallback 2: By Email
-      if (tenant == null && authProvider.firebaseUser?.email != null) {
-        tenant = await tenantRepo.getTenantByEmail(authProvider.firebaseUser!.email!);
+  try {
+    final authProvider = context.read<AuthProvider>();
+    final tenantRepo = TenantRepository();
+
+    TenantModel? tenant;
+
+    // 1️⃣ Primary: lookup by userId field
+    tenant = await tenantRepo.getTenantByUserId(userId);
+    debugPrint("Maintenance: Query by userId: $userId found: ${tenant?.id}");
+
+    // 2️⃣ Fallback: document ID == UID
+    if (tenant == null) {
+      try {
+        tenant = await tenantRepo.getTenantById(userId);
         if (tenant != null) {
-          debugPrint("Maintenance: Found tenant by email: ${authProvider.firebaseUser!.email}");
-          // Automatically link UID if missing or different
-          if (tenant.userId != userId) {
-            await tenantRepo.updateTenant(tenant.id, {'userId': userId});
-            tenant = tenant.copyWith(userId: userId);
-            debugPrint("Maintenance: Linked tenant record to UID: $userId");
-          }
+          debugPrint("Maintenance: Found tenant by document ID fallback: ${tenant.id}");
         }
-      }
-      
-      if (tenant != null) {
-        setState(() {
-          _currentTenant = tenant;
-          if (tenant!.unitId.isNotEmpty) {
-            _selectedUnitId = tenant!.unitId;
-          }
-          if (tenant!.propertyId.isNotEmpty) {
-            _selectedPropertyId = tenant!.propertyId;
-          }
-          
-          // Resolve building and unit names if they are IDs or empty
-          _resolveHumanReadableNames(tenant!);
-        });
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Active lease record not found. Please contact support.')),
-        );
-      }
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error loading unit: $e')),
-      );
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isLoadingUnit = false;
-        });
+      } catch (_) {
+        // ignore
       }
     }
+
+    // 3️⃣ Fallback: lookup by email (READ-ONLY)
+    if (tenant == null && authProvider.firebaseUser?.email != null) {
+      tenant = await tenantRepo.getTenantByEmail(
+        authProvider.firebaseUser!.email!,
+      );
+
+      if (tenant != null) {
+        debugPrint(
+          "Maintenance: Found tenant by email (read-only): ${authProvider.firebaseUser!.email}",
+        );
+      }
+    }
+
+    // ❌ NO UPDATES
+    // ❌ NO LINKING
+    // ❌ NO WRITES
+
+    if (tenant == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Your account is not linked to a tenant record. Please contact management.',
+          ),
+        ),
+      );
+      return;
+    }
+
+    final resolvedTenant = tenant; // promote to non-null
+
+setState(() {
+  _currentTenant = resolvedTenant;
+  _selectedUnitId =
+      resolvedTenant.unitId.isNotEmpty ? resolvedTenant.unitId : null;
+  _selectedPropertyId =
+      resolvedTenant.propertyId.isNotEmpty ? resolvedTenant.propertyId : null;
+});
+
+
+    await _resolveHumanReadableNames(tenant);
+  } catch (e) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Error loading tenant info: $e')),
+    );
+  } finally {
+    if (mounted) {
+      setState(() {
+        _isLoadingUnit = false;
+      });
+    }
   }
+}
+
 
   Future<void> _resolveHumanReadableNames(TenantModel tenant) async {
     String pName = tenant.propertyName;
