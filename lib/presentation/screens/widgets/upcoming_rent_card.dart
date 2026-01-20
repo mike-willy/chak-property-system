@@ -1,14 +1,10 @@
 import 'package:flutter/material.dart';
 import '../../../core/widgets/common_widgets.dart';
 import '../../../data/models/tenant_model.dart';
-import '../../../data/models/property_model.dart'; // Add this import
-import '../../../data/models/address_model.dart'; // Add this import
-
-import 'package:flutter/material.dart';
-import '../../../core/widgets/common_widgets.dart';
-import '../../../data/models/tenant_model.dart';
 import '../../../data/models/property_model.dart';
 import '../../../data/models/address_model.dart';
+// Make sure this import path is correct
+import '../../screens/payments/payment_page.dart';
 
 class UpcomingRentCard extends StatelessWidget {
   final TenantModel? tenantData;
@@ -44,8 +40,9 @@ class UpcomingRentCard extends StatelessWidget {
     double rentAmount = tenantData!.rentAmount;
     
     // 2. If 0, fetch from linked Property
+    PropertyModel? property;
     if (rentAmount == 0) {
-       final property = properties.firstWhere(
+      property = properties.firstWhere(
         (p) => p.id == tenantData!.propertyId || p.unitId == tenantData!.unitId,
         orElse: () => PropertyModel(
           id: '',
@@ -68,20 +65,45 @@ class UpcomingRentCard extends StatelessWidget {
         ),
       );
       rentAmount = property.price;
+    } else {
+      // If rent amount exists, still try to get property details
+      property = properties.firstWhere(
+        (p) => p.id == tenantData!.propertyId || p.unitId == tenantData!.unitId,
+        orElse: () => PropertyModel(
+          id: '',
+          title: 'Your Unit',
+          unitId: tenantData!.unitId,
+          description: '',
+          address: AddressModel(street: '', city: '', state: '', zipCode: ''),
+          ownerId: '',
+          ownerName: '',
+          price: rentAmount,
+          deposit: 0,
+          bedrooms: 0,
+          bathrooms: 0,
+          squareFeet: 0,
+          amenities: [],
+          images: [],
+          status: PropertyStatus.occupied,
+          createdAt: DateTime.now(),
+          updatedAt: DateTime.now(),
+        ),
+      );
     }
 
     // Calculate next rent date
-    final nextRentDate = tenantData!.leaseStartDate?.add(const Duration(days: 30)) ?? DateTime.now().add(const Duration(days: 30));
+    final nextRentDate = tenantData!.leaseStartDate?.add(const Duration(days: 30)) ?? 
+                         DateTime.now().add(const Duration(days: 30));
     final daysRemaining = nextRentDate.difference(DateTime.now()).inDays;
     final isDueSoon = daysRemaining <= 5;
 
-    // Format currency (simple KES)
-    final amount = rentAmount.toStringAsFixed(2); // e.g. "1200.00"
+    // Format currency
+    final amount = rentAmount.toStringAsFixed(2);
 
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-         color: const Color(0xFF1E2235), // Dark card background
+        color: const Color(0xFF1E2235),
         borderRadius: BorderRadius.circular(24),
         border: Border.all(color: Colors.blue.withOpacity(0.1)),
         boxShadow: [
@@ -111,10 +133,10 @@ class UpcomingRentCard extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(4),
                   decoration: BoxDecoration(
-                    color: Colors.green.withOpacity(0.2),
+                    color: Colors.orange.withOpacity(0.2),
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(Icons.check, color: Colors.green, size: 16),
+                  child: const Icon(Icons.warning, color: Colors.orange, size: 16),
                 ),
             ],
           ),
@@ -133,7 +155,7 @@ class UpcomingRentCard extends StatelessWidget {
               Icon(Icons.calendar_today_outlined, color: Colors.orange.shade400, size: 16),
               const SizedBox(width: 6),
               Text(
-                'Due in $daysRemaining Days (${nextRentDate.month}/${nextRentDate.day})',
+                'Due in $daysRemaining Days (${nextRentDate.day}/${nextRentDate.month}/${nextRentDate.year})',
                 style: TextStyle(
                   color: Colors.orange.shade400,
                   fontWeight: FontWeight.w500,
@@ -148,25 +170,34 @@ class UpcomingRentCard extends StatelessWidget {
               Expanded(
                 child: ElevatedButton(
                   onPressed: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Payment integration coming soon!')),
+                    // Navigate to payment page with required parameters
+                    // Note: You may need to pass a proper applicationId if available
+                    // For now, using tenantId as a fallback
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => PaymentPage(
+                          applicationId: tenantData!.id, // or use a specific applicationId if you have one
+                          amount: rentAmount,
+                        ),
+                      ),
                     );
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blue.shade600,
+                    backgroundColor: const Color(0xFF4E95FF),
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    elevation: 0,
+                    elevation: 2,
                   ),
                   child: const Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                       Icon(Icons.payment, size: 20),
-                       SizedBox(width: 8),
-                       Text(
+                      Icon(Icons.payment, size: 20),
+                      SizedBox(width: 8),
+                      Text(
                         'Pay Now',
                         style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                       ),
@@ -181,7 +212,10 @@ class UpcomingRentCard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: IconButton(
-                  onPressed: () {},
+                  onPressed: () {
+                    // Show payment history or options
+                    _showPaymentOptions(context);
+                  },
                   icon: const Icon(Icons.more_horiz, color: Colors.white),
                 ),
               ),
@@ -195,7 +229,7 @@ class UpcomingRentCard extends StatelessWidget {
                 Icon(Icons.lock_outline, size: 12, color: Colors.grey.shade600),
                 const SizedBox(width: 4),
                 Text(
-                  'Secure payment via Stripe',
+                  'Secure payment via M-Pesa',
                   style: TextStyle(
                     color: Colors.grey.shade600,
                     fontSize: 12,
@@ -205,6 +239,79 @@ class UpcomingRentCard extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  void _showPaymentOptions(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xFF1E2235),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => Container(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Payment Options',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 20),
+            ListTile(
+              leading: const Icon(Icons.history, color: Color(0xFF4E95FF)),
+              title: const Text('Payment History', style: TextStyle(color: Colors.white)),
+              subtitle: Text(
+                'View past transactions',
+                style: TextStyle(color: Colors.grey.shade400, fontSize: 12),
+              ),
+              onTap: () {
+                Navigator.pop(context);
+                // TODO: Navigate to payment history page
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Payment history coming soon')),
+                );
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.receipt_long, color: Color(0xFF4E95FF)),
+              title: const Text('Download Receipt', style: TextStyle(color: Colors.white)),
+              subtitle: Text(
+                'Get your payment receipts',
+                style: TextStyle(color: Colors.grey.shade400, fontSize: 12),
+              ),
+              onTap: () {
+                Navigator.pop(context);
+                // TODO: Implement receipt download
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Receipt download coming soon')),
+                );
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.schedule, color: Color(0xFF4E95FF)),
+              title: const Text('Auto-Pay Setup', style: TextStyle(color: Colors.white)),
+              subtitle: Text(
+                'Set up automatic payments',
+                style: TextStyle(color: Colors.grey.shade400, fontSize: 12),
+              ),
+              onTap: () {
+                Navigator.pop(context);
+                // TODO: Implement auto-pay setup
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Auto-pay setup coming soon')),
+                );
+              },
+            ),
+          ],
+        ),
       ),
     );
   }
