@@ -17,8 +17,16 @@ import 'package:mobile_app/presentation/screens/properties/pages/property_list_p
 class LoginPage extends StatefulWidget {
   final String? redirect;
   final String? propertyId;
+  final String? email;
+  final String? password;
 
-  const LoginPage({super.key, this.redirect, this.propertyId});
+  const LoginPage({
+    super.key, 
+    this.redirect, 
+    this.propertyId,
+    this.email,
+    this.password,
+  });
 
   @override
   State<LoginPage> createState() => _LoginPageState();
@@ -26,12 +34,18 @@ class LoginPage extends StatefulWidget {
 
 class _LoginPageState extends State<LoginPage> {
   final _formKey = GlobalKey<FormState>();
-  final _emailController = TextEditingController();
-  final _passwordController = TextEditingController();
+  late final TextEditingController _emailController;
+  late final TextEditingController _passwordController;
   
   bool _obscurePassword = true;
   bool _isLoading = false;
-  // bool _isLoginMode = true; // true for Log In, false for Sign Up
+
+  @override
+  void initState() {
+    super.initState();
+    _emailController = TextEditingController(text: widget.email);
+    _passwordController = TextEditingController(text: widget.password);
+  }
 
   @override
   void dispose() {

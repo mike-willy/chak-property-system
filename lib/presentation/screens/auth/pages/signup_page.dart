@@ -78,9 +78,23 @@ class _SignupPageState extends State<SignupPage> {
       if (errorMessage == null) {
         // Success
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Account created successfully!')),
+          const SnackBar(content: Text('Account created successfully! Please log in.')),
         );
-        // Navigation will be handled by auth state listener
+        
+        // Sign out to prevent auto-login
+        await authProvider.signOut();
+
+        if (!mounted) return;
+
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (_) => LoginPage(
+              email: _emailController.text.trim(),
+              password: _passwordController.text,
+            ),
+          ),
+        );
       } else {
         // Error occurred
         ScaffoldMessenger.of(context).showSnackBar(
