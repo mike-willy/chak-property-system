@@ -174,6 +174,27 @@ class TenantProvider with ChangeNotifier {
     }
   }
 
+  Future<double> calculateTotalCollectedRevenue() async {
+    if (_tenantsList.isEmpty) return 0.0;
+
+    double total = 0.0;
+    // Iterate through all tenants and fetch their payments
+    // This could be optimized with a backend aggregation query in a real production app
+    for (final tenant in _tenantsList) {
+      try {
+        final payments = await _paymentRepository.getPaymentsByTenantId(tenant.id);
+        for (final payment in payments) {
+          if (payment.status.value == 'completed' || payment.status.value == 'paid') {
+             total += payment.amount;
+          }
+        }
+      } catch (e) {
+        debugPrint('Error fetching payments for tenant ${tenant.id}: $e');
+      }
+    }
+    return total;
+  }
+
   void clearData() {
     _tenant = null;
     _payments = [];

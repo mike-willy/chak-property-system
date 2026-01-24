@@ -16,6 +16,7 @@ import '../../../data/models/application_model.dart';
 
 // Pages
 import '../properties/pages/property_list_page.dart';
+import '../landlord/pages/analytics_page.dart';
 import 'messages_page.dart';
 import 'maintenance_page.dart';
 import 'profile_page.dart';
@@ -38,13 +39,16 @@ class DashboardPage extends StatefulWidget {
 class _DashboardPageState extends State<DashboardPage> {
   int _currentIndex = 0;
 
-  final List<Widget> _pages = [
-    const DashboardHome(),
-    const PropertyListPage(),
-    const MessagesPage(),
-    const MaintenancePage(),
-    const ProfilePage(),
-  ];
+  List<Widget> _getPages(bool isLandlord) {
+    return [
+      const DashboardHome(),
+      const PropertyListPage(),
+      if (isLandlord) const AnalyticsPage(), // Added Analytics Page
+      if (!isLandlord) const MessagesPage(), // Tenants see Messages
+      const MaintenancePage(),
+      const ProfilePage(),
+    ];
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -52,7 +56,7 @@ class _DashboardPageState extends State<DashboardPage> {
       backgroundColor: const Color(0xFF141725), // Deep Dark Background
       body: IndexedStack(
         index: _currentIndex,
-        children: _pages,
+        children: _getPages(context.read<AuthProvider>().isLandlord),
       ),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
@@ -80,12 +84,16 @@ class _DashboardPageState extends State<DashboardPage> {
               _currentIndex = index;
             });
           },
-          items: const [
-            BottomNavigationBarItem(icon: Icon(Icons.home_filled), label: 'Home'),
-            BottomNavigationBarItem(icon: Icon(Icons.search), label: 'Rentals'),
-            BottomNavigationBarItem(icon: Icon(Icons.chat_bubble_outline), activeIcon: Icon(Icons.chat_bubble), label: 'Messages'),
-            BottomNavigationBarItem(icon: Icon(Icons.build_circle_outlined), activeIcon: Icon(Icons.build_circle), label: 'Maint.'),
-            BottomNavigationBarItem(icon: Icon(Icons.person_outline), activeIcon: Icon(Icons.person), label: 'Profile'),
+          items: [
+            const BottomNavigationBarItem(icon: Icon(Icons.home_filled), label: 'Home'),
+            BottomNavigationBarItem(icon: const Icon(Icons.search), label: context.read<AuthProvider>().isLandlord ? 'Properties' : 'Rentals'),
+            if (context.read<AuthProvider>().isLandlord)
+              const BottomNavigationBarItem(icon: Icon(Icons.analytics_outlined), activeIcon: Icon(Icons.analytics), label: 'Analytics')
+            else
+              const BottomNavigationBarItem(icon: Icon(Icons.chat_bubble_outline), activeIcon: Icon(Icons.chat_bubble), label: 'Messages'),
+            
+            const BottomNavigationBarItem(icon: Icon(Icons.build_circle_outlined), activeIcon: Icon(Icons.build_circle), label: 'Maint.'),
+            const BottomNavigationBarItem(icon: Icon(Icons.person_outline), activeIcon: Icon(Icons.person), label: 'Profile'),
           ],
         ),
       ),

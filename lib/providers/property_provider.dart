@@ -144,27 +144,24 @@ class PropertyProvider with ChangeNotifier {
     debugPrint('PropertyProvider: Applying filters - isLandlord: $isLandlord, isTenant: $isTenant, uid: $uid');
     debugPrint('PropertyProvider: Total properties before filter: ${_properties.length}');
     
-    // TEMPORARILY DISABLED: Role-based filtering to verify properties are loading
-    // TODO: Re-enable role-based filtering after verification
     _filteredProperties = _properties.where((property) {
       // Filter by status if needed (from status filter chip)
       if (_filterStatus != 'all' && property.status.value != _filterStatus) {
         return false;
       }
 
-      // TEMPORARILY DISABLED: Role-based filtering
-      // // For tenants, only show vacant properties
-      // if (isTenant && property.status != PropertyStatus.vacant) {
-      //   return false;
-      // }
+      // For tenants, only show vacant properties
+      if (isTenant && property.status != PropertyStatus.vacant) {
+        return false;
+      }
 
-      // // For landlords, only show their own properties
-      // if (isLandlord) {
-      //   if (uid == null || property.ownerId != uid) {
-      //     debugPrint('PropertyProvider: Filtering out property ${property.id} - ownerId: ${property.ownerId}, uid: $uid');
-      //     return false;
-      //   }
-      // }
+      // For landlords, only show their own properties (Strict Isolation)
+      if (isLandlord) {
+        if (uid == null || property.ownerId != uid) {
+          // debugPrint('PropertyProvider: Filtering out property ${property.id} - ownerId: ${property.ownerId}, uid: $uid');
+          return false;
+        }
+      }
 
       // If user is not a landlord or tenant, show all properties
 
@@ -195,6 +192,58 @@ class PropertyProvider with ChangeNotifier {
       _error = 'Failed to load property details';
     }
     notifyListeners();
+  }
+
+  Future<void> createProperty(PropertyModel property) async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      final result = await _repository.addProperty(property);
+      result.fold(
+        (failure) {
+          _error = failure.message;
+        },
+        (propertyId) {
+          final createdProperty = property.copyWith(id: propertyId);
+          _properties.add(createdProperty);
+          _applyFilters();
+          loadStats();
+        },
+      );
+    } catch (e) {
+      _error = 'Failed to create property: $e';
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> updateProperty(PropertyModel property) async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      final result = await _repository.updateProperty(property);
+      result.fold(
+        (failure) => _error = failure.message,
+        (_) {
+          final index = _properties.indexWhere((p) => p.id == property.id);
+          if (index != -1) {
+            _properties[index] = property;
+            _applyFilters();
+            loadStats();
+          }
+        },
+      );
+    } catch (e) {
+      _error = 'Failed to update property: $e';
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
   }
 
   Future<void> updatePropertyStatus(

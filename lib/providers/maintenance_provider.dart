@@ -2,20 +2,24 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import '../data/models/maintenance_model.dart';
-import '../data/models/maintenance_category_model.dart'; // Added
+import '../data/models/maintenance_category_model.dart'; 
 import '../data/repositories/maintenance_repository.dart';
+import 'tenant_provider.dart'; 
 import 'auth_provider.dart';
 
 class MaintenanceProvider with ChangeNotifier {
   final MaintenanceRepository _repository;
   AuthProvider _authProvider;
+  TenantProvider? _tenantProvider; // Make nullable to avoid init issues if not provided immediately
 
   bool _disposed = false;
 
-  MaintenanceProvider(this._repository, this._authProvider);
+  MaintenanceProvider(this._repository, this._authProvider, [this._tenantProvider]);
 
-  void update(AuthProvider auth) {
+  void update(AuthProvider auth, TenantProvider tenant) {
     _authProvider = auth;
+    _tenantProvider = tenant;
+    _applyFilters(); // Re-apply filters when dependencies change
     notifyListeners();
   }
 
@@ -24,7 +28,7 @@ class MaintenanceProvider with ChangeNotifier {
 
   List<MaintenanceModel> _requests = [];
   List<MaintenanceModel> _filteredRequests = [];
-  List<MaintenanceCategoryModel> _categories = []; // Added
+  List<MaintenanceCategoryModel> _categories = [];
   MaintenanceModel? _selectedRequest;
   bool _isLoading = false;
   String _filterStatus = 'all';
@@ -32,7 +36,7 @@ class MaintenanceProvider with ChangeNotifier {
 
   List<MaintenanceModel> get requests => _requests;
   List<MaintenanceModel> get filteredRequests => _filteredRequests;
-  List<MaintenanceCategoryModel> get categories => _categories; // Added
+  List<MaintenanceCategoryModel> get categories => _categories;
   MaintenanceModel? get selectedRequest => _selectedRequest;
   bool get isLoading => _isLoading;
   String get filterStatus => _filterStatus;
@@ -61,7 +65,7 @@ class MaintenanceProvider with ChangeNotifier {
         },
         (requests) {
           debugPrint('MaintenanceProvider: Loaded ${requests.length} maintenance requests');
-          _requests = requests;
+          _requests = requests; // Keep raw list intact
           _applyFilters();
         },
       );
@@ -75,11 +79,6 @@ class MaintenanceProvider with ChangeNotifier {
   }
 
   Future<void> loadCategories() async {
-    // Don't show global loading state for categories background fetch if requests are already loaded
-    // But initially it might be good. Let's just create a separate isLoadingCategories if needed,
-    // or use the same one. For simplicity, reusing _isLoading or just fetching quietly.
-    // Let's fetch quietly but update UI when done.
-    
     try {
       final result = await _repository.getMaintenanceCategories();
       result.fold(
@@ -102,10 +101,25 @@ class MaintenanceProvider with ChangeNotifier {
 
   void _applyFilters() {
     _filteredRequests = _requests.where((request) {
-      // Filter by status if needed
+      // 1. Status Filter
       if (_filterStatus != 'all' && request.status.value != _filterStatus) {
         return false;
       }
+
+      // 2. Strict Landlord Filter
+      if (isLandlord && _tenantProvider != null) {
+         final myTenantIds = _tenantProvider!.tenantsList.map((t) => t.userId).toSet();
+         final myTenantDocIds = _tenantProvider!.tenantsList.map((t) => t.id).toSet();
+         
+         // If tenant list is empty, we effectively hide all requests until it loads
+         if (myTenantIds.isEmpty && myTenantDocIds.isEmpty) {
+           return false; 
+         }
+
+         final matches = myTenantIds.contains(request.tenantId) || myTenantDocIds.contains(request.tenantId);
+         if (!matches) return false;
+      }
+
       return true;
     }).toList();
   }
@@ -132,7 +146,7 @@ class MaintenanceProvider with ChangeNotifier {
       }
 
       final request = MaintenanceModel(
-        id: '', // Will be set by repository
+        id: '', 
         tenantId: tenantId,
         unitId: unitId,
         tenantName: tenantName,
@@ -153,7 +167,6 @@ class MaintenanceProvider with ChangeNotifier {
           _error = failure.message;
         },
         (_) {
-          // Reload requests after creating
           loadRequests();
         },
       );
@@ -174,7 +187,6 @@ class MaintenanceProvider with ChangeNotifier {
       result.fold(
         (failure) => _error = failure.message,
         (_) {
-          // Update local state
           final index = _requests.indexWhere((r) => r.id == requestId);
           if (index != -1) {
             _requests[index] = _requests[index].copyWith(
@@ -215,4 +227,3 @@ class MaintenanceProvider with ChangeNotifier {
     super.dispose();
   }
 }
-

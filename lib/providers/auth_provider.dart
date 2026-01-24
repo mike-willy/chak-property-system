@@ -220,11 +220,17 @@ class AuthProvider extends ChangeNotifier {
       firebaseUser = cred.user;
 
       if (firebaseUser != null && _authRepository != null) {
-        await _createOrUpdateUserProfileFromOAuth(
+        final error = await _createOrUpdateUserProfileFromOAuth(
           name: firebaseUser!.displayName ?? googleUser.displayName ?? 'User',
           email: firebaseUser!.email ?? googleUser.email,
           role: role,
         );
+        
+        if (error != null) {
+          // If profile creation failed (e.g. Landlord not registered), sign out and return error
+          await signOut();
+          return error;
+        }
       }
 
       notifyListeners();
@@ -237,17 +243,30 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> _createOrUpdateUserProfileFromOAuth({
+  Future<String?> _createOrUpdateUserProfileFromOAuth({
     required String name,
     required String email,
     UserRole? role,
   }) async {
-    if (firebaseUser == null || _authRepository == null) return;
+    if (firebaseUser == null || _authRepository == null) return 'Auth not initialized';
 
     try {
       final result = await _authRepository!.getUserProfile(firebaseUser!.uid);
-      result.fold(
+      
+      // Use a Completer or local variable to extract the return value from the Either fold
+      String? returnError;
+      
+      await result.fold(
         (_) async {
+          // User does not exist
+          
+          // CRITICAL: Landlords must be registered by Admin. 
+          // Do not create a new profile if the intended role is Landlord.
+          if (role == UserRole.landlord) {
+            returnError = 'Landlord account not found. Please contact an administrator.';
+            return;
+          }
+
           final userRole = role ?? UserRole.tenant;
           final userModel = UserModel(
             id: firebaseUser!.uid,
@@ -261,20 +280,28 @@ class AuthProvider extends ChangeNotifier {
           );
           final createResult = await _authRepository!.createUserProfile(userModel);
           createResult.fold(
-            (failure) => debugPrint('Failed to create profile: ${failure.message}'),
+            (failure) {
+               debugPrint('Failed to create profile: ${failure.message}');
+               returnError = failure.message;
+            },
             (_) {
               _userProfile = userModel;
               notifyListeners();
+              returnError = null;
             },
           );
         },
-        (existingProfile) {
+        (existingProfile) async {
           _userProfile = existingProfile;
           notifyListeners();
+          returnError = null;
         },
       );
+      
+      return returnError;
     } catch (e) {
       debugPrint('Error creating/updating user profile: $e');
+      return 'An unexpected error occurred.';
     }
   }
 

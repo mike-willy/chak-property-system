@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:mobile_app/data/models/property_model.dart';
 import 'package:mobile_app/presentation/screens/properties/pages/property_detail_page.dart';
+import 'package:mobile_app/presentation/screens/properties/pages/add_edit_property_page.dart';
 import 'package:provider/provider.dart';
 import '../../../../providers/property_provider.dart';
 import '../widgets/property_card.dart';
@@ -105,7 +106,12 @@ class _PropertyListPageState extends State<PropertyListPage> with AutomaticKeepA
                     padding: const EdgeInsets.all(12),
                   ),
                   onPressed: () {
-                    // Navigate to add property
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const AddEditPropertyPage(),
+                      ),
+                    );
                   },
                 ),
             ],
@@ -495,11 +501,11 @@ class _PropertyListPageState extends State<PropertyListPage> with AutomaticKeepA
   }
 
   void _navigateToEditProperty(PropertyModel property) {
-    // Navigator.push(
-    //   context,
-    //   MaterialPageRoute(
-    //     builder: (_) => EditPropertyPage(property: property),
-    //   ),
-    // );
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => AddEditPropertyPage(property: property),
+      ),
+    );
   }
 }
