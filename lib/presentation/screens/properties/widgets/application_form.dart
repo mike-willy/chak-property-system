@@ -620,19 +620,17 @@ class _ApplicationFormState extends State<ApplicationForm> {
                       const SizedBox(height: 12),
                       
                       // Property Statistics Row
-                      Row(
+                      Wrap(
+                        spacing: 8.0,
+                        runSpacing: 4.0,
                         children: [
                           _infoChip(_propertyData!['propertyType'] ?? _propertyData!['type'] ?? 'Apartment'),
-                          const SizedBox(width: 8),
                           if (_propertyData!['bedrooms'] != null)
                             _infoChip('${_propertyData!['bedrooms']} Bed'),
-                          const SizedBox(width: 8),
                           if (_propertyData!['bathrooms'] != null)
                             _infoChip('${_propertyData!['bathrooms']} Bath'),
-                          if (_propertyData!['size'] != null) ...[
-                            const SizedBox(width: 8),
+                          if (_propertyData!['size'] != null)
                             _infoChip('${_propertyData!['size']} sq ft'),
-                          ],
                         ],
                       ),
                       
@@ -690,10 +688,12 @@ class _ApplicationFormState extends State<ApplicationForm> {
                 ),
               ),
 
-            // Section 1: Unit Selection
-            ApplicationSection(title: 'Select Unit'),
-            const SizedBox(height: 16),
-            _buildUnitSelectionSection(),
+            // Section 1: Unit Selection (Only show if no unit pre-selected)
+            if (widget.unitId == null) ...[
+              ApplicationSection(title: 'Select Unit'),
+              const SizedBox(height: 16),
+              _buildUnitSelectionSection(),
+            ],
 
             // Show selected unit details if any unit is selected
             if (_selectedUnitId != null && _selectedUnitData != null) ...[

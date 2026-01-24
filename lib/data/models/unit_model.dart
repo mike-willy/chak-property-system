@@ -19,12 +19,14 @@ extension UnitStatusExtension on UnitStatus {
   }
 
   static UnitStatus fromString(String value) {
-    switch (value) {
+    switch (value.toLowerCase()) {
       case 'vacant':
         return UnitStatus.vacant;
       case 'occupied':
+      case 'leased': // Handle legacy web status
         return UnitStatus.occupied;
       case 'maintenance':
+      case 'under_maintenance': // Handle alternative web status
         return UnitStatus.maintenance;
       default:
         return UnitStatus.vacant;

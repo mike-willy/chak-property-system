@@ -231,7 +231,7 @@ class PropertyCard extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
                         Text(
-                          'Deposit',
+                          'Security Deposit',
                           style: TextStyle(
                             fontSize: 11,
                             color: Colors.grey.shade500,

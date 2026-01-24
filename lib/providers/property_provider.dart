@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 // import 'auth_provider.dart'; comes from above chunk logic but ensuring imports exist
 import '../data/models/property_model.dart';
+import '../data/models/unit_model.dart';
 import '../data/repositories/property_repository.dart';
 
 import 'auth_provider.dart';
@@ -32,14 +33,56 @@ class PropertyProvider with ChangeNotifier {
   Map<String, dynamic> _stats = {};
   String? _error;
 
+  List<UnitModel> _propertyUnits = [];
+  String? _unitsError;
+
   List<PropertyModel> get properties => _properties;
   List<PropertyModel> get filteredProperties => _filteredProperties;
+  List<UnitModel> get propertyUnits => _propertyUnits;
   PropertyModel? get selectedProperty => _selectedProperty;
   bool get isLoading => _isLoading;
   String get searchTerm => _searchTerm;
   String get filterStatus => _filterStatus;
   Map<String, dynamic> get stats => _stats;
   String? get error => _error;
+  String? get unitsError => _unitsError;
+
+  Future<void> loadPropertyUnits(String propertyId) async {
+    _isLoading = true;
+    _unitsError = null;
+    notifyListeners();
+
+    try {
+      // The repository returns List<Map<String, dynamic>>
+      // We need to convert it to List<UnitModel>
+      final result = await _repository.getPropertyUnits(propertyId);
+      
+      result.fold(
+        (failure) {
+          _unitsError = failure.message;
+          _propertyUnits = [];
+        },
+        (unitsData) {
+          _propertyUnits = unitsData
+              .map((data) => UnitModel.fromMap(data['id'] ?? '', data))
+              .toList();
+          
+          // Sort: Vacant first, then by unit number
+          _propertyUnits.sort((a, b) {
+            if (a.status == UnitStatus.vacant && b.status != UnitStatus.vacant) return -1;
+            if (a.status != UnitStatus.vacant && b.status == UnitStatus.vacant) return 1;
+            return a.unitNumber.compareTo(b.unitNumber);
+          });
+        },
+      );
+    } catch (e) {
+      _unitsError = 'Failed to load units';
+      _propertyUnits = [];
+    } finally {
+      _isLoading = false;
+      if (!_disposed) notifyListeners();
+    }
+  }
 
   Future<void> loadProperties() async {
     _isLoading = true;

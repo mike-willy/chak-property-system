@@ -6,12 +6,12 @@ import '../../../../providers/auth_provider.dart';
 
 class ApplicationPage extends StatelessWidget {
   final String propertyId;
-  final String unitId;
+  final String? unitId;
 
   const ApplicationPage({
     super.key,
     required this.propertyId,
-    required this.unitId,
+    this.unitId,
   });
 
   @override

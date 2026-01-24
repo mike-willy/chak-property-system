@@ -107,6 +107,17 @@ class PropertyModel {
     };
   }
 
+  // Helper to robustly parse numbers from Firestore
+  static double _parseNumber(dynamic value) {
+    if (value == null) return 0.0;
+    if (value is num) return value.toDouble();
+    if (value is String) {
+      if (value.isEmpty) return 0.0;
+      return double.tryParse(value.replaceAll(RegExp(r'[^0-9.]'), '')) ?? 0.0;
+    }
+    return 0.0;
+  }
+
   // Create from Firestore document
   factory PropertyModel.fromMap(String id, Map<String, dynamic> map) {
     // Handle Address mapping (Web uses distinct fields, Mobile uses nested AddressModel)
@@ -124,35 +135,30 @@ class PropertyModel {
       );
     }
 
-    // Handle Size parsing (Web uses string "size", Mobile uses double "squareFeet")
+    // Handle Size parsing
     double sizeDouble = 0.0;
     if (map['size'] is String) {
-      sizeDouble = double.tryParse((map['size'] as String).replaceAll(RegExp(r'[^0-9.]'), '')) ?? 0.0;
+      sizeDouble = _parseNumber(map['size']);
     } else {
-      sizeDouble = (map['squareFeet'] as num?)?.toDouble() ?? (map['size'] as num?)?.toDouble() ?? 0.0;
+      sizeDouble = _parseNumber(map['squareFeet'] ?? map['size']);
     }
 
     return PropertyModel(
       id: id,
-      // Map 'name' (Web) to 'title' (Mobile)
       title: map['name'] as String? ?? map['title'] as String? ?? '',
       unitId: map['unitId'] as String? ?? '',
       description: map['description'] as String? ?? '',
       address: addressObj,
-      // Map 'landlordId' (Web) to 'ownerId' (Mobile)
       ownerId: map['landlordId'] as String? ?? map['ownerId'] as String? ?? '',
-      // Map 'landlordName' (Web) to 'ownerName' (Mobile)
       ownerName: map['landlordName'] as String? ?? map['ownerName'] as String? ?? '',
-      // Map 'rentAmount' (Web) to 'price' (Mobile)
-      price: (map['rentAmount'] as num?)?.toDouble() ?? (map['price'] as num?)?.toDouble() ?? 0.0,
-      deposit: (map['deposit'] as num?)?.toDouble() ?? 0.0,
+      // Robustly parse price and deposit
+      price: _parseNumber(map['rentAmount'] ?? map['price']),
+      deposit: _parseNumber(map['securityDeposit'] ?? map['deposit']),
       bedrooms: map['bedrooms'] as int? ?? 0,
       bathrooms: map['bathrooms'] as int? ?? 0,
       squareFeet: sizeDouble,
       amenities: List<String>.from(map['amenities'] as List? ?? []),
       images: List<String>.from(map['images'] as List? ?? []),
-      // Map 'status' (Web: available) to Enum (Mobile: vacant)
-      // 'available' will hit default in fromString which is vacant, so it works.
       status: PropertyStatusExtension.fromString(
         map['status'] as String? ?? 'vacant',
       ),
