@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import 'package:mobile_app/providers/auth_provider.dart';
 import 'package:mobile_app/providers/message_provider.dart';
 import 'package:mobile_app/presentation/themes/theme_colors.dart';
+import '../pages/role_selection_page.dart';
 import '../pages/login_page.dart';
 import '../../pages/dashboard_page.dart';
 
@@ -55,8 +56,8 @@ class _AuthGateState extends State<AuthGate> {
           return widget.child ?? const DashboardPage();
         }
 
-        // If user is not logged in, show login page
-        return const LoginPage();
+        // If user is not logged in, show role selection page
+        return const RoleSelectionPage();
       },
     );
   }

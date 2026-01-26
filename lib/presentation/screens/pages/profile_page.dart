@@ -4,6 +4,7 @@ import '../../../../providers/auth_provider.dart';
 import '../../../../providers/application_provider.dart';
 import '../../../../data/models/application_model.dart';
 import '../properties/pages/application_status_page.dart';
+import '../auth/widgets/auth_gate.dart';
 
 class ProfilePage extends StatelessWidget {
   const ProfilePage({super.key});
@@ -33,6 +34,12 @@ class ProfilePage extends StatelessWidget {
             icon: const Icon(Icons.logout, color: Colors.redAccent),
             onPressed: () async {
               await context.read<AuthProvider>().signOut();
+              if (context.mounted) {
+                Navigator.of(context).pushAndRemoveUntil(
+                  MaterialPageRoute(builder: (context) => const AuthGate()),
+                  (route) => false,
+                );
+              }
             },
             tooltip: 'Sign Out',
           ),
