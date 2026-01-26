@@ -90,6 +90,14 @@ class _DashboardPageState extends State<DashboardPage> {
     return Consumer2<AuthProvider, TenantProvider>(
       builder: (context, authProvider, tenantProvider, _) {
         
+        // Wait for profile to load
+        if (authProvider.loggedIn && authProvider.userProfile == null) {
+           return const Scaffold(
+             backgroundColor: Color(0xFF141725),
+             body: Center(child: CircularProgressIndicator(color: Color(0xFF4D95FF))),
+           );
+        }
+
         // Determine Status
         final isLandlordOrAdmin = authProvider.isLandlord || authProvider.isAdmin;
         final isApprovedTenant = authProvider.isTenant && tenantProvider.tenant != null;

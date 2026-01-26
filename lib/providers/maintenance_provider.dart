@@ -1,4 +1,5 @@
 // providers/maintenance_provider.dart
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import '../data/models/maintenance_model.dart';
@@ -12,6 +13,7 @@ class MaintenanceProvider with ChangeNotifier {
   AuthProvider _authProvider;
   TenantProvider? _tenantProvider; // Make nullable to avoid init issues if not provided immediately
 
+  StreamSubscription<List<MaintenanceModel>>? _requestsSubscription;
   bool _disposed = false;
 
   MaintenanceProvider(this._repository, this._authProvider, [this._tenantProvider]);
@@ -43,6 +45,11 @@ class MaintenanceProvider with ChangeNotifier {
   String? get error => _error;
 
   Future<void> loadRequests() async {
+    // If we're already listening, don't restart subscription unless filters forced a reload (which sets listener to null usually)
+    // But here we can just cancel and restart to be safe with new filters
+    await _requestsSubscription?.cancel();
+    _requestsSubscription = null;
+
     _isLoading = true;
     _error = null;
     notifyListeners();
@@ -53,28 +60,31 @@ class MaintenanceProvider with ChangeNotifier {
         tenantId = _authProvider.firebaseUser?.uid;
       }
 
-      final result = await _repository.getMaintenanceRequests(
+      final stream = _repository.getMaintenanceRequestsStream(
         tenantId: tenantId,
         statusFilter: _filterStatus != 'all' ? _filterStatus : null,
       );
 
-      result.fold(
-        (failure) {
-          _error = failure.message;
-          debugPrint('MaintenanceProvider: Error loading requests: ${failure.message}');
-        },
+      _requestsSubscription = stream.listen(
         (requests) {
-          debugPrint('MaintenanceProvider: Loaded ${requests.length} maintenance requests');
-          _requests = requests; // Keep raw list intact
+          debugPrint('MaintenanceProvider: Stream received ${requests.length} requests');
+          _requests = requests;
           _applyFilters();
+          _isLoading = false;
+          notifyListeners();
+        },
+        onError: (e) {
+            _error = 'Error loading requests: $e';
+            _isLoading = false;
+            debugPrint('MaintenanceProvider: Stream error: $e');
+            notifyListeners();
         },
       );
     } catch (e) {
       _error = 'An unexpected error occurred: $e';
-      debugPrint('MaintenanceProvider: Exception loading requests: $e');
-    } finally {
+      debugPrint('MaintenanceProvider: Exception initializing stream: $e');
       _isLoading = false;
-      if (!_disposed) notifyListeners();
+      notifyListeners();
     }
   }
 
@@ -118,6 +128,13 @@ class MaintenanceProvider with ChangeNotifier {
 
          final matches = myTenantIds.contains(request.tenantId) || myTenantDocIds.contains(request.tenantId);
          if (!matches) return false;
+      }
+
+      // 3. Strict Tenant Filter (Safety Check)
+      if (isTenant && _authProvider.firebaseUser != null) {
+        if (request.tenantId != _authProvider.firebaseUser!.uid) {
+          return false;
+        }
       }
 
       return true;
@@ -223,6 +240,7 @@ class MaintenanceProvider with ChangeNotifier {
 
   @override
   void dispose() {
+    _requestsSubscription?.cancel();
     _disposed = true;
     super.dispose();
   }
