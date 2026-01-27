@@ -33,6 +33,9 @@ class MpesaService {
         headers: {
           'Authorization': 'Basic $credentials',
           'Content-Type': 'application/json',
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          // 'User-Agent': 'FlutterApp/1.0', // Optional: Use a custom UA or let Dart set default
         },
       ).timeout(
         const Duration(seconds: 30),
@@ -125,6 +128,7 @@ class MpesaService {
         headers: {
           'Authorization': 'Bearer $accessToken',
           'Content-Type': 'application/json',
+          'Accept': 'application/json',
         },
         body: json.encode(requestBody),
       ).timeout(
@@ -196,6 +200,7 @@ class MpesaService {
         headers: {
           'Authorization': 'Bearer $accessToken',
           'Content-Type': 'application/json',
+          'Accept': 'application/json',
         },
         body: json.encode(requestBody),
       );

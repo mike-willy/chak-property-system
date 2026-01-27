@@ -5,6 +5,13 @@ import '../../../../providers/application_provider.dart';
 import '../../../../data/models/application_model.dart';
 import '../properties/pages/application_status_page.dart';
 import '../auth/widgets/auth_gate.dart';
+import '../widgets/upcoming_rent_card.dart';
+import '../../../../providers/tenant_provider.dart';
+import '../../../../providers/property_provider.dart';
+import '../../../../data/repositories/payment_repository.dart';
+import '../../../../data/models/payment_model.dart';
+import '../../../../data/models/user_model.dart';
+import '../properties/pages/initial_payment_page.dart';
 
 class ProfilePage extends StatelessWidget {
   const ProfilePage({super.key});
@@ -530,6 +537,186 @@ class ProfilePage extends StatelessWidget {
             ),
           ),
         ),
+      ),
+    );
+  }
+
+
+  Widget _buildPaymentSection(BuildContext context, UserModel user) {
+    // 1. Scenario A: Active Tenant (Recurring Rent)
+    // We check if the user is a tenant role or has a tenant record linked
+    if (user.role == UserRole.tenant) {
+      final tenantProvider = context.watch<TenantProvider>();
+      final propertyProvider = context.watch<PropertyProvider>();
+      
+      // Ensure we have tenant data loaded. 
+      // If tenantProvider.tenant is null but we are a tenant, it might be loading or failed.
+      // But assuming optimal flow:
+      if (tenantProvider.tenant != null) {
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Rent & Payments',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
+            ),
+            const SizedBox(height: 16),
+            UpcomingRentCard(
+              tenantData: tenantProvider.tenant,
+              isLoading: tenantProvider.isLoading,
+              properties: propertyProvider.properties,
+            ),
+          ],
+        );
+      }
+    }
+
+    // 2. Scenario B: Approved Application (Initial Payment)
+    // If not an active tenant yet (or even if they are, check for new applications needing payment?)
+    // Usually "Tenant" role implies they are settled. But maybe they are blocked?
+    // Let's check for approved UNPAID applications.
+    
+    return StreamBuilder<List<ApplicationModel>>(
+      stream: context.read<ApplicationProvider>().getTenantApplicationsStream(user.id, email: user.email),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData || snapshot.data!.isEmpty) return const SizedBox.shrink();
+
+        // Find an application that is APPROVED
+        final approvedApps = snapshot.data!.where((app) => app.status.value == 'approved').toList();
+        
+        if (approvedApps.isEmpty) return const SizedBox.shrink();
+
+        // Check if it's already paid. 
+        // We'll take the most recent approved one.
+        approvedApps.sort((a, b) => b.appliedDate.compareTo(a.appliedDate));
+        final latestApproved = approvedApps.first;
+
+        // Now we need to know if it's paid. 
+        // We can check the PaymentRepository for payments linked to this application.
+        // This requires a nested StreamBuilder or FutureBuilder designed for payment status.
+        return StreamBuilder<List<PaymentModel>>(
+          stream: context.read<PaymentRepository>().getCompletedPaymentsStreamByApplicationId(latestApproved.id),
+          builder: (context, paymentSnapshot) {
+             // If we have data and it's not empty, it means we have a completed payment.
+             // If so, we don't need to show the "Pay Initial Fees" card because they are effectively a tenant now 
+             // (or waiting for final activation).
+             if (paymentSnapshot.hasData && paymentSnapshot.data!.isNotEmpty) {
+               return const SizedBox.shrink();
+             }
+
+             // If not paid, show the Initial Payment Card
+             return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Pending Actions',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
+                  ),
+                  const SizedBox(height: 16),
+                  _buildInitialPaymentCard(context, latestApproved),
+                ],
+             );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildInitialPaymentCard(BuildContext context, ApplicationModel application) {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [Colors.orange.shade900, Colors.deepOrange.shade800],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.3),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'ACTION REQUIRED',
+                style: TextStyle(
+                  color: Colors.white70,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 1.2,
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.all(4),
+                decoration: const BoxDecoration(
+                  color: Colors.white24,
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.priority_high, color: Colors.white, size: 16),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          const Text(
+            'Initial Payment',
+            style: TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'Pay first month\'s rent and security deposit to finalize your lease.',
+            style: TextStyle(
+              color: Colors.white70,
+              fontSize: 14,
+            ),
+          ),
+          const SizedBox(height: 24),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => InitialPaymentPage(application: application),
+                  ),
+                );
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.white,
+                foregroundColor: Colors.deepOrange.shade900,
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                elevation: 2,
+              ),
+              child: const Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.payment, size: 20),
+                  SizedBox(width: 8),
+                  Text(
+                    'Pay Now',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
