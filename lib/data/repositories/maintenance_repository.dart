@@ -42,6 +42,18 @@ class MaintenanceRepository {
     }
   }
 
+  /// Fetch maintenance requests stream
+  Stream<List<MaintenanceModel>> getMaintenanceRequestsStream({
+    String? tenantId,
+    String? propertyId,
+    String? statusFilter,
+  }) {
+    return _remoteDataSource.getMaintenanceRequestsStream(
+      tenantId: tenantId,
+      statusFilter: statusFilter,
+    );
+  }
+
   /// Fetch single maintenance request
   Future<Either<FailureModel, MaintenanceModel>> getMaintenanceRequestById(String id) async {
     try {

@@ -6,6 +6,7 @@ import 'package:mobile_app/presentation/themes/theme_colors.dart';
 import 'signup_page.dart';
 import 'package:mobile_app/presentation/screens/properties/pages/application_page.dart';
 import 'package:mobile_app/presentation/screens/properties/pages/property_list_page.dart';
+import '../../pages/dashboard_page.dart';
 
 
 // class LoginPage extends StatefulWidget {
@@ -19,6 +20,7 @@ class LoginPage extends StatefulWidget {
   final String? propertyId;
   final String? email;
   final String? password;
+  final bool allowSignup;
 
   const LoginPage({
     super.key, 
@@ -26,6 +28,7 @@ class LoginPage extends StatefulWidget {
     this.propertyId,
     this.email,
     this.password,
+    this.allowSignup = true,
   });
 
   @override
@@ -76,25 +79,24 @@ class _LoginPageState extends State<LoginPage> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Signed in successfully!')),
         );
-        // Navigation will be handled by auth state listener
+        
+        // Navigate based on redirect param or default to Dashboard
+        if (widget.redirect == '/apply' && widget.propertyId != null) {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (_) => ApplicationPage(propertyId: widget.propertyId!, unitId: ''),
+            ),
+          );
+        } else {
+          // Default behavior - Go to Dashboard
+          Navigator.pushAndRemoveUntil(
+            context,
+            MaterialPageRoute(builder: (_) => const DashboardPage()),
+            (route) => false,
+          );
+        }
       }
-      if (errorMessage == null) {
-  // Successful login
-  if (widget.redirect == '/apply' && widget.propertyId != null) {
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(
-        builder: (_) => ApplicationPage(propertyId: widget.propertyId!, unitId: ''),
-      ),
-    );
-  } else {
-    // Default behavior
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (_) => const PropertyListPage()),
-    );
-  }
-}
 
        else {
         // Error occurred
@@ -199,62 +201,64 @@ class _LoginPageState extends State<LoginPage> {
                 ),
                 const SizedBox(height: 32),
 
-                // Log In / Sign Up Toggle
-                Container(
-                  decoration: BoxDecoration(
-                    color: AppColors.surfaceVariant.withOpacity(0.3),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                          decoration: BoxDecoration(
-                            color: AppColors.surface,
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Center(
-                            child: Text(
-                              'Log In',
-                              style: theme.textTheme.titleMedium?.copyWith(
-                                color: AppColors.primary,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                      Expanded(
-                        child: GestureDetector(
-                          onTap: () {
-                            Navigator.pushReplacement(
-                              context,
-                              MaterialPageRoute(builder: (_) => const SignupPage()),
-                            );
-                          },
+                if (widget.allowSignup) ...[
+                  // Log In / Sign Up Toggle
+                  Container(
+                    decoration: BoxDecoration(
+                      color: AppColors.surfaceVariant.withOpacity(0.3),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
+                      children: [
+                        Expanded(
                           child: Container(
                             padding: const EdgeInsets.symmetric(vertical: 12),
                             decoration: BoxDecoration(
-                              color: Colors.transparent,
+                              color: AppColors.surface,
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: Center(
                               child: Text(
-                                'Sign Up',
+                                'Log In',
                                 style: theme.textTheme.titleMedium?.copyWith(
-                                  color: AppColors.onSurfaceVariant,
+                                  color: AppColors.primary,
                                   fontWeight: FontWeight.w600,
                                 ),
                               ),
                             ),
                           ),
                         ),
-                      ),
-                    ],
+                        Expanded(
+                          child: GestureDetector(
+                            onTap: () {
+                              Navigator.pushReplacement(
+                                context,
+                                MaterialPageRoute(builder: (_) => const SignupPage()),
+                              );
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              decoration: BoxDecoration(
+                                color: Colors.transparent,
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Center(
+                                child: Text(
+                                  'Sign Up',
+                                  style: theme.textTheme.titleMedium?.copyWith(
+                                    color: AppColors.onSurfaceVariant,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-                const SizedBox(height: 32),
+                  const SizedBox(height: 32),
+                ],
 
                 // Email Field
                 TextFormField(
@@ -318,89 +322,90 @@ class _LoginPageState extends State<LoginPage> {
                 ),
                 const SizedBox(height: 32),
 
-                // Divider
-                Row(
-                  children: [
-                    Expanded(child: Divider(color: AppColors.outline)),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: Text(
-                        'Or continue with',
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: AppColors.onSurfaceVariant,
-                        ),
-                      ),
-                    ),
-                    Expanded(child: Divider(color: AppColors.outline)),
-                  ],
-                ),
-                const SizedBox(height: 24),
-
-                // Social Sign-In Buttons
-                Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton.icon(
-                        onPressed: _isLoading ? null : _handleGoogleSignIn,
-                        icon: const Icon(Icons.g_mobiledata, size: 24),
-                        label: const Text('Google'),
-                        style: OutlinedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                          side: BorderSide(color: AppColors.outline),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
+                if (widget.allowSignup) ...[
+                  // Divider
+                  Row(
+                    children: [
+                      Expanded(child: Divider(color: AppColors.outline)),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child: Text(
+                          'Or continue with',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: AppColors.onSurfaceVariant,
                           ),
                         ),
                       ),
-                    ),
-                    const SizedBox(width: 16),
-                    // Expanded(
-                    //   child: OutlinedButton.icon(
-                    //     onPressed: _isLoading ? null : _handleMicrosoftSignIn,
-                    //     icon: const Icon(Icons.account_circle, size: 24),
-                    //     label: const Text('Microsoft'),
-                    //     style: OutlinedButton.styleFrom(
-                    //       padding: const EdgeInsets.symmetric(vertical: 14),
-                    //       side: BorderSide(color: AppColors.outline),
-                    //       shape: RoundedRectangleBorder(
-                    //         borderRadius: BorderRadius.circular(12),
-                    //       ),
-                    //     ),
-                    //   ),
-                    // ),
-                  ],
-                ),
-                const SizedBox(height: 32),
+                      Expanded(child: Divider(color: AppColors.outline)),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
 
-                // Don't have account link
-                Center(
-                  child: TextButton(
-                    onPressed: () {
-                      Navigator.pushReplacement(
-                        context,
-                        MaterialPageRoute(builder: (_) => const SignupPage()),
-                      );
-                    },
-                    child: RichText(
-                      text: TextSpan(
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: AppColors.onSurfaceVariant,
-                        ),
-                        children: [
-                          const TextSpan(text: 'Don\'t have an account? '),
-                          TextSpan(
-                            text: 'Sign Up',
-                            style: TextStyle(
-                              color: AppColors.primary,
-                              fontWeight: FontWeight.w600,
+                  // Social Sign-In Buttons
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: _isLoading ? null : _handleGoogleSignIn,
+                          icon: const Icon(Icons.g_mobiledata, size: 24),
+                          label: const Text('Google'),
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            side: BorderSide(color: AppColors.outline),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
                             ),
                           ),
-                        ],
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      // Expanded(
+                      //   child: OutlinedButton.icon(
+                      //     onPressed: _isLoading ? null : _handleMicrosoftSignIn,
+                      //     icon: const Icon(Icons.account_circle, size: 24),
+                      //     label: const Text('Microsoft'),
+                      //     style: OutlinedButton.styleFrom(
+                      //       padding: const EdgeInsets.symmetric(vertical: 14),
+                      //       side: BorderSide(color: AppColors.outline),
+                      //       shape: RoundedRectangleBorder(
+                      //         borderRadius: BorderRadius.circular(12),
+                      //       ),
+                      //     ),
+                      //   ),
+                      // ),
+                    ],
+                  ),
+                  const SizedBox(height: 32),
+
+                  // Don't have account link
+                  Center(
+                    child: TextButton(
+                      onPressed: () {
+                        Navigator.pushReplacement(
+                          context,
+                          MaterialPageRoute(builder: (_) => const SignupPage()),
+                        );
+                      },
+                      child: RichText(
+                        text: TextSpan(
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: AppColors.onSurfaceVariant,
+                          ),
+                          children: [
+                            const TextSpan(text: 'Don\'t have an account? '),
+                            TextSpan(
+                              text: 'Sign Up',
+                              style: TextStyle(
+                                color: AppColors.primary,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ),
-                ),
-              ],
+                ],              ],
             ),
           ),
         ),

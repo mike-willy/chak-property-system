@@ -57,6 +57,11 @@ class TenantRepository {
   // Create a new tenant
   Future<DocumentReference> createTenant(Map<String, dynamic> tenantData) async {
     try {
+      if (tenantData.containsKey('userId') && tenantData['userId'] != null && tenantData['userId'].toString().isNotEmpty) {
+        final ref = _firestore.collection(_collection).doc(tenantData['userId']);
+        await ref.set(tenantData);
+        return ref;
+      }
       return await _firestore.collection(_collection).add(tenantData);
     } catch (e) {
       throw Exception('Failed to create tenant: $e');

@@ -50,10 +50,12 @@ class PaymentRepository {
         'amount': amount,
         'phoneNumber': formattedPhone,
         'status': 'pending', // pending, completed, failed, cancelled, timeout
-        'method': 'MPESA',
+        'method': 'mobile',
         'checkoutRequestId': checkoutRequestId,
         'merchantRequestId': merchantRequestId,
         'initiatedAt': FieldValue.serverTimestamp(),
+        'createdAt': FieldValue.serverTimestamp(), // Match PaymentInitiation
+        'reference': applicationId.substring(0, math.min(12, applicationId.length)), // Match PaymentInitiation
         'description': 'Rent payment for $propertyName',
         'responseCode': result['responseCode'],
         'responseDescription': result['responseDescription'],
@@ -253,5 +255,64 @@ class PaymentRepository {
       print('Error fetching payment: $e');
       return null;
     }
+  }
+
+  // Get completed payments for an application
+  Future<List<PaymentModel>> getCompletedPaymentsByApplicationId(String applicationId) async {
+    try {
+      final querySnapshot = await _paymentsRef
+          .where('applicationId', isEqualTo: applicationId)
+          .where('status', isEqualTo: 'completed')
+          .get();
+
+      return querySnapshot.docs.map((doc) {
+        final data = doc.data() as Map<String, dynamic>;
+        
+        // Handle optional fields safely
+        return PaymentModel(
+          id: doc.id,
+          leaseId: data['applicationId'] ?? '',
+          tenantId: data['tenantId'] ?? '',
+          amount: (data['amount'] as num).toDouble(),
+          method: PaymentMethodExtension.fromString(data['method'] ?? 'mobile'),
+          status: PaymentStatusExtension.fromString(data['status'] ?? 'pending'),
+          transactionId: data['checkoutRequestId'],
+          dueDate: (data['initiatedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+          paidDate: data['completedAt'] != null
+              ? (data['completedAt'] as Timestamp).toDate()
+              : null,
+        );
+      }).toList();
+    } catch (e) {
+      print('Error fetching payments for application: $e');
+      return [];
+    }
+  }
+
+  // Stream completed payments for an application
+  Stream<List<PaymentModel>> getCompletedPaymentsStreamByApplicationId(String applicationId) {
+    return _paymentsRef
+        .where('applicationId', isEqualTo: applicationId)
+        .where('status', isEqualTo: 'completed')
+        .snapshots()
+        .map((snapshot) {
+      return snapshot.docs.map((doc) {
+        final data = doc.data() as Map<String, dynamic>;
+        
+        return PaymentModel(
+          id: doc.id,
+          leaseId: data['applicationId'] ?? '',
+          tenantId: data['tenantId'] ?? '',
+          amount: (data['amount'] as num).toDouble(),
+          method: PaymentMethodExtension.fromString(data['method'] ?? 'mobile'),
+          status: PaymentStatusExtension.fromString(data['status'] ?? 'pending'),
+          transactionId: data['checkoutRequestId'],
+          dueDate: (data['initiatedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+          paidDate: data['completedAt'] != null
+              ? (data['completedAt'] as Timestamp).toDate()
+              : null,
+        );
+      }).toList();
+    });
   }
 }

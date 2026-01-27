@@ -38,65 +38,162 @@ class DashboardPage extends StatefulWidget {
 
 class _DashboardPageState extends State<DashboardPage> {
   int _currentIndex = 0;
+  bool _isLoading = true;
 
-  List<Widget> _getPages(bool isLandlord) {
-    return [
-      const DashboardHome(),
-      const PropertyListPage(),
-      if (isLandlord) const AnalyticsPage(), // Added Analytics Page
-      if (!isLandlord) const MessagesPage(), // Tenants see Messages
-      const MaintenancePage(),
-      const ProfilePage(),
-    ];
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadData();
+    });
+  }
+
+  Future<void> _loadData() async {
+    final authProvider = context.read<AuthProvider>();
+    final propertyProvider = context.read<PropertyProvider>();
+    final tenantProvider = context.read<TenantProvider>();
+    
+    // Always load properties
+    if (propertyProvider.properties.isEmpty) {
+      await propertyProvider.loadProperties();
+    }
+    
+    debugPrint("DashboardPage: Loading data for role=${authProvider.userProfile?.role}");
+    
+    if (authProvider.isTenant && authProvider.firebaseUser != null) {
+      await tenantProvider.loadTenantData();
+    } else if (authProvider.isLandlord && authProvider.firebaseUser != null) {
+      final myPropertyIds = propertyProvider.properties
+          .where((p) => p.ownerId == authProvider.userId)
+          .map((p) => p.id)
+          .toList();
+      await tenantProvider.loadLandlordTenants(myPropertyIds);
+      await context.read<ApplicationProvider>().loadLandlordApplications(myPropertyIds);
+    } else if (authProvider.isAdmin && authProvider.firebaseUser != null) {
+      await tenantProvider.loadAllTenants();
+      await context.read<ApplicationProvider>().loadPending();
+    }
+
+    if (mounted) {
+      setState(() {
+        _isLoading = false;
+        // If it's a new tenant (no active lease), default to Properties page (Index 0 in restricted view)
+        // If it's an approved tenant or landlord, default to Home (Index 0 in full view)
+        _currentIndex = 0; 
+      });
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFF141725), // Deep Dark Background
-      body: IndexedStack(
-        index: _currentIndex,
-        children: _getPages(context.read<AuthProvider>().isLandlord),
-      ),
-      bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          color: const Color(0xFF1E2235), // Dark Bar Background
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.3),
-              blurRadius: 10,
-              offset: const Offset(0, -2),
-            ),
-          ],
-        ),
-        child: BottomNavigationBar(
-          type: BottomNavigationBarType.fixed,
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-          currentIndex: _currentIndex,
-          selectedItemColor: const Color(0xFF4E95FF), // Bright Blue
-          unselectedItemColor: Colors.grey.shade600,
-          showUnselectedLabels: true,
-          selectedLabelStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12),
-          unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w400, fontSize: 12),
-          onTap: (index) {
-            setState(() {
-              _currentIndex = index;
-            });
-          },
-          items: [
+    // Listen to providers to determine content
+    return Consumer2<AuthProvider, TenantProvider>(
+      builder: (context, authProvider, tenantProvider, _) {
+        
+        // Wait for profile to load
+        if (authProvider.loggedIn && authProvider.userProfile == null) {
+           return const Scaffold(
+             backgroundColor: Color(0xFF141725),
+             body: Center(child: CircularProgressIndicator(color: Color(0xFF4D95FF))),
+           );
+        }
+
+        // Determine Status
+        final isLandlordOrAdmin = authProvider.isLandlord || authProvider.isAdmin;
+        final isApprovedTenant = authProvider.isTenant && tenantProvider.tenant != null;
+        final isNewTenant = authProvider.isTenant && tenantProvider.tenant == null;
+
+        // Define Pages
+        List<Widget> pages;
+        List<BottomNavigationBarItem> navItems;
+
+        if (isNewTenant) {
+          // --- NEW / PENDING TENANT VIEW ---
+          // 1. Properties (Browse)
+          // 2. Home (Application Status)
+          // 3. Profile
+          pages = [
+             const PropertyListPage(),
+             const DashboardHome(),
+             const ProfilePage(),
+          ];
+          navItems = const [
+             BottomNavigationBarItem(icon: Icon(Icons.search), label: 'Browse'),
+             BottomNavigationBarItem(icon: Icon(Icons.home_outlined), activeIcon: Icon(Icons.home), label: 'Status'),
+             BottomNavigationBarItem(icon: Icon(Icons.person_outline), activeIcon: Icon(Icons.person), label: 'Profile'),
+          ];
+        } else {
+          // --- FULL VIEW (Approved Tenant / Landlord / Admin) ---
+          // 1. Home (Dashboard)
+          // 2. Properties (My Properties / Rentals)
+          // 3. Messages / Analytics
+          // 4. Maintenance
+          // 5. Profile
+          pages = [
+            const DashboardHome(),
+            const PropertyListPage(),
+            if (isLandlordOrAdmin) const AnalyticsPage() else const MessagesPage(),
+            const MaintenancePage(),
+            const ProfilePage(),
+          ];
+
+          navItems = [
             const BottomNavigationBarItem(icon: Icon(Icons.home_filled), label: 'Home'),
-            BottomNavigationBarItem(icon: const Icon(Icons.search), label: context.read<AuthProvider>().isLandlord ? 'Properties' : 'Rentals'),
-            if (context.read<AuthProvider>().isLandlord)
+            BottomNavigationBarItem(icon: const Icon(Icons.search), label: isLandlordOrAdmin ? 'Properties' : 'Rentals'),
+            if (isLandlordOrAdmin)
               const BottomNavigationBarItem(icon: Icon(Icons.analytics_outlined), activeIcon: Icon(Icons.analytics), label: 'Analytics')
             else
               const BottomNavigationBarItem(icon: Icon(Icons.chat_bubble_outline), activeIcon: Icon(Icons.chat_bubble), label: 'Messages'),
             
             const BottomNavigationBarItem(icon: Icon(Icons.build_circle_outlined), activeIcon: Icon(Icons.build_circle), label: 'Maint.'),
             const BottomNavigationBarItem(icon: Icon(Icons.person_outline), activeIcon: Icon(Icons.person), label: 'Profile'),
-          ],
-        ),
-      ),
+          ];
+        }
+
+        // Safety check for index
+        if (_currentIndex >= pages.length) {
+          _currentIndex = 0;
+        }
+
+        return Scaffold(
+          backgroundColor: const Color(0xFF141725),
+          body: _isLoading 
+              ? const Center(child: CircularProgressIndicator(color: Color(0xFF4D95FF)))
+              : IndexedStack(
+                  index: _currentIndex,
+                  children: pages,
+                ),
+          bottomNavigationBar: Container(
+            decoration: BoxDecoration(
+              color: const Color(0xFF1E2235),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.3),
+                  blurRadius: 10,
+                  offset: const Offset(0, -2),
+                ),
+              ],
+            ),
+            child: BottomNavigationBar(
+              type: BottomNavigationBarType.fixed,
+              backgroundColor: Colors.transparent,
+              elevation: 0,
+              currentIndex: _currentIndex,
+              selectedItemColor: const Color(0xFF4E95FF),
+              unselectedItemColor: Colors.grey.shade600,
+              showUnselectedLabels: true,
+              selectedLabelStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12),
+              unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w400, fontSize: 12),
+              onTap: (index) {
+                setState(() {
+                  _currentIndex = index;
+                });
+              },
+              items: navItems,
+            ),
+          ),
+        );
+      },
     );
   }
 }
