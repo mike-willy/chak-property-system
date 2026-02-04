@@ -25,7 +25,7 @@ class _PaymentStatusPageState extends State<PaymentStatusPage> {
   final _mpesaService = MpesaService();
   Timer? _statusCheckTimer;
   int _checkCount = 0;
-  static const int _maxChecks = 20; // Check for 2 minutes (20 checks * 6 seconds)
+  static const int _maxChecks = 25; // Check for ~2.5 minutes (25 checks * 6 seconds)
 
   @override
   void initState() {
@@ -40,7 +40,6 @@ class _PaymentStatusPageState extends State<PaymentStatusPage> {
   }
 
   void _startStatusChecking() {
-    // Check status every 6 seconds
     _statusCheckTimer = Timer.periodic(
       const Duration(seconds: 6),
       (timer) async {
@@ -48,7 +47,7 @@ class _PaymentStatusPageState extends State<PaymentStatusPage> {
         
         if (_checkCount > _maxChecks) {
           timer.cancel();
-          _updatePaymentStatus('timeout');
+          _localFirestoreUpdate('timeout');
           return;
         }
 
@@ -60,27 +59,25 @@ class _PaymentStatusPageState extends State<PaymentStatusPage> {
           final resultCode = result['ResultCode']?.toString() ?? '';
           
           if (resultCode == '0') {
-            // Success
+            // Success: We stop polling and wait for the Server Callback to update Firestore
             timer.cancel();
-            _updatePaymentStatus('completed');
           } else if (resultCode == '1032') {
-            // User cancelled
+            // User cancelled on their phone
             timer.cancel();
-            _updatePaymentStatus('cancelled');
+            _localFirestoreUpdate('cancelled');
           } else if (resultCode.isNotEmpty && resultCode != '0') {
-            // Failed
+            // Failed for other reasons (insufficient funds, etc)
             timer.cancel();
-            _updatePaymentStatus('failed', result['ResultDesc']);
+            _localFirestoreUpdate('failed', result['ResultDesc']);
           }
         } catch (e) {
-          print('Error checking status: $e');
-          // Continue checking
+          debugPrint('Status query error: $e');
         }
       },
     );
   }
 
-  Future<void> _updatePaymentStatus(String status, [String? description]) async {
+  Future<void> _localFirestoreUpdate(String status, [String? description]) async {
     try {
       await FirebaseFirestore.instance
           .collection('payments')
@@ -91,7 +88,7 @@ class _PaymentStatusPageState extends State<PaymentStatusPage> {
         if (description != null) 'statusDescription': description,
       });
     } catch (e) {
-      print('Error updating payment status: $e');
+      debugPrint('Firestore update error: $e');
     }
   }
 
@@ -103,6 +100,7 @@ class _PaymentStatusPageState extends State<PaymentStatusPage> {
         title: const Text('Payment Status', style: TextStyle(color: Colors.white)),
         backgroundColor: const Color(0xFF141725),
         elevation: 0,
+        automaticallyImplyLeading: false, // Prevent users from going back during PIN entry
         iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: StreamBuilder<DocumentSnapshot>(
@@ -111,49 +109,42 @@ class _PaymentStatusPageState extends State<PaymentStatusPage> {
             .doc(widget.paymentId)
             .snapshots(),
         builder: (context, snapshot) {
-          if (!snapshot.hasData) {
-            return _buildLoadingState();
-          }
+          if (snapshot.hasError) return _buildErrorState('Connection error');
+          if (!snapshot.hasData) return _buildLoadingState();
 
           final data = snapshot.data!.data() as Map<String, dynamic>?;
-          if (data == null) {
-            return _buildErrorState('Payment not found');
-          }
+          if (data == null) return _buildErrorState('Payment record not found');
 
-          final status = data['status'] ?? 'pending';
+          final status = (data['status'] ?? 'pending').toString().toLowerCase();
           
-          return _buildStatusContent(status, data);
+          return SafeArea(
+            child: SingleChildScrollView(
+              physics: const BouncingScrollPhysics(),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 20.0),
+                child: _buildStatusContent(status, data),
+              ),
+            ),
+          );
         },
       ),
     );
   }
 
-  Widget _buildLoadingState() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const CircularProgressIndicator(color: Color(0xFF4E95FF)),
-          const SizedBox(height: 24),
-          Text(
-            'Loading payment status...',
-            style: TextStyle(color: Colors.grey.shade400, fontSize: 16),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildStatusContent(String status, Map<String, dynamic> data) {
-    switch (status.toLowerCase()) {
+    switch (status) {
       case 'completed':
       case 'success':
+        _statusCheckTimer?.cancel();
         return _buildSuccessState(data);
       case 'failed':
+        _statusCheckTimer?.cancel();
         return _buildFailedState(data);
       case 'cancelled':
+        _statusCheckTimer?.cancel();
         return _buildCancelledState();
       case 'timeout':
+        _statusCheckTimer?.cancel();
         return _buildTimeoutState();
       default:
         return _buildPendingState();
@@ -161,366 +152,182 @@ class _PaymentStatusPageState extends State<PaymentStatusPage> {
   }
 
   Widget _buildPendingState() {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                color: Colors.orange.withOpacity(0.1),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(
-                Icons.phone_android,
-                size: 64,
-                color: Colors.orange,
-              ),
-            ),
-            const SizedBox(height: 32),
-            const Text(
-              'Check Your Phone',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'Please enter your M-Pesa PIN on your phone to complete the payment',
-              style: TextStyle(
-                color: Colors.grey.shade400,
-                fontSize: 16,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 32),
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: const Color(0xFF1E2235),
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Column(
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        'Amount',
-                        style: TextStyle(color: Colors.grey.shade400),
-                      ),
-                      Text(
-                        'KES ${widget.amount.toStringAsFixed(2)}',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 24),
-            const CircularProgressIndicator(color: Color(0xFF4E95FF)),
-            const SizedBox(height: 16),
-            Text(
-              'Waiting for confirmation...',
-              style: TextStyle(color: Colors.grey.shade500, fontSize: 14),
-            ),
-          ],
+    return Column(
+      children: [
+        const SizedBox(height: 40),
+        Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: Colors.orange.withOpacity(0.1),
+            shape: BoxShape.circle,
+          ),
+          child: const Icon(Icons.phone_android, size: 64, color: Colors.orange),
         ),
-      ),
+        const SizedBox(height: 32),
+        const Text(
+          'Check Your Phone',
+          style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
+          textAlign: TextAlign.center,
+        ),
+        const SizedBox(height: 16),
+        Text(
+          'Please enter your M-Pesa PIN on your phone to complete the payment',
+          style: TextStyle(color: Colors.grey.shade400, fontSize: 16),
+          textAlign: TextAlign.center,
+        ),
+        const SizedBox(height: 40),
+        _buildInfoCard(
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text('Amount', style: TextStyle(color: Colors.grey.shade400)),
+              Text(
+                'KES ${widget.amount.toStringAsFixed(2)}',
+                style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 48),
+        const CircularProgressIndicator(color: Color(0xFF4E95FF)),
+        const SizedBox(height: 24),
+        Text(
+          'Waiting for confirmation...',
+          style: TextStyle(color: Colors.grey.shade500, fontSize: 14),
+        ),
+      ],
     );
   }
 
   Widget _buildSuccessState(Map<String, dynamic> data) {
-    _statusCheckTimer?.cancel(); // Stop checking
-    
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                color: Colors.green.withOpacity(0.1),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(
-                Icons.check_circle,
-                size: 64,
-                color: Colors.green,
-              ),
-            ),
-            const SizedBox(height: 32),
-            const Text(
-              'Payment Successful!',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'Your rent payment has been processed',
-              style: TextStyle(
-                color: Colors.grey.shade400,
-                fontSize: 16,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 32),
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: const Color(0xFF1E2235),
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Column(
-                children: [
-                  _buildDetailRow('Amount', 'KES ${widget.amount.toStringAsFixed(2)}'),
-                  if (data['mpesaReceiptNumber'] != null) ...[
-                    const SizedBox(height: 12),
-                    const Divider(color: Colors.grey),
-                    const SizedBox(height: 12),
-                    _buildDetailRow('Receipt No.', data['mpesaReceiptNumber']),
-                  ],
-                ],
-              ),
-            ),
-            const SizedBox(height: 32),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.of(context).popUntil((route) => route.isFirst);
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF4E95FF),
-                padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 16),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-              child: const Text(
-                'Done',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-              ),
-            ),
-          ],
+    return Column(
+      children: [
+        const SizedBox(height: 40),
+        Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: Colors.green.withOpacity(0.1),
+            shape: BoxShape.circle,
+          ),
+          child: const Icon(Icons.check_circle, size: 64, color: Colors.green),
         ),
-      ),
+        const SizedBox(height: 32),
+        const Text(
+          'Payment Successful!',
+          style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 16),
+        Text(
+          'Your rent payment has been processed successfully.',
+          style: TextStyle(color: Colors.grey.shade400, fontSize: 16),
+          textAlign: TextAlign.center,
+        ),
+        const SizedBox(height: 40),
+        _buildInfoCard(
+          child: Column(
+            children: [
+              _buildDetailRow('Amount', 'KES ${widget.amount.toStringAsFixed(2)}'),
+              if (data['mpesaReceiptNumber'] != null) ...[
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 12),
+                  child: Divider(color: Colors.white10),
+                ),
+                _buildDetailRow('Receipt No.', data['mpesaReceiptNumber']),
+              ],
+            ],
+          ),
+        ),
+        const SizedBox(height: 48),
+        SizedBox(
+          width: double.infinity,
+          child: ElevatedButton(
+            onPressed: () => Navigator.of(context).popUntil((route) => route.isFirst),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF4E95FF),
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            child: const Text('Back to Home', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
+          ),
+        ),
+      ],
     );
   }
 
   Widget _buildFailedState(Map<String, dynamic> data) {
-    _statusCheckTimer?.cancel();
-    
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                color: Colors.red.withOpacity(0.1),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(
-                Icons.error,
-                size: 64,
-                color: Colors.red,
-              ),
-            ),
-            const SizedBox(height: 32),
-            const Text(
-              'Payment Failed',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              data['statusDescription'] ?? 'The payment could not be processed',
-              style: TextStyle(
-                color: Colors.grey.shade400,
-                fontSize: 16,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 32),
-            ElevatedButton(
-              onPressed: () => Navigator.pop(context),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF4E95FF),
-                padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 16),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-              child: const Text(
-                'Try Again',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-              ),
-            ),
-          ],
+    return Column(
+      children: [
+        const SizedBox(height: 40),
+        const Icon(Icons.error_outline, size: 80, color: Colors.redAccent),
+        const SizedBox(height: 24),
+        const Text('Payment Failed', style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
+        const SizedBox(height: 16),
+        Text(
+          data['statusDescription'] ?? 'Transaction could not be completed',
+          style: TextStyle(color: Colors.grey.shade400, fontSize: 16),
+          textAlign: TextAlign.center,
         ),
-      ),
+        const SizedBox(height: 40),
+        _buildActionButton('Try Again', () => Navigator.pop(context)),
+      ],
     );
   }
 
   Widget _buildCancelledState() {
-    _statusCheckTimer?.cancel();
-    
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                color: Colors.orange.withOpacity(0.1),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(
-                Icons.cancel,
-                size: 64,
-                color: Colors.orange,
-              ),
-            ),
-            const SizedBox(height: 32),
-            const Text(
-              'Payment Cancelled',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'You cancelled the payment request',
-              style: TextStyle(
-                color: Colors.grey.shade400,
-                fontSize: 16,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 32),
-            ElevatedButton(
-              onPressed: () => Navigator.pop(context),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF4E95FF),
-                padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 16),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-              child: const Text(
-                'Try Again',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-              ),
-            ),
-          ],
-        ),
-      ),
+    return Column(
+      children: [
+        const SizedBox(height: 40),
+        const Icon(Icons.cancel_outlined, size: 80, color: Colors.orangeAccent),
+        const SizedBox(height: 24),
+        const Text('Cancelled', style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
+        const SizedBox(height: 16),
+        const Text('You cancelled the payment request.', style: TextStyle(color: Colors.grey, fontSize: 16), textAlign: TextAlign.center),
+        const SizedBox(height: 40),
+        _buildActionButton('Go Back', () => Navigator.pop(context)),
+      ],
     );
   }
 
   Widget _buildTimeoutState() {
-    _statusCheckTimer?.cancel();
-    
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                color: Colors.orange.withOpacity(0.1),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(
-                Icons.timer_off,
-                size: 64,
-                color: Colors.orange,
-              ),
-            ),
-            const SizedBox(height: 32),
-            const Text(
-              'Payment Timeout',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'The payment request timed out. Please try again.',
-              style: TextStyle(
-                color: Colors.grey.shade400,
-                fontSize: 16,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 32),
-            ElevatedButton(
-              onPressed: () => Navigator.pop(context),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF4E95FF),
-                padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 16),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-              child: const Text(
-                'Try Again',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-              ),
-            ),
-          ],
-        ),
-      ),
+    return Column(
+      children: [
+        const SizedBox(height: 40),
+        const Icon(Icons.timer_off_outlined, size: 80, color: Colors.grey),
+        const SizedBox(height: 24),
+        const Text('Timed Out', style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
+        const SizedBox(height: 16),
+        const Text('The request took too long. Check your phone or try again.', style: TextStyle(color: Colors.grey, fontSize: 16), textAlign: TextAlign.center),
+        const SizedBox(height: 40),
+        _buildActionButton('Try Again', () => Navigator.pop(context)),
+      ],
     );
   }
 
-  Widget _buildErrorState(String message) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.error_outline, size: 64, color: Colors.red),
-            const SizedBox(height: 24),
-            Text(
-              message,
-              style: const TextStyle(color: Colors.red, fontSize: 16),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 32),
-            ElevatedButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Go Back'),
-            ),
-          ],
+  // --- UI Helpers ---
+
+  Widget _buildInfoCard({required Widget child}) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1E2235),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white.withOpacity(0.05)),
+      ),
+      child: child,
+    );
+  }
+
+  Widget _buildActionButton(String label, VoidCallback onPressed) {
+    return SizedBox(
+      width: double.infinity,
+      child: ElevatedButton(
+        onPressed: onPressed,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: const Color(0xFF4E95FF),
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         ),
+        child: Text(label, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
       ),
     );
   }
@@ -529,18 +336,27 @@ class _PaymentStatusPageState extends State<PaymentStatusPage> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(
-          label,
-          style: TextStyle(color: Colors.grey.shade400),
-        ),
-        Text(
-          value,
-          style: const TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
+        Text(label, style: TextStyle(color: Colors.grey.shade400)),
+        Text(value, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
       ],
+    );
+  }
+
+  Widget _buildLoadingState() {
+    return const Center(child: CircularProgressIndicator(color: Color(0xFF4E95FF)));
+  }
+
+  Widget _buildErrorState(String message) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(Icons.error_outline, color: Colors.red, size: 48),
+          const SizedBox(height: 16),
+          Text(message, style: const TextStyle(color: Colors.white)),
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Go Back')),
+        ],
+      ),
     );
   }
 }
