@@ -1,13 +1,17 @@
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart'; // Added for local query
+import '../../utils/receipt_generator.dart'; // Corrected import path
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../../../data/models/payment_model.dart';
-import '../../../data/models/tenant_model.dart'; // Added
+import '../../../data/models/tenant_model.dart';
 import '../../../data/repositories/payment_repository.dart';
-import '../../../data/repositories/tenant_repository.dart'; // Added
+import '../../../data/repositories/tenant_repository.dart';
 import '../../../providers/auth_provider.dart';
 import '../../../providers/tenant_provider.dart';
+
+
+
 
 class PaymentHistoryPage extends StatefulWidget {
   const PaymentHistoryPage({super.key});
@@ -201,13 +205,32 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage> {
         trailing: isSuccess
           ? IconButton(
               icon: const Icon(Icons.file_download_outlined, color: Color(0xFF4E95FF)),
-              onPressed: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text("Generating Receipt for KES ${payment.amount}..."),
-                    backgroundColor: const Color(0xFF4E95FF),
+              onPressed: () async {
+                 ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text("Generating Receipt..."),
+                    backgroundColor: Color(0xFF4E95FF),
+                    duration: Duration(seconds: 1),
                   )
                 );
+                
+                final tenantProvider = context.read<TenantProvider>();
+                // Try to get tenant name, fallback to "Valued Tenant"
+                final tenantName = tenantProvider.tenant?.fullName ?? "Valued Tenant";
+                
+                try {
+                  await ReceiptGenerator.generateAndDownload(payment, tenantName: tenantName);
+                } catch (e) {
+                  debugPrint("Error generating receipt: $e");
+                  if (context.mounted) {
+                     ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text("Failed to generate receipt: $e"),
+                        backgroundColor: Colors.red,
+                      )
+                    );
+                  }
+                }
               },
             )
           : Container(
