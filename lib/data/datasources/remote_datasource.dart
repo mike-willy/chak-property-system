@@ -251,6 +251,25 @@ class RemoteDataSource {
     }
   }
 
+  Future<void> markAllNotificationsAsRead(String userId) async {
+    try {
+      final batch = _firestore.batch();
+      final snapshots = await _firestore
+          .collection('notifications')
+          .where('userId', isEqualTo: userId)
+          .where('isRead', isEqualTo: false)
+          .get();
+
+      for (var doc in snapshots.docs) {
+        batch.update(doc.reference, {'isRead': true});
+      }
+
+      await batch.commit();
+    } catch (e) {
+      throw Exception('Failed to mark all notifications as read: $e');
+    }
+  }
+
   // Maintenance Request Methods
   Future<List<MaintenanceModel>> getMaintenanceRequests({
     String? tenantId,

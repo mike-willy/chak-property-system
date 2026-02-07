@@ -4,6 +4,9 @@ enum NotificationType {
   payment,
   application,
   maintenance,
+  approval,
+  reminder,
+  message,
 }
 
 extension NotificationTypeExtension on NotificationType {
@@ -15,6 +18,12 @@ extension NotificationTypeExtension on NotificationType {
         return 'application';
       case NotificationType.maintenance:
         return 'maintenance';
+      case NotificationType.approval:
+        return 'approval';
+      case NotificationType.reminder:
+        return 'reminder';
+      case NotificationType.message:
+        return 'message';
     }
   }
 
@@ -26,6 +35,12 @@ extension NotificationTypeExtension on NotificationType {
         return NotificationType.application;
       case 'maintenance':
         return NotificationType.maintenance;
+      case 'approval':
+        return NotificationType.approval;
+      case 'reminder':
+        return NotificationType.reminder;
+      case 'message':
+        return NotificationType.message;
       default:
         return NotificationType.payment;
     }
@@ -40,6 +55,7 @@ class NotificationModel {
   final NotificationType type;
   final bool isRead;
   final DateTime createdAt;
+  final String? status; // New field for maintenance/application status
 
   NotificationModel({
     required this.id,
@@ -49,6 +65,7 @@ class NotificationModel {
     required this.type,
     required this.isRead,
     required this.createdAt,
+    this.status,
   });
 
   // Convert to Firestore document
@@ -60,28 +77,28 @@ class NotificationModel {
       'type': type.value,
       'isRead': isRead,
       'createdAt': Timestamp.fromDate(createdAt),
+      'status': status,
     };
-  }
-
-  // Create from Firestore document
-  factory NotificationModel.fromMap(String id, Map<String, dynamic> map) {
-    return NotificationModel(
-      id: id,
-      userId: map['userId'] as String? ?? '',
-      title: map['title'] as String? ?? '',
-      body: map['body'] as String? ?? '',
-      type: NotificationTypeExtension.fromString(
-        map['type'] as String? ?? 'payment',
-      ),
-      isRead: map['isRead'] as bool? ?? false,
-      createdAt: (map['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
-    );
   }
 
   // Create from Firestore document snapshot
   factory NotificationModel.fromFirestore(DocumentSnapshot doc) {
-    final data = doc.data() as Map<String, dynamic>;
-    return NotificationModel.fromMap(doc.id, data);
+    final map = doc.data() as Map<String, dynamic>;
+    return NotificationModel.fromMap(map, doc.id);
+  }
+
+  // Create from Map
+  factory NotificationModel.fromMap(Map<String, dynamic> map, String id) {
+    return NotificationModel(
+      id: id,
+      userId: map['userId'] ?? '',
+      title: map['title'] ?? '',
+      body: map['body'] ?? '',
+      type: NotificationTypeExtension.fromString(map['type'] ?? 'payment'),
+      isRead: map['isRead'] as bool? ?? false,
+      createdAt: (map['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      status: map['status'] as String?,
+    );
   }
 
   // Copy with method
@@ -93,6 +110,7 @@ class NotificationModel {
     NotificationType? type,
     bool? isRead,
     DateTime? createdAt,
+    String? status,
   }) {
     return NotificationModel(
       id: id ?? this.id,
@@ -102,6 +120,7 @@ class NotificationModel {
       type: type ?? this.type,
       isRead: isRead ?? this.isRead,
       createdAt: createdAt ?? this.createdAt,
+      status: status ?? this.status,
     );
   }
 }

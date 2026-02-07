@@ -7,6 +7,8 @@ import '../data/models/maintenance_category_model.dart';
 import '../data/repositories/maintenance_repository.dart';
 import 'tenant_provider.dart'; 
 import 'auth_provider.dart';
+import '../core/services/notification_service.dart' as service;
+import '../data/models/notification_model.dart';
 
 class MaintenanceProvider with ChangeNotifier {
   final MaintenanceRepository _repository;
@@ -66,9 +68,29 @@ class MaintenanceProvider with ChangeNotifier {
       );
 
       _requestsSubscription = stream.listen(
-        (requests) {
-          debugPrint('MaintenanceProvider: Stream received ${requests.length} requests');
-          _requests = requests;
+        (newRequests) {
+          debugPrint('MaintenanceProvider: Stream received ${newRequests.length} requests');
+          
+          // Detect NEW requests for Landlord Alerts only
+          if (_requests.isNotEmpty) {
+            for (final next in newRequests) {
+              final prevIndex = _requests.indexWhere((r) => r.id == next.id);
+              
+              if (prevIndex == -1) {
+                // New request detected
+                if (isLandlord) {
+                  service.NotificationService.sendMaintenanceAlert(
+                    userId: _authProvider.userId!,
+                    tenantName: next.tenantName,
+                    propertyName: next.propertyName,
+                    issue: next.title,
+                  );
+                }
+              }
+            }
+          }
+
+          _requests = newRequests;
           _applyFilters();
           _isLoading = false;
           notifyListeners();
@@ -157,6 +179,7 @@ class MaintenanceProvider with ChangeNotifier {
     required String propertyName,
     required String unitName,
     List<String> images = const [],
+    String? ownerId,
   }) async {
     _isLoading = true;
     _error = null;
@@ -190,7 +213,17 @@ class MaintenanceProvider with ChangeNotifier {
         (failure) {
           _error = failure.message;
         },
-        (_) {
+        (requestId) async {
+          // Notify landlord if ownerId is provided
+          if (ownerId != null && ownerId.isNotEmpty) {
+            service.NotificationService.sendMaintenanceAlert(
+              userId: ownerId,
+              tenantName: tenantName,
+              propertyName: propertyName,
+              issue: title,
+            );
+          }
+          
           loadRequests();
         },
       );
@@ -211,14 +244,20 @@ class MaintenanceProvider with ChangeNotifier {
       result.fold(
         (failure) => _error = failure.message,
         (_) {
+          // Find the request to send notification
           final index = _requests.indexWhere((r) => r.id == requestId);
           if (index != -1) {
-            _requests[index] = _requests[index].copyWith(
-              status: status,
-              updatedAt: DateTime.now(),
+            final request = _requests[index];
+            
+            // Notify Tenant about status change
+            service.NotificationService.sendMaintenanceNotification(
+              userId: request.tenantId,
+              propertyName: request.propertyName,
+              status: status.value,
             );
-            _applyFilters();
           }
+          
+          _applyFilters();
         },
       );
     } catch (e) {

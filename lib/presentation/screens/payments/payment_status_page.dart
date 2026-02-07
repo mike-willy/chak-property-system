@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../data/services/mpesa_service.dart';
+import '../../../core/services/notification_service.dart' as service;
 import 'dart:async';
 
 class PaymentStatusPage extends StatefulWidget {
@@ -136,6 +137,15 @@ class _PaymentStatusPageState extends State<PaymentStatusPage> {
       case 'completed':
       case 'success':
         _statusCheckTimer?.cancel();
+        // Send notification
+        if (data['tenantId'] != null) {
+          service.NotificationService.sendPaymentNotification(
+            userId: data['tenantId'],
+            propertyName: 'Rent Payment', // We could fetch property name from reference if needed
+            amount: widget.amount,
+            paymentType: 'Monthly Rent',
+          );
+        }
         return _buildSuccessState(data);
       case 'failed':
         _statusCheckTimer?.cancel();

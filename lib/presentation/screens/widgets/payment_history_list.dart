@@ -70,7 +70,7 @@ class PaymentHistoryList extends StatelessWidget {
   }
 
   Widget _buildPaymentItem(PaymentModel payment) {
-    final currency = NumberFormat.currency(symbol: '\$'); // Using $ as per previous screenshots/code, or KES? sticking to consistency
+    final currency = NumberFormat.currency(symbol: 'KES ');
     final dateFormat = DateFormat('MMM d, yyyy');
     
     String title = payment.method == PaymentMethod.mobile ? 'MPESA Payment' : 'Payment';

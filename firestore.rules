@@ -249,13 +249,13 @@ service cloud.firestore {
     
     // ==================== NOTIFICATIONS ====================
    match /notifications/{notificationId} {
-     allow create: if isAuthenticated() || isSystem();
+     allow create: if isAuthenticated();
      allow read: if isAuthenticated() && 
-        (isAdmin() || request.auth.uid == resource.data.recipientId);
+        (isAdmin() || request.auth.uid == resource.data.userId);
      allow update: if isAuthenticated() && 
-        (isAdmin() || request.auth.uid == resource.data.recipientId);
+        (isAdmin() || request.auth.uid == resource.data.userId);
      allow delete: if isAuthenticated() && 
-       (isAdmin() || request.auth.uid == resource.data.recipientId);
+       (isAdmin() || request.auth.uid == resource.data.userId);
    }
       
     // ==================== TENANT APPLICATIONS ====================

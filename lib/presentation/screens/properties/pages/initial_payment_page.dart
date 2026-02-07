@@ -11,6 +11,7 @@ import '../../../../data/repositories/payment_repository.dart';
 import '../../../../data/repositories/property_repository.dart';
 import '../../../../data/repositories/tenant_repository.dart';
 import '../../../../providers/auth_provider.dart';
+import '../../../../core/services/notification_service.dart' as service;
 import '../../auth/widgets/auth_gate.dart';
 
 class InitialPaymentPage extends StatefulWidget {
@@ -289,6 +290,16 @@ class _InitialPaymentPageState extends State<InitialPaymentPage> {
     
     // Create Tenant Record & Occupy Unit
     await _finalizeLease();
+    
+    // Send Payment Notification
+    final rent = widget.application.monthlyRent ?? 0.0;
+    final total = rent + _securityDeposit + _applicationFee + _petDeposit;
+    await service.NotificationService.sendPaymentNotification(
+      userId: widget.application.tenantId,
+      propertyName: _property?.title ?? 'Property',
+      amount: total,
+      paymentType: 'Initial Rent & Deposit',
+    );
     
     if (!mounted) return;
 

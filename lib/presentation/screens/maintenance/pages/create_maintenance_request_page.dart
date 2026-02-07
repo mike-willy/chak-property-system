@@ -174,9 +174,10 @@ class _CreateMaintenanceRequestPageState
     String finalPropertyName = _selectedPropertyName ?? 'Unknown';
     String finalUnitName = _selectedUnitName ?? 'Unknown';
     String finalTenantName = _currentTenant?.fullName ?? 'Unknown';
+    String? finalOwnerId;
 
-    if (finalPropertyName == 'Unknown' && _selectedPropertyId != null) {
-      final prop = propertyProvider.properties.firstWhere(
+    if (_selectedPropertyId != null) {
+      final propSpec = propertyProvider.properties.firstWhere(
           (p) => p.id == _selectedPropertyId,
           orElse: () => PropertyModel(
               id: '',
@@ -196,7 +197,23 @@ class _CreateMaintenanceRequestPageState
               status: PropertyStatus.vacant,
               createdAt: DateTime.now(),
               updatedAt: DateTime.now()));
-      if (prop.id.isNotEmpty) finalPropertyName = prop.title;
+      
+      if (propSpec.id.isNotEmpty) {
+        finalPropertyName = propSpec.title;
+        finalOwnerId = propSpec.ownerId;
+      } else {
+        // Fallback: If not in local provider, try to fetch it for ownerId resolution
+        try {
+          final repo = PropertyRepository(RemoteDataSource(FirebaseFirestore.instance));
+          final result = await repo.getPropertyById(_selectedPropertyId!);
+          result.fold((_) {}, (prop) {
+            finalPropertyName = prop.title;
+            finalOwnerId = prop.ownerId;
+          });
+        } catch (e) {
+          debugPrint('Error resolving property for ownerId: $e');
+        }
+      }
     }
 
     if (finalUnitName == 'Unknown' &&
@@ -217,6 +234,7 @@ class _CreateMaintenanceRequestPageState
       propertyName: finalPropertyName,
       unitName: finalUnitName,
       images: _images,
+      ownerId: finalOwnerId,
     );
 
     if (!mounted) return;

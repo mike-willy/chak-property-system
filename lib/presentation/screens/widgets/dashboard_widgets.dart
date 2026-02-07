@@ -119,7 +119,7 @@ class PaymentCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final formattedAmount = NumberFormat.currency(symbol: '\$').format(amount);
+    final formattedAmount = NumberFormat.currency(symbol: 'KES ').format(amount);
     final formattedDate = DateFormat('MMM d').format(dueDate);
 
     return Container(

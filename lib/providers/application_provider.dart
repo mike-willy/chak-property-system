@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import '../data/models/application_model.dart';
 import '../data/repositories/application_repository.dart';
 import '../data/repositories/tenant_repository.dart';
+import '../core/services/notification_service.dart' as service;
+import '../data/models/notification_model.dart';
 
 class ApplicationProvider extends ChangeNotifier {
   final ApplicationRepository _applicationRepo;
@@ -67,6 +69,40 @@ class ApplicationProvider extends ChangeNotifier {
       await _applicationRepo.approveApplication(
         application: application,
         generatedTenantId: tenantRef.id,
+      );
+
+      // Notify the tenant about the approval
+      await service.NotificationService.sendApplicationNotification(
+        userId: application.tenantId,
+        propertyName: application.propertyName ?? 'Property',
+        status: 'Approved',
+      );
+
+      applications.removeWhere((a) => a.id == application.id);
+    } finally {
+      loading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> rejectApplication({
+    required ApplicationModel application,
+    required String reason,
+  }) async {
+    loading = true;
+    notifyListeners();
+
+    try {
+      await _applicationRepo.rejectApplication(
+        applicationId: application.id,
+        reason: reason,
+      );
+
+      // Notify the tenant about the rejection
+      await service.NotificationService.sendApplicationNotification(
+        userId: application.tenantId,
+        propertyName: application.propertyName ?? 'Property',
+        status: 'Rejected',
       );
 
       applications.removeWhere((a) => a.id == application.id);

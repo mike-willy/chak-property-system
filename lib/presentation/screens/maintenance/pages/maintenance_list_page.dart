@@ -72,22 +72,53 @@ class _MaintenanceListPageState extends State<MaintenanceListPage> {
       floatingActionButton: Consumer<AuthProvider>(
         builder: (context, authProvider, _) {
           if (authProvider.isTenant) {
-            return FloatingActionButton.extended(
-              onPressed: () {
+            return GestureDetector(
+              onTap: () {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
                     builder: (_) => const CreateMaintenanceRequestPage(),
                   ),
                 ).then((_) {
-                  // Reload requests after creating
                   _loadRequests();
                 });
               },
-              icon: const Icon(FontAwesomeIcons.plus),
-              label: const Text('New Request'),
-              backgroundColor: const Color(0xFF4E95FF), // Bright Blue
-              foregroundColor: Colors.white,
+              child: Container(
+                margin: const EdgeInsets.only(bottom: 10, right: 10),
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF4E95FF), Color(0xFF1E60E8)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(30),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF4E95FF).withOpacity(0.4),
+                      blurRadius: 15,
+                      offset: const Offset(0, 8),
+                      spreadRadius: -2,
+                    ),
+                  ],
+                ),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(FontAwesomeIcons.plus, color: Colors.white, size: 16),
+                    SizedBox(width: 10),
+                    Text(
+                      'New Request',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             );
           }
           return const SizedBox.shrink();

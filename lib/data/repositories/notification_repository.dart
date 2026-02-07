@@ -26,4 +26,13 @@ class NotificationRepository {
       return Left(FailureModel(message: 'Failed to mark notification as read: $e'));
     }
   }
+
+  Future<Either<FailureModel, void>> markAllAsRead(String userId) async {
+    try {
+      await _remoteDataSource.markAllNotificationsAsRead(userId);
+      return const Right(null);
+    } catch (e) {
+      return Left(FailureModel(message: 'Failed to mark all notifications as read: $e'));
+    }
+  }
 }

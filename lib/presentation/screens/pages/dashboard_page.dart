@@ -7,9 +7,13 @@ import '../../../providers/auth_provider.dart';
 import '../../../providers/property_provider.dart';
 import '../../../providers/tenant_provider.dart';
 import '../../../providers/application_provider.dart';
+import '../../../providers/notification_provider.dart';
+import '../../../providers/message_provider.dart';
+import '../../../core/services/notification_service.dart' as service;
 
 // Models
 import '../../../data/models/tenant_model.dart';
+import '../../../data/models/user_model.dart';
 import '../../../data/models/property_model.dart';
 import '../../../data/models/address_model.dart';
 import '../../../data/models/application_model.dart';
@@ -54,6 +58,15 @@ class _DashboardPageState extends State<DashboardPage> {
     final authProvider = context.read<AuthProvider>();
     final propertyProvider = context.read<PropertyProvider>();
     final tenantProvider = context.read<TenantProvider>();
+    final notificationProvider = context.read<NotificationProvider>();
+    
+    if (authProvider.userId != null) {
+      notificationProvider.listenToNotifications(authProvider.userId!);
+      context.read<MessageProvider>().initialize(
+        authProvider.userId!,
+        authProvider.userProfile?.role?.value ?? 'tenant',
+      );
+    }
     
     if (propertyProvider.properties.isEmpty) {
       await propertyProvider.loadProperties();
@@ -76,7 +89,7 @@ class _DashboardPageState extends State<DashboardPage> {
     if (mounted) {
       setState(() {
         _isLoading = false;
-        _currentIndex = 0; 
+        // Removed _currentIndex = 0 to prevent jumping back to home on data load
       });
     }
   }
@@ -220,6 +233,75 @@ class _DashboardHomeState extends State<DashboardHome> {
       await tenantProvider.loadAllTenants();
       await context.read<ApplicationProvider>().loadPending();
     }
+
+    // Trigger Rent Reminders in background
+    if (authProvider.isTenant && tenantProvider.tenant != null) {
+      _checkAndTriggerRentReminders(tenantProvider.tenant!, authProvider.userId!);
+    }
+  }
+
+  Future<void> _refreshData() async {
+    final authProvider = context.read<AuthProvider>();
+    final propertyProvider = context.read<PropertyProvider>();
+    final tenantProvider = context.read<TenantProvider>();
+    final notificationProvider = context.read<NotificationProvider>();
+    final applicationProvider = context.read<ApplicationProvider>();
+    final messageProvider = context.read<MessageProvider>();
+
+    debugPrint('Dashboard: Triggering manual refresh...');
+    
+    // 1. Reload All (No longer clearing data to prevent jarring UI jumps)
+    notificationProvider.refreshNotifications();
+    List<Future> futures = [
+      propertyProvider.loadProperties(),
+    ];
+
+    if (authProvider.userId != null) {
+      futures.add(tenantProvider.loadTenantData());
+      messageProvider.initialize(
+        authProvider.userId!,
+        authProvider.userProfile?.role?.value ?? 'tenant',
+      );
+      
+      if (authProvider.isLandlord) {
+        // Wait for properties to load to get IDs
+        await propertyProvider.loadProperties();
+        final myPropertyIds = propertyProvider.properties
+            .where((p) => p.ownerId == authProvider.userId)
+            .map((p) => p.id)
+            .toList();
+        futures.add(applicationProvider.loadLandlordApplications(myPropertyIds));
+      } else if (authProvider.isAdmin) {
+        futures.add(applicationProvider.loadPending());
+      }
+    }
+
+    await Future.wait(futures);
+    debugPrint('Dashboard: Refresh complete.');
+  }
+
+  void _checkAndTriggerRentReminders(TenantModel tenant, String userId) {
+    // Basic logic to determine if rent is due soon
+    final now = DateTime.now();
+    final leaseStart = tenant.leaseStartDate ?? tenant.createdAt;
+    
+    // Find the next anniversary of the lease start day
+    DateTime potentialDate = DateTime(now.year, now.month, leaseStart.day);
+    if (potentialDate.isBefore(now)) {
+      int nextMonth = now.month + 1;
+      int nextYear = now.year;
+      if (nextMonth > 12) { nextMonth = 1; nextYear++; }
+      potentialDate = DateTime(nextYear, nextMonth, leaseStart.day);
+    }
+
+    final daysRemaining = potentialDate.difference(now).inDays;
+    if (daysRemaining <= 5 && daysRemaining >= 0) {
+      service.NotificationService.sendRentReminder(
+        userId: userId,
+        propertyName: tenant.propertyName,
+        amount: tenant.rentAmount,
+      );
+    }
   }
 
   void _updateCurrentProperty(TenantModel? tenant) {
@@ -264,7 +346,12 @@ class _DashboardHomeState extends State<DashboardHome> {
   @override
   Widget build(BuildContext context) {
     return SafeArea(
-      child: SingleChildScrollView(
+      child: RefreshIndicator(
+        onRefresh: _refreshData,
+        backgroundColor: const Color(0xFF1E2235),
+        color: const Color(0xFF4E95FF),
+        child: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(), // Important for RefreshIndicator
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
         child: Consumer3<AuthProvider, PropertyProvider, TenantProvider>(
           builder: (context, authProvider, propertyProvider, tenantProvider, _) {
@@ -274,8 +361,11 @@ class _DashboardHomeState extends State<DashboardHome> {
             
             if (isTenant && propertyProvider.properties.isNotEmpty) {
                 // Update property if it doesn't match current tenant's property
-                // This logic is simplified to prevent infinite loops
-                if (_currentProperty?.id != tenantProvider.tenant?.propertyId) {
+                // Added check for empty ID to prevent infinite loops when property is not found
+                final tenantPropId = tenantProvider.tenant?.propertyId;
+                if (tenantPropId != null && 
+                    _currentProperty?.id != tenantPropId && 
+                    _currentProperty?.id != '') {
                     WidgetsBinding.instance.addPostFrameCallback((_) {
                       _updateCurrentProperty(tenantProvider.tenant);
                     });
@@ -422,7 +512,7 @@ class _DashboardHomeState extends State<DashboardHome> {
                   QuickActionsGrid(
                     onPayRent: () {}, 
                     onRequestMaintenance: () => _navigateToPage(3), 
-                    onViewMessages: () => _navigateToPage(3),    
+                    onViewMessages: () => _navigateToPage(4),    
                     onViewLease: () {
                       Navigator.push(
                         context,
@@ -449,8 +539,9 @@ class _DashboardHomeState extends State<DashboardHome> {
           },
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildLandlordView(TenantProvider tenantProvider, ApplicationProvider applicationProvider) {
     final tenants = tenantProvider.tenantsList;
@@ -557,6 +648,14 @@ class _DashboardHomeState extends State<DashboardHome> {
         content: Text('Approve ${application.fullName} for ${application.propertyName}?'),
         actions: [
           TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(dialogContext);
+              _showRejectionReasonDialog(context, application);
+            },
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Reject'),
+          ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
             onPressed: () async {
@@ -576,6 +675,41 @@ class _DashboardHomeState extends State<DashboardHome> {
               await context.read<ApplicationProvider>().convertToTenant(application: application, tenantData: tenantData);
             },
             child: const Text('Approve & Convert'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showRejectionReasonDialog(BuildContext context, ApplicationModel application) {
+    final controller = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF1E2235),
+        title: const Text('Reject Application', style: TextStyle(color: Colors.white)),
+        content: TextField(
+          controller: controller,
+          style: const TextStyle(color: Colors.white),
+          decoration: const InputDecoration(
+            hintText: 'Reason for rejection...',
+            hintStyle: TextStyle(color: Colors.grey),
+          ),
+          maxLines: 3,
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () async {
+              final reason = controller.text.trim();
+              Navigator.pop(context);
+              await context.read<ApplicationProvider>().rejectApplication(
+                application: application,
+                reason: reason.isEmpty ? 'Criteria not met' : reason,
+              );
+            },
+            child: const Text('Confirm Rejection'),
           ),
         ],
       ),

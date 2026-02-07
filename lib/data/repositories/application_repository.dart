@@ -58,4 +58,15 @@ class ApplicationRepository {
       'linkedTenantId': generatedTenantId,
     });
   }
+
+  Future<void> rejectApplication({
+    required String applicationId,
+    required String reason,
+  }) async {
+    await _ref.doc(applicationId).update({
+      'status': 'rejected',
+      'rejectionReason': reason,
+      'processedAt': Timestamp.now(),
+    });
+  }
 }
