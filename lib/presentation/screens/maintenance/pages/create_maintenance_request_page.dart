@@ -12,6 +12,7 @@ import '../../../../data/datasources/remote_datasource.dart';
 import '../../../../data/models/tenant_model.dart';
 import '../../../../data/models/property_model.dart';
 import '../../../../data/models/address_model.dart';
+import '../../../../providers/tenant_provider.dart';
 
 class CreateMaintenanceRequestPage extends StatefulWidget {
   final String? unitId;
@@ -62,7 +63,7 @@ class _CreateMaintenanceRequestPageState
 
       final authProvider = context.read<AuthProvider>();
       if (authProvider.isTenant) {
-        _loadTenantUnit(authProvider.firebaseUser?.uid);
+        _initializeFromTenant();
       } else if (_selectedPropertyId != null) {
         _loadPropertyUnits(_selectedPropertyId!);
       }
@@ -103,50 +104,26 @@ class _CreateMaintenanceRequestPageState
     }
   }
 
-  Future<void> _loadTenantUnit(String? userId) async {
-    if (userId == null) return;
+  void _initializeFromTenant() {
+    final tenantProvider = context.read<TenantProvider>();
+    final tenant = tenantProvider.tenant;
+
+    if (tenant == null) {
+      debugPrint('CreateMaintenanceRequestPage: No active tenant found in provider.');
+      return;
+    }
 
     setState(() {
-      _isLoadingUnit = true;
+      _currentTenant = tenant;
+      _selectedUnitId = tenant.unitId.isNotEmpty ? tenant.unitId : null;
+      _selectedPropertyId = tenant.propertyId.isNotEmpty ? tenant.propertyId : null;
+      _selectedPropertyName = tenant.propertyName;
+      _selectedUnitName = tenant.unitNumber;
     });
 
-    try {
-      final authProvider = context.read<AuthProvider>();
-      final tenantRepo = TenantRepository();
-      TenantModel? tenant;
-
-      tenant = await tenantRepo.getTenantByUserId(userId);
-
-      tenant ??= await tenantRepo.getTenantById(userId);
-
-      if (tenant == null && authProvider.firebaseUser?.email != null) {
-        tenant = await tenantRepo.getTenantByEmail(
-            authProvider.firebaseUser!.email!);
-      }
-
-      if (tenant == null) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-            content: Text(
-                'Your account is not linked to a tenant record. Please contact management.')));
-        return;
-      }
-
-      _currentTenant = tenant;
-      _selectedUnitId =
-          tenant.unitId.isNotEmpty ? tenant.unitId : null;
-      _selectedPropertyId =
-          tenant.propertyId.isNotEmpty ? tenant.propertyId : null;
-
-      await _resolveHumanReadableNames(tenant);
-    } catch (e) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('Error loading tenant info: $e')));
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isLoadingUnit = false;
-        });
-      }
+    // If name resolution is still needed (e.g., if model only has IDs)
+    if (_selectedPropertyName == null || _selectedPropertyName!.isEmpty || _selectedPropertyName == tenant.propertyId) {
+       _resolveHumanReadableNames(tenant);
     }
   }
 

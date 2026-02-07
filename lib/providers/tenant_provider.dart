@@ -13,7 +13,11 @@ class TenantProvider with ChangeNotifier {
   final PropertyRepository _propertyRepository; // Added repository
   AuthProvider _authProvider;
 
+  // Active tenant (current context)
   TenantModel? _tenant;
+  // All tenancies for this user
+  List<TenantModel> _userTenancies = [];
+  
   List<PaymentModel> _payments = [];
   List<TenantModel> _tenantsList = []; // Added for landlords/admins
   UnitModel? _unit; // Added unit
@@ -35,6 +39,7 @@ class TenantProvider with ChangeNotifier {
   }
 
   TenantModel? get tenant => _tenant;
+  List<TenantModel> get userTenancies => _userTenancies;
   List<PaymentModel> get payments => _payments;
   List<TenantModel> get tenantsList => _tenantsList; // Added getter
   UnitModel? get unit => _unit; // Added getter
@@ -60,6 +65,7 @@ class TenantProvider with ChangeNotifier {
     debugPrint("TenantProvider: loadTenantData for user: ${user?.uid}");
     if (user == null) {
       _tenant = null;
+      _userTenancies = [];
       _payments = [];
       _tenantsList = [];
       notifyListeners();
@@ -71,50 +77,39 @@ class TenantProvider with ChangeNotifier {
     notifyListeners(); // Notify start of loading
 
     try {
-      // 1. Fetch Tenant
-      _tenant = await _tenantRepository.getTenantByUserId(user.uid);
-      debugPrint("TenantProvider: Query by userId: ${user.uid} found: ${_tenant?.id}");
-      
-      // Fallback 1: Check if document ID is the userId (some systems use UID as doc ID)
-      if (_tenant == null) {
-         try {
-           final doc = await _tenantRepository.getTenantById(user.uid);
-           if (doc != null) {
-             _tenant = doc;
-             debugPrint("TenantProvider: Found tenant by document ID fallback: ${_tenant?.id}");
-           }
-         } catch (e) {
-           debugPrint("TenantProvider: Fallback fetch failed: $e");
-         }
-      }
-      
-      // Fallback 2: Email (very useful for legacy records or pre-registrations)
-      if (_tenant == null && user.email != null) {
-          _tenant = await _tenantRepository.getTenantByEmail(user.email!);
-          if (_tenant != null) {
-             debugPrint("TenantProvider: Found tenant by email: ${user.email}");
-             // Automatically link UID if it's missing or different, to speed up future lookups
-             if (_tenant!.userId != user.uid) {
-                await _tenantRepository.updateTenant(_tenant!.id, {'userId': user.uid});
-                _tenant = _tenant!.copyWith(userId: user.uid);
-                debugPrint("TenantProvider: Linked tenant record to UID: ${user.uid}");
+      // 1. Fetch ALL Tenancies for this user
+      _userTenancies = await _tenantRepository.getAllTenantsByUserId(user.uid);
+      debugPrint("TenantProvider: Found ${_userTenancies.length} tenancies for userId: ${user.uid}");
+
+      // Fallback 1: Email (link ALL units for this email if none found by UID)
+      if (_userTenancies.isEmpty && user.email != null) {
+          final tenantsByEmail = await _tenantRepository.getAllTenantsByEmail(user.email!);
+          if (tenantsByEmail.isNotEmpty) {
+             debugPrint("TenantProvider: Found ${tenantsByEmail.length} units by email: ${user.email}");
+             
+             List<TenantModel> linkedTenants = [];
+             for (var tenantRecord in tenantsByEmail) {
+                if (tenantRecord.userId != user.uid) {
+                   await _tenantRepository.updateTenant(tenantRecord.id, {'userId': user.uid});
+                   linkedTenants.add(tenantRecord.copyWith(userId: user.uid));
+                   debugPrint("TenantProvider: Linked unit ${tenantRecord.unitNumber} to UID: ${user.uid}");
+                } else {
+                   linkedTenants.add(tenantRecord);
+                }
              }
+             _userTenancies = linkedTenants;
           }
       }
       
+      // 2. Set Active Tenant (Default to first one if available)
+      if (_userTenancies.isNotEmpty) {
+        _tenant = _userTenancies.first; 
+      } else {
+        _tenant = null;
+      }
+      
       if (_tenant != null) {
-        // 2. Fetch Payments if tenant exists
-        // Reverted to use Tenant Document ID as requested by user (matches Admin panel)
-        _payments = await _paymentRepository.getPaymentsByTenantId(_tenant!.id);
-
-        // 3. Fetch Unit details if propertyId and unitId are available
-        if (_tenant!.propertyId.isNotEmpty && _tenant!.unitId.isNotEmpty) {
-           final unitResult = await _propertyRepository.getPropertyUnit(_tenant!.propertyId, _tenant!.unitId);
-           unitResult.fold(
-            (failure) => debugPrint("TenantProvider: Failed to load unit: ${failure.message}"),
-            (unit) => _unit = unit,
-           );
-        }
+        await _loadActiveTenantDetails();
       } else {
         _payments = [];
         _unit = null;
@@ -128,6 +123,42 @@ class TenantProvider with ChangeNotifier {
           notifyListeners();
       }
     }
+  }
+
+  // Helper to load details for the currently active tenant
+  Future<void> _loadActiveTenantDetails() async {
+    if (_tenant == null) return;
+    
+    try {
+        // Fetch Payments
+        _payments = await _paymentRepository.getPaymentsByTenantId(_tenant!.id);
+
+        // Fetch Unit details
+        if (_tenant!.propertyId.isNotEmpty && _tenant!.unitId.isNotEmpty) {
+           final unitResult = await _propertyRepository.getPropertyUnit(_tenant!.propertyId, _tenant!.unitId);
+           unitResult.fold(
+            (failure) => debugPrint("TenantProvider: Failed to load unit: ${failure.message}"),
+            (unit) => _unit = unit,
+           );
+        }
+    } catch (e) {
+      debugPrint('Error loading active tenant details: $e');
+    }
+  }
+
+  // Switch active tenant context
+  Future<void> switchTenant(TenantModel newTenant) async {
+    // Verify this tenant belongs to user
+    if (!_userTenancies.any((t) => t.id == newTenant.id)) return;
+
+    _tenant = newTenant;
+    _isLoading = true;
+    notifyListeners();
+
+    await _loadActiveTenantDetails();
+
+    _isLoading = false;
+    notifyListeners();
   }
 
   Future<void> loadAllTenants() async {

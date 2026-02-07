@@ -150,10 +150,15 @@ class PropertyProvider with ChangeNotifier {
         return false;
       }
 
-      // For tenants, only show vacant properties
+      // For tenants, typically we'd only show vacant properties in the 'Browse' list.
+      // However, we MUST allow them to see the property they are currently renting (Occupied).
+      // For simplicity and to avoid dashboard bugs, we'll allow all statuses here
+      // and let the Browse page handle status filtering.
+      /*
       if (isTenant && property.status != PropertyStatus.vacant) {
         return false;
       }
+      */
 
       // For landlords, only show their own properties (Strict Isolation)
       if (isLandlord) {

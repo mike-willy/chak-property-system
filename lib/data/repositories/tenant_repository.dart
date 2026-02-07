@@ -5,37 +5,53 @@ class TenantRepository {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final String _collection = 'tenants';
 
-  // Get tenant by user ID
-  Future<TenantModel?> getTenantByUserId(String userId) async {
+  // Get tenant by user ID (Returns list for multi-unit support)
+  Future<List<TenantModel>> getAllTenantsByUserId(String userId) async {
     try {
       final querySnapshot = await _firestore
           .collection(_collection)
           .where('userId', isEqualTo: userId)
-          .limit(1) // Assuming one tenant per user
           .get();
 
-      if (querySnapshot.docs.isNotEmpty) {
-        return TenantModel.fromFirestore(querySnapshot.docs.first);
-      }
-      return null;
+      return querySnapshot.docs
+          .map((doc) => TenantModel.fromFirestore(doc))
+          .toList();
+    } catch (e) {
+      throw Exception('Failed to fetch user tenants: $e');
+    }
+  }
+
+  // Get single tenant by user ID (First one - for backward compatibility where needed)
+  Future<TenantModel?> getTenantByUserId(String userId) async {
+    try {
+      final tenants = await getAllTenantsByUserId(userId);
+      return tenants.isNotEmpty ? tenants.first : null;
     } catch (e) {
       throw Exception('Failed to fetch tenant: $e');
     }
   }
 
-  // Get tenant by email
-  Future<TenantModel?> getTenantByEmail(String email) async {
+  // Get ALL tenants by email
+  Future<List<TenantModel>> getAllTenantsByEmail(String email) async {
     try {
       final querySnapshot = await _firestore
           .collection(_collection)
           .where('email', isEqualTo: email)
-          .limit(1)
           .get();
 
-      if (querySnapshot.docs.isNotEmpty) {
-        return TenantModel.fromFirestore(querySnapshot.docs.first);
-      }
-      return null;
+      return querySnapshot.docs
+          .map((doc) => TenantModel.fromFirestore(doc))
+          .toList();
+    } catch (e) {
+      throw Exception('Failed to fetch tenants by email: $e');
+    }
+  }
+
+  // Get single tenant by email (First one)
+  Future<TenantModel?> getTenantByEmail(String email) async {
+    try {
+      final tenants = await getAllTenantsByEmail(email);
+      return tenants.isNotEmpty ? tenants.first : null;
     } catch (e) {
       throw Exception('Failed to fetch tenant by email: $e');
     }
@@ -50,18 +66,14 @@ class TenantRepository {
       }
       return null;
     } catch (e) {
-      throw Exception('Failed to fetch tenant by id: $e');
+      throw Exception('Failed to fetch tenant by ID: $e');
     }
   }
 
-  // Create a new tenant
   Future<DocumentReference> createTenant(Map<String, dynamic> tenantData) async {
     try {
-      if (tenantData.containsKey('userId') && tenantData['userId'] != null && tenantData['userId'].toString().isNotEmpty) {
-        final ref = _firestore.collection(_collection).doc(tenantData['userId']);
-        await ref.set(tenantData);
-        return ref;
-      }
+      // Use add() to let Firestore generate a unique ID
+      // This prevents overwriting when a user has multiple units
       return await _firestore.collection(_collection).add(tenantData);
     } catch (e) {
       throw Exception('Failed to create tenant: $e');

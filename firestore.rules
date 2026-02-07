@@ -234,9 +234,9 @@ service cloud.firestore {
 
     // ==================== TENANTS ====================
     match /tenants/{tenantId} {
-      allow create: if isAdmin() || (isAuthenticated() && request.auth.uid == tenantId);
+      allow create: if isAdmin() || isLandlord() || (isAuthenticated() && request.auth.uid == tenantId);
       allow read: if isAuthenticated();
-      allow update: if isAuthenticated() && (isAdmin() || request.auth.uid == tenantId);
+      allow update: if isAuthenticated() && (isAdmin() || request.auth.uid == tenantId || request.auth.uid == resource.data.userId || request.auth.token.email == resource.data.email);
       allow delete: if isAdmin();
       
       match /payments/{paymentId} {

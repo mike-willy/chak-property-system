@@ -271,10 +271,14 @@ class _DashboardHomeState extends State<DashboardHome> {
             final applicationProvider = context.watch<ApplicationProvider>();
             final isTenant = authProvider.isTenant && tenantProvider.tenant != null;
             
-            if (isTenant && _currentProperty == null && propertyProvider.properties.isNotEmpty) {
-                WidgetsBinding.instance.addPostFrameCallback((_) {
-                  _updateCurrentProperty(tenantProvider.tenant);
-                });
+            if (isTenant && propertyProvider.properties.isNotEmpty) {
+                // Update property if it doesn't match current tenant's property
+                // This logic is simplified to prevent infinite loops
+                if (_currentProperty?.id != tenantProvider.tenant?.propertyId) {
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      _updateCurrentProperty(tenantProvider.tenant);
+                    });
+                }
             }
 
             return Column(
@@ -286,6 +290,116 @@ class _DashboardHomeState extends State<DashboardHome> {
                   tenantId: isTenant ? tenantProvider.tenant!.id.substring(0, 6) : null,
                   onNotificationTap: () {},
                 ),
+                
+                // Unit Switcher Section
+                if (isTenant && tenantProvider.userTenancies.length > 1) ...[
+                  const SizedBox(height: 16),
+                  Container(
+                    width: double.infinity,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF1E2235),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: const Color(0xFF4E95FF).withOpacity(0.3)),
+                    ),
+                    child: Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(12),
+                        onTap: () {
+                           showModalBottomSheet(
+                             context: context,
+                             backgroundColor: const Color(0xFF141725),
+                             shape: const RoundedRectangleBorder(
+                               borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+                             ),
+                             builder: (context) => Container(
+                               padding: const EdgeInsets.all(20),
+                               child: Column(
+                                 mainAxisSize: MainAxisSize.min,
+                                 crossAxisAlignment: CrossAxisAlignment.start,
+                                 children: [
+                                   const Text(
+                                     'Select Your Unit',
+                                     style: TextStyle(
+                                       fontSize: 18, 
+                                       fontWeight: FontWeight.bold, 
+                                       color: Colors.white
+                                     ),
+                                   ),
+                                   const SizedBox(height: 16),
+                                   ...tenantProvider.userTenancies.map((t) => ListTile(
+                                     leading: Icon(
+                                       Icons.home, 
+                                       color: t.id == tenantProvider.tenant?.id 
+                                           ? const Color(0xFF4E95FF) 
+                                           : Colors.grey
+                                     ),
+                                     title: Text(
+                                       t.propertyName,
+                                       style: TextStyle(
+                                         color: t.id == tenantProvider.tenant?.id 
+                                             ? Colors.white 
+                                             : Colors.grey.shade400,
+                                         fontWeight: FontWeight.bold,
+                                       ),
+                                     ),
+                                     subtitle: Text(
+                                       'Unit ${t.unitNumber}',
+                                       style: TextStyle(
+                                         color: Colors.grey.shade500
+                                       ),
+                                     ),
+                                     trailing: t.id == tenantProvider.tenant?.id 
+                                         ? const Icon(Icons.check_circle, color: Color(0xFF4E95FF))
+                                         : null,
+                                     onTap: () {
+                                       tenantProvider.switchTenant(t);
+                                       Navigator.pop(context);
+                                     },
+                                   )).toList(),
+                                   const SizedBox(height: 20),
+                                 ],
+                               ),
+                             ),
+                           );
+                        },
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.swap_horiz, color: Color(0xFF4E95FF)),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Text(
+                                      'Active Unit (Tap to Switch)',
+                                      style: TextStyle(
+                                        color: Colors.grey,
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                    Text(
+                                      '${tenantProvider.tenant?.propertyName ?? 'Unknown'} - Unit ${tenantProvider.tenant?.unitNumber ?? ''}',
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 14,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const Icon(Icons.keyboard_arrow_down, color: Colors.grey),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+
                 const SizedBox(height: 24),
                 
                 if (tenantProvider.isLoading)

@@ -23,72 +23,59 @@ class PaymentHistoryPage extends StatefulWidget {
 class _PaymentHistoryPageState extends State<PaymentHistoryPage> {
   String _filterStatus = 'all';
 
-  // Helper to fetch all tenant IDs for the user directly
-  Future<List<String>> _fetchTenantIds(String userId) async {
-    try {
-      final snapshot = await FirebaseFirestore.instance
-          .collection('tenants')
-          .where('userId', isEqualTo: userId)
-          .get();
-      return snapshot.docs.map((doc) => doc.id).toList();
-    } catch (e) {
-      debugPrint('Error fetching tenant IDs: $e');
-      return [];
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
-    // 1. Get AuthProvider for User ID
-    final authProvider = context.watch<AuthProvider>();
-    final userId = authProvider.userId; 
+    final tenantProvider = context.watch<TenantProvider>();
+    final activeTenant = tenantProvider.tenant;
+    
+    // If no tenant is loaded, show empty/loading state
+    if (tenantProvider.isLoading && activeTenant == null) {
+       return Scaffold(
+        backgroundColor: const Color(0xFF141725),
+        appBar: AppBar(title: const Text('Payment History'), backgroundColor: const Color(0xFF141725)),
+        body: const Center(child: CircularProgressIndicator(color: Color(0xFF4E95FF))),
+      );
+    }
 
-    // 2. Fetch ALL Tenant IDs for this user (using local helper)
-    return FutureBuilder<List<String>>(
-      future: userId != null 
-          ? _fetchTenantIds(userId)
-          : Future.value([]),
-      builder: (context, snapshot) {
-        // Collect IDs
-        final allTenantIds = snapshot.data ?? [];
-        
-        // Add current tenant ID from provider if not in list
-        final providerTenant = context.watch<TenantProvider>().tenant;
-        if (providerTenant != null && !allTenantIds.contains(providerTenant.id)) {
-          allTenantIds.add(providerTenant.id);
-        }
-
-        // Combine with User ID
-        final idsToQuery = <String>{
-          if (userId != null) userId,
-          ...allTenantIds
-        }.toList();
-
-        // Loading state
-        if (snapshot.connectionState == ConnectionState.waiting && idsToQuery.isEmpty) {
-           return Scaffold(
-            backgroundColor: const Color(0xFF141725),
-            appBar: AppBar(title: const Text('Payment History'), backgroundColor: const Color(0xFF141725)),
-            body: const Center(child: CircularProgressIndicator(color: Color(0xFF4E95FF))),
-          );
-        }
-
-        return Scaffold(
-          backgroundColor: const Color(0xFF141725),
-          appBar: AppBar(
-            title: const Text('Payment History',
-                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-            backgroundColor: const Color(0xFF141725),
-            elevation: 0,
-            iconTheme: const IconThemeData(color: Colors.white),
-          ),
-          body: Column(
-            children: [
-              _buildFilterBar(),
-              Expanded(
-                child: StreamBuilder<List<PaymentModel>>(
-                  // Use List of ALL IDs
-                  stream: context.read<PaymentRepository>().getPaymentsStreamForList(idsToQuery),
+    return Scaffold(
+      backgroundColor: const Color(0xFF141725),
+      appBar: AppBar(
+        title: const Text('Payment History',
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        backgroundColor: const Color(0xFF141725),
+        elevation: 0,
+        iconTheme: const IconThemeData(color: Colors.white),
+        actions: [
+          // Unit Switcher in AppBar if multiple units exist
+          if (tenantProvider.userTenancies.length > 1)
+            IconButton(
+              icon: const Icon(Icons.swap_horiz, color: Color(0xFF4E95FF)),
+              tooltip: 'Switch Unit',
+              onPressed: () => _showUnitSwitcher(context, tenantProvider),
+            ),
+        ],
+      ),
+      body: Column(
+        children: [
+          // Unit Indicator
+          if (activeTenant != null)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              width: double.infinity,
+              color: const Color(0xFF1E2235).withOpacity(0.5),
+              child: Text(
+                'Showing history for: ${activeTenant.propertyName} - Unit ${activeTenant.unitNumber}',
+                style: const TextStyle(color: Color(0xFF4E95FF), fontSize: 12, fontWeight: FontWeight.w500),
+              ),
+            ),
+          
+          _buildFilterBar(),
+          Expanded(
+            child: activeTenant == null 
+              ? _buildEmptyState()
+              : StreamBuilder<List<PaymentModel>>(
+                  // Use ONLY the active tenant's ID
+                  stream: context.read<PaymentRepository>().getPaymentsStream(activeTenant.id),
                   builder: (context, snapshot) {
                     if (snapshot.hasError) {
                       debugPrint("Payment Stream Error: ${snapshot.error}");
@@ -117,11 +104,55 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage> {
                     );
                   },
                 ),
-              ),
-            ],
           ),
-        );
-      },
+        ],
+      ),
+    );
+  }
+
+  void _showUnitSwitcher(BuildContext context, TenantProvider provider) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xFF141725),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => Container(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Select Unit for History',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
+            ),
+            const SizedBox(height: 16),
+            ...provider.userTenancies.map((t) => ListTile(
+              leading: Icon(
+                Icons.home, 
+                color: t.id == provider.tenant?.id ? const Color(0xFF4E95FF) : Colors.grey
+              ),
+              title: Text(
+                t.propertyName,
+                style: TextStyle(
+                  color: t.id == provider.tenant?.id ? Colors.white : Colors.grey.shade400,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              subtitle: Text('Unit ${t.unitNumber}', style: TextStyle(color: Colors.grey.shade500)),
+              trailing: t.id == provider.tenant?.id 
+                  ? const Icon(Icons.check_circle, color: Color(0xFF4E95FF))
+                  : null,
+              onTap: () {
+                provider.switchTenant(t);
+                Navigator.pop(context);
+              },
+            )).toList(),
+            const SizedBox(height: 20),
+          ],
+        ),
+      ),
     );
   }
 

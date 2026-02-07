@@ -135,6 +135,13 @@ class MaintenanceProvider with ChangeNotifier {
         if (request.tenantId != _authProvider.firebaseUser!.uid) {
           return false;
         }
+        // 4. Active Unit Filter (Multi-Tenancy Support)
+        // Only show requests for the currently selected unit in the dashboard
+        if (_tenantProvider?.tenant != null) {
+           if (request.unitId != _tenantProvider!.tenant!.unitId) {
+             return false;
+           }
+        }
       }
 
       return true;

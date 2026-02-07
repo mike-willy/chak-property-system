@@ -4,6 +4,7 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:provider/provider.dart';
 import '../../../../providers/maintenance_provider.dart';
 import '../../../../providers/auth_provider.dart';
+import '../../../../providers/tenant_provider.dart';
 import '../widgets/maintenance_card.dart';
 import 'create_maintenance_request_page.dart';
 import 'maintenance_detail_page.dart';
@@ -35,15 +36,27 @@ class _MaintenanceListPageState extends State<MaintenanceListPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF141725), // Dark Dashboard Background
-      body: Consumer2<MaintenanceProvider, AuthProvider>(
-        builder: (context, provider, authProvider, _) {
+      body: Consumer3<MaintenanceProvider, AuthProvider, TenantProvider>(
+        builder: (context, provider, authProvider, tenantProvider, _) {
           return SafeArea(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // Header Section
-                _buildHeaderSection(provider, authProvider),
+                _buildHeaderSection(provider, authProvider, tenantProvider),
                 
+                // Unit Indicator for Tenants
+                if (authProvider.isTenant && tenantProvider.tenant != null)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                    width: double.infinity,
+                    color: const Color(0xFF1E2235).withOpacity(0.5),
+                    child: Text(
+                      'Showing requests for: ${tenantProvider.tenant!.propertyName} - Unit ${tenantProvider.tenant!.unitNumber}',
+                      style: const TextStyle(color: Color(0xFF4E95FF), fontSize: 12, fontWeight: FontWeight.w500),
+                    ),
+                  ),
+
                 // Filter Section
                 _buildFilterSection(provider),
                 
@@ -83,7 +96,7 @@ class _MaintenanceListPageState extends State<MaintenanceListPage> {
     );
   }
 
-  Widget _buildHeaderSection(MaintenanceProvider provider, AuthProvider authProvider) {
+  Widget _buildHeaderSection(MaintenanceProvider provider, AuthProvider authProvider, TenantProvider tenantProvider) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
       child: Column(
@@ -92,41 +105,105 @@ class _MaintenanceListPageState extends State<MaintenanceListPage> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                     Text(
+                      authProvider.isTenant ? 'Maintenance' : 'Requests',
+                      style: const TextStyle(
+                        fontSize: 28,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      authProvider.isTenant
+                          ? 'Track and manage your requests'
+                          : 'Manage all maintenance requests',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey.shade400,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              // Action Buttons
+              Row(
                 children: [
-                   Text(
-                    authProvider.isTenant ? 'Maintenance' : 'Requests',
-                    style: const TextStyle(
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
+                  if (authProvider.isTenant && tenantProvider.userTenancies.length > 1)
+                    IconButton(
+                      onPressed: () => _showUnitSwitcher(context, tenantProvider),
+                      icon: const Icon(Icons.swap_horiz, color: Color(0xFF4E95FF)),
+                      style: IconButton.styleFrom(
+                        backgroundColor: const Color(0xFF1E2235),
+                        padding: const EdgeInsets.all(12),
+                      ),
+                      tooltip: 'Switch Unit',
                     ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    authProvider.isTenant
-                        ? 'Track and manage your requests'
-                        : 'Manage all maintenance requests',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.grey.shade400,
+                  const SizedBox(width: 8),
+                  IconButton(
+                    onPressed: provider.loadRequests,
+                    icon: const Icon(Icons.refresh, color: Colors.white70),
+                    style: IconButton.styleFrom(
+                       backgroundColor: const Color(0xFF1E2235),
+                       padding: const EdgeInsets.all(12),
                     ),
+                    tooltip: 'Refresh',
                   ),
                 ],
-              ),
-              // Refresh Button
-              IconButton(
-                onPressed: provider.loadRequests,
-                icon: const Icon(Icons.refresh, color: Colors.white70),
-                style: IconButton.styleFrom(
-                   backgroundColor: const Color(0xFF1E2235),
-                   padding: const EdgeInsets.all(12),
-                ),
               ),
             ],
           ),
         ],
+      ),
+    );
+  }
+
+  void _showUnitSwitcher(BuildContext context, TenantProvider provider) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xFF141725),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => Container(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Select Unit for Maintenance',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
+            ),
+            const SizedBox(height: 16),
+            ...provider.userTenancies.map((t) => ListTile(
+              leading: Icon(
+                Icons.home, 
+                color: t.id == provider.tenant?.id ? const Color(0xFF4E95FF) : Colors.grey
+              ),
+              title: Text(
+                t.propertyName,
+                style: TextStyle(
+                  color: t.id == provider.tenant?.id ? Colors.white : Colors.grey.shade400,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              subtitle: Text('Unit ${t.unitNumber}', style: TextStyle(color: Colors.grey.shade500)),
+              trailing: t.id == provider.tenant?.id 
+                  ? const Icon(Icons.check_circle, color: Color(0xFF4E95FF))
+                  : null,
+              onTap: () {
+                provider.switchTenant(t);
+                Navigator.pop(context);
+              },
+            )).toList(),
+            const SizedBox(height: 20),
+          ],
+        ),
       ),
     );
   }
