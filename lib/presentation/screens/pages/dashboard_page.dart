@@ -21,6 +21,7 @@ import '../payments/payment_history_page.dart';
 import 'messages_page.dart';
 import 'maintenance_page.dart';
 import 'profile_page.dart';
+import 'lease_rules_page.dart';
 
 // Widgets
 import '../widgets/header_section.dart';
@@ -422,12 +423,18 @@ class _DashboardHomeState extends State<DashboardHome> {
                     onPayRent: () {}, 
                     onRequestMaintenance: () => _navigateToPage(3), 
                     onViewMessages: () => _navigateToPage(3),    
-                    onViewDocuments: () => _navigateToPage(2),   
+                    onViewLease: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => const LeaseRulesPage()),
+                      );
+                    },   
                   ),
                   const SizedBox(height: 25),
                   PaymentHistoryList(
                     payments: tenantProvider.payments,
                     isLoading: tenantProvider.isLoading,
+                    onViewAll: () => _navigateToPage(2),
                   ),
                 ] else if (authProvider.isTenant) ...[
                   _buildTenantApplicationStatus(authProvider, applicationProvider),

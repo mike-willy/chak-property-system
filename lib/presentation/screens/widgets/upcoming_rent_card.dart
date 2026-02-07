@@ -90,10 +90,38 @@ class UpcomingRentCard extends StatelessWidget {
       );
     }
 
-    // Calculate next rent date
-    final nextRentDate = tenantData!.leaseStartDate?.add(const Duration(days: 30)) ?? 
-                         DateTime.now().add(const Duration(days: 30));
-    final daysRemaining = nextRentDate.difference(DateTime.now()).inDays;
+    // Calculate next rent date automatically
+    // Rent is typically due monthly on the same day as the lease start date
+    DateTime nextRentDate;
+    final now = DateTime.now();
+    final leaseStart = tenantData!.leaseStartDate ?? tenantData!.createdAt;
+    
+    // Find the next anniversary of the lease start day
+    DateTime potentialDate = DateTime(now.year, now.month, leaseStart.day);
+    
+    // If the day is already passed this month, move to next month
+    if (potentialDate.isBefore(now) || (potentialDate.day == now.day && potentialDate.month == now.month && potentialDate.year == now.year)) {
+       // Correctly handle month overflow (e.g. going from Jan 31 to Feb)
+       int nextMonth = now.month + 1;
+       int nextYear = now.year;
+       if (nextMonth > 12) {
+         nextMonth = 1;
+         nextYear++;
+       }
+       
+       // Handle cases where the day doesn't exist in the next month (e.g. Jan 31 -> Feb 28)
+       int day = leaseStart.day;
+       int lastDayOfNextMonth = DateTime(nextYear, nextMonth + 1, 0).day;
+       if (day > lastDayOfNextMonth) {
+         day = lastDayOfNextMonth;
+       }
+       
+       nextRentDate = DateTime(nextYear, nextMonth, day);
+    } else {
+       nextRentDate = potentialDate;
+    }
+
+    final daysRemaining = nextRentDate.difference(now).inDays + 1; // +1 to be inclusive of the day
     final isDueSoon = daysRemaining <= 5;
 
     // Format currency

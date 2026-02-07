@@ -5,11 +5,13 @@ import '../../../data/models/payment_model.dart';
 class PaymentHistoryList extends StatelessWidget {
   final List<PaymentModel> payments;
   final bool isLoading;
+  final VoidCallback onViewAll;
 
   const PaymentHistoryList({
     super.key,
     required this.payments,
     required this.isLoading,
+    required this.onViewAll,
   });
 
   @override
@@ -34,6 +36,13 @@ class PaymentHistoryList extends StatelessWidget {
       );
     }
 
+    // Sort to ensure latest are first (redundant if backend/repo already sorts)
+    final sortedPayments = List<PaymentModel>.from(payments);
+    sortedPayments.sort((a, b) => b.dueDate.compareTo(a.dueDate));
+    
+    // Limit to latest 3 for dashboard
+    final limitedPayments = sortedPayments.take(3).toList();
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -41,7 +50,7 @@ class PaymentHistoryList extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             const Text(
-              'Payment History',
+              'Recent Payments',
               style: TextStyle(
                 color: Colors.white,
                 fontSize: 18,
@@ -49,13 +58,13 @@ class PaymentHistoryList extends StatelessWidget {
               ),
             ),
             TextButton(
-              onPressed: () {},
+              onPressed: onViewAll,
               child: const Text('View All', style: TextStyle(color: Color(0xFF4E95FF))),
             ),
           ],
         ),
         const SizedBox(height: 10),
-        ...payments.map((payment) => _buildPaymentItem(payment)),
+        ...limitedPayments.map((payment) => _buildPaymentItem(payment)),
       ],
     );
   }

@@ -4,14 +4,14 @@ class QuickActionsGrid extends StatelessWidget {
   final VoidCallback onPayRent;
   final VoidCallback onRequestMaintenance;
   final VoidCallback onViewMessages; // Keep for fallback or other actions
-  final VoidCallback onViewDocuments; // Keep for fallback or other actions
+  final VoidCallback onViewLease; // Renamed to Lease
 
   const QuickActionsGrid({
     super.key,
     required this.onPayRent,
     required this.onRequestMaintenance,
     required this.onViewMessages,
-    required this.onViewDocuments,
+    required this.onViewLease,
   });
 
   @override
@@ -31,12 +31,12 @@ class QuickActionsGrid extends StatelessWidget {
         const SizedBox(width: 16),
         Expanded(
           child: _buildActionCard(
-            label: 'Lease Terms',
-            icon: Icons.description, // Reusing Documents as Lease Terms
+            label: 'Lease Rules',
+            icon: Icons.description, 
             color: const Color(0xFF2C2F42),
             iconColor: Colors.orange.shade300,
             iconBgColor: Colors.orange.withOpacity(0.2),
-            onTap: onViewDocuments, // Using documents callback for Lease Terms
+            onTap: onViewLease, 
           ),
         ),
       ],

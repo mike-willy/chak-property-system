@@ -43,7 +43,7 @@ class TenantHomeCard extends StatelessWidget {
     // Use first image or a placeholder
     final propertyImage = (propertyData?.images != null && propertyData!.images.isNotEmpty)
         ? propertyData!.images.first
-        : 'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?q=80&w=1000&auto=format&fit=crop';
+        : null;
 
     final managerName = propertyData?.ownerName.isNotEmpty == true 
         ? propertyData!.ownerName 
@@ -70,17 +70,15 @@ class TenantHomeCard extends StatelessWidget {
             children: [
               ClipRRect(
                 borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-                child: Image.network(
-                  propertyImage,
-                  height: 160,
-                  width: double.infinity,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) => Container(
-                    height: 160,
-                    color: Colors.grey.shade800,
-                    child: const Icon(Icons.home, size: 50, color: Colors.grey),
-                  ),
-                ),
+                child: propertyImage != null 
+                  ? Image.network(
+                      propertyImage,
+                      height: 180,
+                      width: double.infinity,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) => _buildPlaceholderImage(),
+                    )
+                  : _buildPlaceholderImage(),
               ),
               Positioned(
                 top: 12,
@@ -171,6 +169,31 @@ class TenantHomeCard extends StatelessWidget {
                 ),
               ],
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPlaceholderImage() {
+    return Container(
+      height: 180,
+      width: double.infinity,
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF2C2F42), Color(0xFF141725)],
+        ),
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.home_work_outlined, size: 48, color: Colors.blue.withOpacity(0.3)),
+          const SizedBox(height: 8),
+          Text(
+            'No Image Available',
+            style: TextStyle(color: Colors.grey.withOpacity(0.5), fontSize: 12),
           ),
         ],
       ),
