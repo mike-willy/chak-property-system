@@ -149,22 +149,22 @@ class ProfilePage extends StatelessWidget {
 
             const SizedBox(height: 32),
 
-            // Latest Application Status Section
+            // Applications Section
             const Text(
-              'Latest Application',
+              'My Applications',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
             ),
             const SizedBox(height: 16),
             
-            // Application Section - Show only latest
-            _buildLatestApplicationSection(context, user.id),
+            // Application Section - Show all
+            _buildApplicationsSection(context, user.id),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildLatestApplicationSection(BuildContext context, String userId) {
+  Widget _buildApplicationsSection(BuildContext context, String userId) {
     final applicationProvider = context.watch<ApplicationProvider>();
     final auth = context.watch<AuthProvider>();
     final userEmail = auth.userProfile?.email;
@@ -186,7 +186,7 @@ class ProfilePage extends StatelessWidget {
                 const SizedBox(width: 16),
                 Expanded(
                   child: Text(
-                    'Error loading application',
+                    'Error loading applications',
                     style: const TextStyle(color: Colors.redAccent),
                   ),
                 ),
@@ -225,17 +225,24 @@ class ProfilePage extends StatelessWidget {
           );
         }
 
-        // Get only the most recent application
+        // Get all applications sorted by date
         final applications = List<ApplicationModel>.from(snapshot.data!);
         applications.sort((a, b) => b.appliedDate.compareTo(a.appliedDate));
-        final latestApplication = applications.first;
 
-        return _buildLatestApplicationCard(context, latestApplication, applications.length);
+        return ListView.separated(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: applications.length,
+          separatorBuilder: (context, index) => const SizedBox(height: 16),
+          itemBuilder: (context, index) {
+            return _buildApplicationCard(context, applications[index]);
+          },
+        );
       },
     );
   }
 
-  Widget _buildLatestApplicationCard(BuildContext context, ApplicationModel application, int totalApplications) {
+  Widget _buildApplicationCard(BuildContext context, ApplicationModel application) {
     final status = application.status.value;
     final statusColor = _getStatusColor(status);
     final statusIcon = _getStatusIcon(status);
@@ -519,20 +526,6 @@ class ProfilePage extends StatelessWidget {
                     ),
                   ),
                 ),
-
-                // Show total applications count if more than 1
-                if (totalApplications > 1) ...[
-                  const SizedBox(height: 16),
-                  Center(
-                    child: Text(
-                      'You have ${totalApplications - 1} other application${totalApplications > 2 ? 's' : ''}',
-                      style: TextStyle(
-                        color: Colors.grey.shade600,
-                        fontSize: 12,
-                      ),
-                    ),
-                  ),
-                ],
               ],
             ),
           ),

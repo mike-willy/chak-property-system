@@ -184,10 +184,6 @@ class ApplicationStatusPage extends StatelessWidget {
                       ),
                     ],
                     const SizedBox(height: 24),
-                    TextButton(
-                      onPressed: () => Navigator.pop(context),
-                      child: const Text('Back to Property Details'),
-                    ),
                   ],
                 ),
               );
