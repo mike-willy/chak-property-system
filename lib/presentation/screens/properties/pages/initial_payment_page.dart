@@ -31,6 +31,11 @@ class _InitialPaymentPageState extends State<InitialPaymentPage> {
   String? _error;
   PropertyModel? _property;
   
+  // Fees
+  double _securityDeposit = 0;
+  double _applicationFee = 0;
+  double _petDeposit = 0;
+
   // Payment tracking
   String? _paymentId;
   String? _checkoutRequestId;
@@ -53,11 +58,34 @@ class _InitialPaymentPageState extends State<InitialPaymentPage> {
       final repo = context.read<PropertyRepository>();
       final result = await repo.getPropertyById(widget.application.propertyId!);
       
+      // Fetch raw application data to get fees not in the model
+      final appDoc = await FirebaseFirestore.instance
+          .collection('tenantApplications')
+          .doc(widget.application.id)
+          .get();
+          
+      double appFee = 0;
+      double petDep = 0;
+      double secDep = 0;
+      
+      if (appDoc.exists) {
+        final data = appDoc.data()!;
+        appFee = (data['applicationFee'] as num?)?.toDouble() ?? 0.0;
+        petDep = (data['petDeposit'] as num?)?.toDouble() ?? 0.0;
+        secDep = (data['securityDeposit'] as num?)?.toDouble() ?? 0.0;
+        
+        // If security deposit is 0 in application, fallback to property default later
+      }
+
       result.fold(
         (failure) => setState(() => _error = failure.message),
         (property) {
           setState(() {
             _property = property;
+            _applicationFee = appFee;
+            _petDeposit = petDep;
+            // Use application specific security deposit if available/non-zero, else property default
+            _securityDeposit = secDep > 0 ? secDep : property.deposit;
             _isLoading = false;
           });
           _prefillPhone();
@@ -91,7 +119,9 @@ class _InitialPaymentPageState extends State<InitialPaymentPage> {
       _error = null;
     });
 
-    final totalAmount = (widget.application.monthlyRent ?? 0.0) + _property!.deposit;
+    final rent = widget.application.monthlyRent ?? 0.0;
+    // Security deposit now managed in state based on app/property
+    final totalAmount = rent + _securityDeposit + _applicationFee + _petDeposit;
 
     try {
       final repo = context.read<PaymentRepository>();
@@ -307,8 +337,8 @@ class _InitialPaymentPageState extends State<InitialPaymentPage> {
     }
 
     final rent = widget.application.monthlyRent ?? 0.0;
-    final deposit = _property!.deposit;
-    final total = rent + deposit;
+    // Use local state variables populated in _loadData
+    final total = rent + _securityDeposit + _applicationFee + _petDeposit;
 
     return Scaffold(
       appBar: AppBar(
@@ -331,7 +361,7 @@ class _InitialPaymentPageState extends State<InitialPaymentPage> {
               ),
               const SizedBox(height: 8),
               const Text(
-                'Please pay the initial rent and security deposit to finalize your lease.',
+                'Please pay the initial rent and deposits to finalize your lease.',
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 32),
@@ -344,7 +374,15 @@ class _InitialPaymentPageState extends State<InitialPaymentPage> {
                     children: [
                        _buildLineItem('First Month Rent', rent),
                        const Divider(),
-                       _buildLineItem('Security Deposit', deposit),
+                       _buildLineItem('Security Deposit', _securityDeposit),
+                       if (_applicationFee > 0) ...[
+                         const Divider(),
+                         _buildLineItem('Application Fee', _applicationFee),
+                       ],
+                       if (_petDeposit > 0) ...[
+                         const Divider(),
+                         _buildLineItem('Pet Deposit', _petDeposit),
+                       ],
                        const Divider(thickness: 2),
                        _buildLineItem('Total Due', total, isTotal: true),
                     ],
