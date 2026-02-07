@@ -69,7 +69,7 @@ class AuthProvider extends ChangeNotifier {
     if (_authRepository == null || firebaseUser == null) return;
 
     try {
-      final result = await _authRepository!.getUserProfile(firebaseUser!.uid);
+      final result = await _authRepository.getUserProfile(firebaseUser!.uid);
       result.fold(
         (failure) {
           debugPrint('User profile not found: ${failure.message}');
@@ -125,7 +125,7 @@ class AuthProvider extends ChangeNotifier {
           idNumber: idNumber,
         );
 
-        final result = await _authRepository!.createUserProfile(userModel);
+        final result = await _authRepository.createUserProfile(userModel);
         result.fold(
           (failure) {
             debugPrint('Failed to create user profile: ${failure.message}');
@@ -251,7 +251,7 @@ class AuthProvider extends ChangeNotifier {
     if (firebaseUser == null || _authRepository == null) return 'Auth not initialized';
 
     try {
-      final result = await _authRepository!.getUserProfile(firebaseUser!.uid);
+      final result = await _authRepository.getUserProfile(firebaseUser!.uid);
       
       // Use a Completer or local variable to extract the return value from the Either fold
       String? returnError;
@@ -278,7 +278,7 @@ class AuthProvider extends ChangeNotifier {
             isVerified: false,
             idNumber: '', 
           );
-          final createResult = await _authRepository!.createUserProfile(userModel);
+          final createResult = await _authRepository.createUserProfile(userModel);
           createResult.fold(
             (failure) {
                debugPrint('Failed to create profile: ${failure.message}');

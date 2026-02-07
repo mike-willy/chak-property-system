@@ -172,7 +172,7 @@ class PaymentRepository {
     try {
       final querySnapshot = await _paymentsRef
           .where('tenantId', isEqualTo: tenantId)
-          .orderBy('initiatedAt', descending: true)
+          .orderBy('createdAt', descending: true)
           .limit(10)
           .get();
 
@@ -187,7 +187,7 @@ class PaymentRepository {
           method: PaymentMethodExtension.fromString(data['method'] ?? 'mobile'),
           status: PaymentStatusExtension.fromString(data['status'] ?? 'pending'),
           transactionId: data['checkoutRequestId'],
-          dueDate: (data['initiatedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+          dueDate: (data['initiatedAt'] as Timestamp?)?.toDate() ?? (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
           paidDate: data['completedAt'] != null
               ? (data['completedAt'] as Timestamp).toDate()
               : null,
@@ -203,7 +203,7 @@ class PaymentRepository {
   Stream<List<PaymentModel>> getPaymentsStream(String tenantId) {
     return _paymentsRef
         .where('tenantId', isEqualTo: tenantId)
-        .orderBy('initiatedAt', descending: true)
+        .orderBy('createdAt', descending: true)
         .limit(20)
         .snapshots()
         .map((snapshot) {
@@ -218,7 +218,45 @@ class PaymentRepository {
           method: PaymentMethodExtension.fromString(data['method'] ?? 'mobile'),
           status: PaymentStatusExtension.fromString(data['status'] ?? 'pending'),
           transactionId: data['checkoutRequestId'],
-          dueDate: (data['initiatedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+          dueDate: (data['initiatedAt'] as Timestamp?)?.toDate() ?? (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+          paidDate: data['completedAt'] != null
+              ? (data['completedAt'] as Timestamp).toDate()
+              : null,
+        );
+      }).toList();
+    });
+  }
+
+  // Stream payments for a list of IDs (User ID + All Tenant IDs)
+  Stream<List<PaymentModel>> getPaymentsStreamForList(List<String> ids) {
+    // Remove duplicates and empty strings
+    final distinctIds = ids.where((id) => id.isNotEmpty).toSet().toList();
+
+    if (distinctIds.isEmpty) {
+      return Stream.value([]);
+    }
+    
+    // Firestore 'whereIn' supports up to 10 values
+    final queryIds = distinctIds.take(10).toList();
+
+    return _paymentsRef
+        .where('tenantId', whereIn: queryIds)
+        .orderBy('createdAt', descending: true)
+        .limit(50) // Increased limit to seeing more history
+        .snapshots()
+        .map((snapshot) {
+      return snapshot.docs.map((doc) {
+        final data = doc.data() as Map<String, dynamic>;
+
+        return PaymentModel(
+          id: doc.id,
+          leaseId: data['applicationId'] ?? '',
+          tenantId: data['tenantId'] ?? '',
+          amount: (data['amount'] as num).toDouble(),
+          method: PaymentMethodExtension.fromString(data['method'] ?? 'mobile'),
+          status: PaymentStatusExtension.fromString(data['status'] ?? 'pending'),
+          transactionId: data['checkoutRequestId'],
+          dueDate: (data['initiatedAt'] as Timestamp?)?.toDate() ?? (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
           paidDate: data['completedAt'] != null
               ? (data['completedAt'] as Timestamp).toDate()
               : null,
@@ -246,7 +284,7 @@ class PaymentRepository {
         method: PaymentMethodExtension.fromString(data['method'] ?? 'mobile'),
         status: PaymentStatusExtension.fromString(data['status'] ?? 'pending'),
         transactionId: data['checkoutRequestId'],
-        dueDate: (data['initiatedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+        dueDate: (data['initiatedAt'] as Timestamp?)?.toDate() ?? (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
         paidDate: data['completedAt'] != null
             ? (data['completedAt'] as Timestamp).toDate()
             : null,
@@ -277,7 +315,7 @@ class PaymentRepository {
           method: PaymentMethodExtension.fromString(data['method'] ?? 'mobile'),
           status: PaymentStatusExtension.fromString(data['status'] ?? 'pending'),
           transactionId: data['checkoutRequestId'],
-          dueDate: (data['initiatedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+          dueDate: (data['initiatedAt'] as Timestamp?)?.toDate() ?? (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
           paidDate: data['completedAt'] != null
               ? (data['completedAt'] as Timestamp).toDate()
               : null,
@@ -307,7 +345,7 @@ class PaymentRepository {
           method: PaymentMethodExtension.fromString(data['method'] ?? 'mobile'),
           status: PaymentStatusExtension.fromString(data['status'] ?? 'pending'),
           transactionId: data['checkoutRequestId'],
-          dueDate: (data['initiatedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+          dueDate: (data['initiatedAt'] as Timestamp?)?.toDate() ?? (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
           paidDate: data['completedAt'] != null
               ? (data['completedAt'] as Timestamp).toDate()
               : null,

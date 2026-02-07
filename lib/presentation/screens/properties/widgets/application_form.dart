@@ -241,7 +241,7 @@ class _ApplicationFormState extends State<ApplicationForm> {
           // Try different status filters
           List<QueryDocumentSnapshot> vacantUnits = [];
           for (var doc in unitsQuery.docs) {
-            final data = doc.data() as Map<String, dynamic>;
+            final data = doc.data();
             final status = data['status']?.toString().toLowerCase();
             final isAvailable = data['isAvailable'] ?? false;
             
@@ -259,7 +259,7 @@ class _ApplicationFormState extends State<ApplicationForm> {
           } else if (unitsQuery.docs.isNotEmpty) {
             print('No vacant units found, taking all ${unitsQuery.docs.length} units');
             unitsList = unitsQuery.docs.map((doc) {
-              final data = doc.data() as Map<String, dynamic>;
+              final data = doc.data();
               return _createUnitMap(doc.id, data);
             }).toList();
           }
@@ -1504,7 +1504,7 @@ class _ApplicationFormState extends State<ApplicationForm> {
                   _hasPet = value;
                 });
               },
-              activeColor: Colors.green,
+              activeThumbColor: Colors.green,
             ),
           ],
         ),

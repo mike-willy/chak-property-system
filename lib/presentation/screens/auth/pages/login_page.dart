@@ -5,7 +5,6 @@ import 'package:mobile_app/core/common/validators.dart';
 import 'package:mobile_app/presentation/themes/theme_colors.dart';
 import 'signup_page.dart';
 import 'package:mobile_app/presentation/screens/properties/pages/application_page.dart';
-import 'package:mobile_app/presentation/screens/properties/pages/property_list_page.dart';
 import '../../pages/dashboard_page.dart';
 
 

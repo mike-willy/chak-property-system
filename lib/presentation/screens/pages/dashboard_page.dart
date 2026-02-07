@@ -401,7 +401,7 @@ class _DashboardHomeState extends State<DashboardHome> {
                   title: Text(app.propertyName ?? 'Application', style: const TextStyle(color: Colors.white)),
                   trailing: Text(app.status.name.toUpperCase(), style: const TextStyle(color: Colors.orange, fontWeight: FontWeight.bold)),
                 ),
-              )).toList(),
+              )),
             ],
             _buildGuestView(),
           ],

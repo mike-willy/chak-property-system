@@ -1,6 +1,5 @@
 // lib/providers/message_provider.dart
 import 'package:flutter/foundation.dart';
-import 'package:provider/provider.dart';
 import '../data/repositories/message_repository.dart';
 import '../data/models/message_model.dart';
 

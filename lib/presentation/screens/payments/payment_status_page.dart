@@ -11,11 +11,11 @@ class PaymentStatusPage extends StatefulWidget {
   final double amount;
 
   const PaymentStatusPage({
-    Key? key,
+    super.key,
     required this.paymentId,
     required this.checkoutRequestId,
     required this.amount,
-  }) : super(key: key);
+  });
 
   @override
   State<PaymentStatusPage> createState() => _PaymentStatusPageState();

@@ -27,7 +27,7 @@ class _SignupPageState extends State<SignupPage> {
   bool _obscureConfirmPassword = true;
   bool _acceptedTerms = false;
   bool _isLoading = false;
-  bool _isSignUpMode = true; // true for Sign Up, false for Log In
+  final bool _isSignUpMode = true; // true for Sign Up, false for Log In
 
   @override
   void dispose() {

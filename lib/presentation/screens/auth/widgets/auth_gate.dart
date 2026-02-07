@@ -6,7 +6,6 @@ import 'package:mobile_app/providers/auth_provider.dart';
 import 'package:mobile_app/providers/message_provider.dart';
 import 'package:mobile_app/presentation/themes/theme_colors.dart';
 import '../pages/role_selection_page.dart';
-import '../pages/login_page.dart';
 import '../../pages/dashboard_page.dart';
 
 class AuthGate extends StatefulWidget {

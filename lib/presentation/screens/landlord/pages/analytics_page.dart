@@ -7,7 +7,6 @@ import '../../../../data/models/tenant_model.dart'; // Added
 import '../../../../data/models/maintenance_model.dart'; // Added for MaintenanceStatus
 import '../../../../providers/tenant_provider.dart';
 import '../../../../providers/maintenance_provider.dart';
-import '../../../../data/models/payment_model.dart';
 import '../../../../presentation/themes/theme_colors.dart';
 import 'package:intl/intl.dart';
 

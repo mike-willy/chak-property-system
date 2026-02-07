@@ -217,7 +217,7 @@ class MaintenanceCard extends StatelessWidget {
                         ),
                         const SizedBox(width: 6),
                         Text(
-                          getPriorityText(request.priority) + ' Priority',
+                          '${getPriorityText(request.priority)} Priority',
                           style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w600,

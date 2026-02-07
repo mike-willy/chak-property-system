@@ -6,7 +6,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../../../../data/models/application_model.dart';
 import '../../../../data/models/property_model.dart';
-import '../../../../data/models/payment_model.dart';
 import '../../../../data/models/tenant_model.dart';
 import '../../../../data/repositories/payment_repository.dart';
 import '../../../../data/repositories/property_repository.dart';

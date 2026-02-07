@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_firestore/cloud_firestore.dart'; // Added for local query
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import '../../../data/models/payment_model.dart';
+import '../../../data/models/tenant_model.dart'; // Added
+import '../../../data/repositories/payment_repository.dart';
+import '../../../data/repositories/tenant_repository.dart'; // Added
 import '../../../providers/auth_provider.dart';
+import '../../../providers/tenant_provider.dart';
 
 class PaymentHistoryPage extends StatefulWidget {
-  // Added 'const' here - this fixes the "Not a constant expression" error
   const PaymentHistoryPage({super.key});
 
   @override
@@ -13,68 +17,107 @@ class PaymentHistoryPage extends StatefulWidget {
 }
 
 class _PaymentHistoryPageState extends State<PaymentHistoryPage> {
-  String _filterStatus = 'completed'; 
+  String _filterStatus = 'all';
+
+  // Helper to fetch all tenant IDs for the user directly
+  Future<List<String>> _fetchTenantIds(String userId) async {
+    try {
+      final snapshot = await FirebaseFirestore.instance
+          .collection('tenants')
+          .where('userId', isEqualTo: userId)
+          .get();
+      return snapshot.docs.map((doc) => doc.id).toList();
+    } catch (e) {
+      debugPrint('Error fetching tenant IDs: $e');
+      return [];
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    // Using watch instead of read for reactive updates if the ID changes
+    // 1. Get AuthProvider for User ID
     final authProvider = context.watch<AuthProvider>();
+    final userId = authProvider.userId; 
 
-    return Scaffold(
-      backgroundColor: const Color(0xFF141725),
-      appBar: AppBar(
-        title: const Text('Payment History', 
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-        backgroundColor: const Color(0xFF141725),
-        elevation: 0,
-        centerTitle: false,
-        iconTheme: const IconThemeData(color: Colors.white),
-      ),
-      body: Column(
-        children: [
-          _buildFilterBar(),
-          Expanded(
-            child: StreamBuilder<QuerySnapshot>(
-              stream: FirebaseFirestore.instance
-                  .collection('payments')
-                  .where('tenantId', isEqualTo: authProvider.userId)
-                  .orderBy('createdAt', descending: true)
-                  .snapshots(),
-              builder: (context, snapshot) {
-                if (snapshot.hasError) {
-                  debugPrint("Firestore Error: ${snapshot.error}");
-                  return _buildErrorState(snapshot.error.toString());
-                }
-                
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator(color: Color(0xFF4E95FF)));
-                }
+    // 2. Fetch ALL Tenant IDs for this user (using local helper)
+    return FutureBuilder<List<String>>(
+      future: userId != null 
+          ? _fetchTenantIds(userId)
+          : Future.value([]),
+      builder: (context, snapshot) {
+        // Collect IDs
+        final allTenantIds = snapshot.data ?? [];
+        
+        // Add current tenant ID from provider if not in list
+        final providerTenant = context.watch<TenantProvider>().tenant;
+        if (providerTenant != null && !allTenantIds.contains(providerTenant.id)) {
+          allTenantIds.add(providerTenant.id);
+        }
 
-                final allDocs = snapshot.data?.docs ?? [];
-                
-                // Filtering
-                final docs = _filterStatus == 'all' 
-                    ? allDocs 
-                    : allDocs.where((d) {
-                        final data = d.data() as Map<String, dynamic>;
-                        return data['status'] == 'completed';
-                      }).toList();
+        // Combine with User ID
+        final idsToQuery = <String>{
+          if (userId != null) userId,
+          ...allTenantIds
+        }.toList();
 
-                if (docs.isEmpty) return _buildEmptyState();
+        // Loading state
+        if (snapshot.connectionState == ConnectionState.waiting && idsToQuery.isEmpty) {
+           return Scaffold(
+            backgroundColor: const Color(0xFF141725),
+            appBar: AppBar(title: const Text('Payment History'), backgroundColor: const Color(0xFF141725)),
+            body: const Center(child: CircularProgressIndicator(color: Color(0xFF4E95FF))),
+          );
+        }
 
-                return ListView.builder(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  itemCount: docs.length,
-                  itemBuilder: (context, index) {
-                    final data = docs[index].data() as Map<String, dynamic>;
-                    return _buildTransactionCard(data);
-                  },
-                );
-              },
-            ),
+        return Scaffold(
+          backgroundColor: const Color(0xFF141725),
+          appBar: AppBar(
+            title: const Text('Payment History',
+                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            backgroundColor: const Color(0xFF141725),
+            elevation: 0,
+            iconTheme: const IconThemeData(color: Colors.white),
           ),
-        ],
-      ),
+          body: Column(
+            children: [
+              _buildFilterBar(),
+              Expanded(
+                child: StreamBuilder<List<PaymentModel>>(
+                  // Use List of ALL IDs
+                  stream: context.read<PaymentRepository>().getPaymentsStreamForList(idsToQuery),
+                  builder: (context, snapshot) {
+                    if (snapshot.hasError) {
+                      debugPrint("Payment Stream Error: ${snapshot.error}");
+                      return _buildErrorState(snapshot.error.toString());
+                    }
+
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(child: CircularProgressIndicator(color: Color(0xFF4E95FF)));
+                    }
+
+                    final allPayments = snapshot.data ?? [];
+
+                    // Filtering
+                    final payments = _filterStatus == 'all'
+                        ? allPayments
+                        : allPayments.where((p) => p.status.value == 'completed').toList();
+
+                    if (payments.isEmpty) return _buildEmptyState();
+
+                    return ListView.builder(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      itemCount: payments.length,
+                      itemBuilder: (context, index) {
+                        return _buildTransactionCard(payments[index]);
+                      },
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 
@@ -109,11 +152,11 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage> {
     );
   }
 
-  Widget _buildTransactionCard(Map<String, dynamic> data) {
-    final String status = (data['status'] ?? 'pending').toString().toLowerCase();
-    final double amount = (data['amount'] ?? 0).toDouble();
-    final DateTime? date = (data['createdAt'] as Timestamp?)?.toDate();
-    final bool isSuccess = status == 'completed';
+  Widget _buildTransactionCard(PaymentModel payment) {
+    final status = payment.status.value;
+    final isSuccess = status == 'completed';
+    // Use paidDate if available (completed), otherwise user init date (dueDate in model maps to initiatedAt)
+    final date = payment.paidDate ?? payment.dueDate;
 
     return Card(
       color: const Color(0xFF1E2235),
@@ -129,12 +172,12 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage> {
             shape: BoxShape.circle,
           ),
           child: Icon(
-            isSuccess ? Icons.receipt_long : Icons.pending_actions, 
+            isSuccess ? Icons.receipt_long : Icons.pending_actions,
             color: isSuccess ? Colors.greenAccent : Colors.orangeAccent,
           ),
         ),
         title: Text(
-          'KES ${NumberFormat('#,###').format(amount)}', 
+          'KES ${NumberFormat('#,###').format(payment.amount)}',
           style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)
         ),
         subtitle: Column(
@@ -142,18 +185,26 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage> {
           children: [
             const SizedBox(height: 4),
             Text(
-              date != null ? DateFormat('MMMM dd, yyyy • hh:mm a').format(date) : 'Date Unknown',
+              DateFormat('MMMM dd, yyyy • hh:mm a').format(date),
               style: const TextStyle(color: Colors.grey, fontSize: 12),
             ),
+             if (payment.transactionId != null && payment.transactionId!.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(top: 2),
+                child: Text(
+                  'Ref: ${payment.transactionId}',
+                   style: const TextStyle(color: Colors.white24, fontSize: 10),
+                ),
+              ),
           ],
         ),
-        trailing: isSuccess 
+        trailing: isSuccess
           ? IconButton(
               icon: const Icon(Icons.file_download_outlined, color: Color(0xFF4E95FF)),
               onPressed: () {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: Text("Generating PDF for KES $amount..."),
+                    content: Text("Generating Receipt for KES ${payment.amount}..."),
                     backgroundColor: const Color(0xFF4E95FF),
                   )
                 );
@@ -166,7 +217,7 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage> {
                 borderRadius: BorderRadius.circular(4),
               ),
               child: Text(
-                status.toUpperCase(), 
+                status.toUpperCase(),
                 style: const TextStyle(color: Colors.orange, fontSize: 10, fontWeight: FontWeight.bold)
               ),
             ),
@@ -181,7 +232,7 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage> {
         children: [
           Icon(Icons.history_toggle_off, size: 64, color: Colors.grey.withOpacity(0.3)),
           const SizedBox(height: 16),
-          const Text("No payment history found", 
+          const Text("No payment history found",
             style: TextStyle(color: Colors.grey, fontSize: 16)),
         ],
       ),
@@ -193,7 +244,7 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage> {
       child: Padding(
         padding: const EdgeInsets.all(24.0),
         child: Text(
-          "Error: $error", 
+          "Error: $error",
           textAlign: TextAlign.center,
           style: const TextStyle(color: Colors.redAccent)
         ),

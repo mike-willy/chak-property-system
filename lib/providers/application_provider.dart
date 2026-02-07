@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import '../data/models/application_model.dart';
 import '../data/repositories/application_repository.dart';
 import '../data/repositories/tenant_repository.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 
 class ApplicationProvider extends ChangeNotifier {
   final ApplicationRepository _applicationRepo;

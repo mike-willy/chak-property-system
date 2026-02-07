@@ -7,7 +7,7 @@ import '../../../providers/auth_provider.dart';
 import '../../../data/models/message_model.dart';
 
 class MessagesPage extends StatefulWidget {
-  const MessagesPage({Key? key}) : super(key: key);
+  const MessagesPage({super.key});
 
   @override
   State<MessagesPage> createState() => _MessagesPageState();
@@ -204,10 +204,10 @@ class ChatBubble extends StatelessWidget {
   final bool isMe;
 
   const ChatBubble({
-    Key? key,
+    super.key,
     required this.message,
     required this.isMe,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

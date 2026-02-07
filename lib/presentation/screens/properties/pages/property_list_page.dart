@@ -1,6 +1,5 @@
 // presentation/screens/properties/pages/property_list_page.dart
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:mobile_app/data/models/property_model.dart';
 import 'package:mobile_app/presentation/screens/properties/pages/property_detail_page.dart';

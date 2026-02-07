@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../../../core/common/constants.dart';
 import '../../../data/models/tenant_model.dart';
 import '../../../data/models/property_model.dart';
 

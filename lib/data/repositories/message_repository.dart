@@ -305,7 +305,7 @@ class MessageRepository {
       }
     } catch (e) {
       print('Error marking message as read: $e');
-      throw e;
+      rethrow;
     }
   }
 
@@ -343,7 +343,7 @@ class MessageRepository {
       
     } catch (e) {
       print('Error sending reply: $e');
-      throw e;
+      rethrow;
     }
   }
 
@@ -372,7 +372,7 @@ class MessageRepository {
       await _firestore.collection('messages').add(messageData);
     } catch (e) {
       print('Error sending message to admin: $e');
-      throw e;
+      rethrow;
     }
   }
 }

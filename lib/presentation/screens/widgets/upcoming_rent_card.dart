@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../../../core/widgets/common_widgets.dart';
 import '../../../data/models/tenant_model.dart';
 import '../../../data/models/property_model.dart';
 import '../../../data/models/address_model.dart';

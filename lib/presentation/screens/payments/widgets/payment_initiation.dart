@@ -51,7 +51,9 @@ class PaymentInitiation {
           'checkoutRequestId': result['checkoutRequestId'],
           'merchantRequestId': result['merchantRequestId'],
           'status': 'pending',
+          'status': 'pending',
           'createdAt': FieldValue.serverTimestamp(),
+          'initiatedAt': FieldValue.serverTimestamp(), // Added for consistency
           'reference': reference,
           'responseDescription': result['responseDescription'],
         });

@@ -35,7 +35,7 @@ class _CreateMaintenanceRequestPageState
   String? _selectedPropertyName;
   String? _selectedUnitName;
   String? _selectedTitle;
-  List<String> _images = [];
+  final List<String> _images = [];
 
   bool _isSubmitting = false;
   bool _isLoadingUnit = false;
@@ -117,9 +117,7 @@ class _CreateMaintenanceRequestPageState
 
       tenant = await tenantRepo.getTenantByUserId(userId);
 
-      if (tenant == null) {
-        tenant = await tenantRepo.getTenantById(userId);
-      }
+      tenant ??= await tenantRepo.getTenantById(userId);
 
       if (tenant == null && authProvider.firebaseUser?.email != null) {
         tenant = await tenantRepo.getTenantByEmail(
@@ -315,7 +313,7 @@ class _CreateMaintenanceRequestPageState
           return Column(
             children: [
               TextFormField(
-                key: ValueKey('prop_${_selectedPropertyName}'),
+                key: ValueKey('prop_$_selectedPropertyName'),
                 initialValue: _selectedPropertyName ?? 'Loading building...',
                 decoration: const InputDecoration(
                   labelText: 'Building',
@@ -326,7 +324,7 @@ class _CreateMaintenanceRequestPageState
               ),
               const SizedBox(height: 16),
               TextFormField(
-                key: ValueKey('unit_${_selectedUnitName}'),
+                key: ValueKey('unit_$_selectedUnitName'),
                 initialValue: _selectedUnitName ?? 'Loading unit...',
                 decoration: const InputDecoration(
                   labelText: 'Unit / Door Number',
@@ -342,7 +340,7 @@ class _CreateMaintenanceRequestPageState
           return Column(
             children: [
               DropdownButtonFormField<String>(
-                value: _selectedPropertyId,
+                initialValue: _selectedPropertyId,
                 decoration: const InputDecoration(
                   labelText: 'Select Property',
                   prefixIcon: Icon(FontAwesomeIcons.building),
@@ -372,7 +370,7 @@ class _CreateMaintenanceRequestPageState
                 const LinearProgressIndicator()
               else
                 DropdownButtonFormField<String>(
-                  value: _selectedUnitId,
+                  initialValue: _selectedUnitId,
                   decoration: const InputDecoration(
                     labelText: 'Select Unit',
                     prefixIcon: Icon(FontAwesomeIcons.doorOpen),
@@ -406,7 +404,7 @@ class _CreateMaintenanceRequestPageState
       builder: (context, maintenanceProvider, _) {
         final categories = maintenanceProvider.categories;
         return DropdownButtonFormField<String>(
-          value: _selectedTitle,
+          initialValue: _selectedTitle,
           decoration: const InputDecoration(
             labelText: 'Issue Category',
             hintText: 'Select the type of issue',

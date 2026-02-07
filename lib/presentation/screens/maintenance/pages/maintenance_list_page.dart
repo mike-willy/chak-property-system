@@ -1,10 +1,8 @@
 // presentation/screens/maintenance/pages/maintenance_list_page.dart
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:provider/provider.dart';
 import '../../../../providers/maintenance_provider.dart';
-import '../../../../data/models/maintenance_model.dart';
 import '../../../../providers/auth_provider.dart';
 import '../widgets/maintenance_card.dart';
 import 'create_maintenance_request_page.dart';

@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mobile_app/presentation/screens/auth/pages/role_selection_page.dart';
-import 'package:mobile_app/presentation/screens/auth/pages/login_page.dart';
 import 'package:mobile_app/providers/auth_provider.dart';
-import 'package:provider/provider.dart';
 import 'package:mockito/mockito.dart';
 
 class MockAuthProvider extends Mock implements AuthProvider {}

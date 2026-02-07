@@ -104,6 +104,7 @@ class TenantProvider with ChangeNotifier {
       
       if (_tenant != null) {
         // 2. Fetch Payments if tenant exists
+        // Reverted to use Tenant Document ID as requested by user (matches Admin panel)
         _payments = await _paymentRepository.getPaymentsByTenantId(_tenant!.id);
 
         // 3. Fetch Unit details if propertyId and unitId are available

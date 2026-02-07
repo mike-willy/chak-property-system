@@ -2,74 +2,227 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     
-    // ==================== SIMPLE HELPER FUNCTIONS ====================
+    // ==================== HELPER FUNCTIONS ====================
     function isAuthenticated() {
       return request.auth != null;
     }
     
+    function getUserRole() {
+      let userDoc = get(/databases/$(database)/documents/users/$(request.auth.uid));
+      return userDoc != null ? userDoc.data.role : null;
+    }
+    
     function isAdmin() {
-      // WARNING: This currently allows ANY authenticated user to act as admin.
-      // In production, you should check for a specific role or UID.
-      return isAuthenticated();
+      return isAuthenticated() && getUserRole() == 'admin';
+    }
+    
+    function isLandlord() {
+      return isAuthenticated() && getUserRole() == 'landlord';
+    }
+    
+    function isTenant() {
+      return isAuthenticated() && getUserRole() == 'tenant';
+    }
+    
+    function isSystem() {
+      return isAuthenticated() && request.auth.token.isSystem == true;
     }
 
-    // ==================== MESSAGING (NEW) ====================
-    // Global messages collection
-    match /messages/{messageId} {
-      allow read: if isAuthenticated() && (
-        resource.data.recipientId == request.auth.uid || 
-        resource.data.senderId == request.auth.uid
-      );
-      allow create: if isAuthenticated() && request.resource.data.senderId == request.auth.uid;
-      allow update: if isAuthenticated() && resource.data.recipientId == request.auth.uid;
-    }
-
-    // ==================== LANDLORDS COLLECTION ====================
-    match /landlords/{landlordId} {
-      // SIMPLE: Admin can create landlords
+    // ==================== ADMINS COLLECTION ====================
+    match /admins/{adminId} {
       allow create: if isAdmin();
-      
-      // SIMPLE: Anyone authenticated can read
-      allow read: if isAuthenticated();
-      
-      // SIMPLE: Admin can update
-      allow update: if isAdmin();
-      
-      // SIMPLE: Admin can delete
+      allow read: if isAuthenticated() && (isAdmin() || request.auth.uid == adminId);
+      allow update: if isAuthenticated() && (isAdmin() || request.auth.uid == adminId);
       allow delete: if isAdmin();
+    }
 
-      // Messages subcollection for landlords
-      match /messages/{messageId} {
-        allow read, write: if isAuthenticated() && request.auth.uid == landlordId;
-      }
+    // ==================== ANALYTICS COLLECTIONS ====================
+    match /analyticsSnapshots/{snapshotId} {
+      allow create: if isSystem() || isAdmin();
+      allow read: if isAuthenticated() && (isAdmin() || isLandlord());
+      allow update: if isSystem() || isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    match /analyticsRules/{ruleId} {
+      allow create: if isAdmin();
+      allow read: if isAuthenticated() && (isAdmin() || isLandlord());
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    match /analyticsInsights/{insightId} {
+      allow create: if isSystem() || isAdmin();
+      allow read: if isAuthenticated() && (isAdmin() || isLandlord());
+      allow update: if isAuthenticated() && (isAdmin() || isLandlord());
+      allow delete: if isAdmin();
+    }
+
+    match /tenantAnalyticsProfiles/{profileId} {
+      allow create: if isSystem() || isAdmin();
+      allow read: if isAuthenticated() && 
+        (isAdmin() || 
+         isLandlord() || 
+         (isTenant() && request.auth.uid == resource.data.tenantId));
+      allow update: if isSystem() || isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    match /dashboardWidgets/{widgetId} {
+      allow create: if isAuthenticated() && (isAdmin() || isLandlord());
+      allow read: if isAuthenticated() && request.auth.uid == resource.data.userId;
+      allow update: if isAuthenticated() && request.auth.uid == resource.data.userId;
+      allow delete: if isAuthenticated() && request.auth.uid == resource.data.userId;
+    }
+
+    match /analyticsReports/{reportId} {
+      allow create: if isSystem() || isAdmin();
+      allow read: if isAuthenticated() && (isAdmin() || isLandlord());
+      allow update: if isSystem() || isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    match /analyticsMetrics/{metricId} {
+      allow create: if isSystem() || isAdmin();
+      allow read: if isAuthenticated() && (isAdmin() || isLandlord());
+      allow update: if isSystem() || isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // ==================== RENT CYCLES ====================
+    match /rentCycles/{cycleId} {
+      allow create: if isAdmin() || isSystem();
+      allow read: if isAuthenticated() && 
+        (isAdmin() || 
+         isLandlord() || 
+         (isTenant() && request.auth.uid == resource.data.tenantId));
+      allow update: if isAdmin() || isSystem();
+      allow delete: if isAdmin();
+    }
+
+    // ==================== ALERTS ====================
+    match /alerts/{alertId} {
+      allow create: if isAuthenticated() || isSystem();
+      allow read: if isAuthenticated() && 
+        (isAdmin() || 
+         isLandlord() || 
+         request.auth.uid == resource.data.targetUserId);
+      allow update: if isAuthenticated() && 
+        (isAdmin() || request.auth.uid == resource.data.targetUserId);
+      allow delete: if isAdmin();
+    }
+
+    // ==================== TENANT RISK PROFILES ====================
+    match /tenantRiskProfiles/{profileId} {
+      allow create: if isSystem() || isAdmin();
+      allow read: if isAuthenticated() && 
+        (isAdmin() || 
+         isLandlord() || 
+         (isTenant() && request.auth.uid == profileId));
+      allow update: if isSystem() || isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // ==================== REMINDER LOGS ====================
+    match /reminderLogs/{logId} {
+      allow create: if isAuthenticated() || isSystem();
+      allow read: if isAuthenticated() && (isAdmin() || isLandlord());
+      allow update: if isSystem() || isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // ==================== AGENTS ====================
+    match /agents/{agentId} {
+      allow create: if isAdmin();
+      allow read: if isAuthenticated() && (isAdmin() || request.auth.uid == agentId);
+      allow update: if isAuthenticated() && (isAdmin() || request.auth.uid == agentId);
+      allow delete: if isAdmin();
+    }
+
+    // ==================== MPESA TRANSACTIONS ====================
+    match /mpesaTransactions/{transactionId} {
+      allow create: if isAuthenticated() || isSystem();
+      allow read: if isAuthenticated();
+      allow update: if isSystem() || isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // ==================== PAYMENT SETTINGS ====================
+    match /paymentSettings/{settingId} {
+      allow create: if isAdmin();
+      allow read: if isAuthenticated();
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // ==================== MESSAGES ====================
+    match /messages/{messageId} {
+      allow create: if true;
+      allow read: if isAuthenticated();
+      allow update: if isAuthenticated();
+      allow delete: if isAdmin();
+    }
+
+    match /users/{userId}/messages/{messageId} {
+      allow read: if isAuthenticated() && request.auth.uid == userId;
+      allow create: if isAuthenticated();
+      allow update: if isAuthenticated() && request.auth.uid == userId;
+      allow delete: if isAdmin();
+    }
+
+    match /landlords/{landlordId}/messages/{messageId} {
+      allow read: if isAuthenticated() && request.auth.uid == landlordId;
+      allow create: if isAuthenticated();
+      allow update: if isAuthenticated() && request.auth.uid == landlordId;
+      allow delete: if isAdmin();
+    }
+    
+    match /tenants/{tenantId}/messages/{messageId} {
+      allow read: if isAuthenticated() && 
+        (isAdmin() || 
+         isLandlord() || 
+         request.auth.uid == tenantId);
+      allow create: if isAuthenticated() && (isAdmin() || isLandlord());
+      allow update: if isAuthenticated() && request.auth.uid == tenantId;
+      allow delete: if isAdmin();
+    }
+
+    // ==================== LANDLORDS ====================
+    match /landlords/{landlordId} {
+      allow create: if isAdmin() || (isAuthenticated() && getUserRole() == 'admin');
+      allow read: if isAuthenticated() && (isAdmin() || request.auth.uid == landlordId);
+      allow update: if isAuthenticated() && (isAdmin() || request.auth.uid == landlordId);
+      allow delete: if isAdmin();
     }
 
     // ==================== USERS ====================
     match /users/{userId} {
-      // SIMPLE: Admin can create users
-      allow create: if isAdmin();
-      
-      // SIMPLE: Users can read their own, admin can read all
+      allow create: if isAdmin() || request.auth.uid == userId;
       allow read: if isAuthenticated() && (isAdmin() || request.auth.uid == userId);
-      
-      // SIMPLE: Users can update their own, admin can update any
       allow update: if isAuthenticated() && (isAdmin() || request.auth.uid == userId);
-      
-      // SIMPLE: Admin can delete
       allow delete: if isAdmin();
-
-      // Messages subcollection for tenants
-      match /messages/{messageId} {
-        allow read, write: if isAuthenticated() && request.auth.uid == userId;
-      }
     }
 
-    // ==================== OTHER COLLECTIONS - SIMPLIFIED ====================
+    // ==================== PROPERTIES & UNITS ====================
     match /properties/{propertyId} {
       allow create: if isAdmin();
       allow read: if true;
       allow update: if isAdmin();
       allow delete: if isAdmin();
+      
+      match /units/{unitId} {
+        allow create: if isAdmin();
+        allow read: if true;
+        allow update: if isAdmin();
+        allow delete: if isAdmin();
+      }
+      
+      match /payments/{paymentId} {
+        allow create: if isAuthenticated();
+        allow read: if isAuthenticated();
+        allow update: if isAdmin() || isSystem();
+        allow delete: if isAdmin();
+      }
     }
     
     match /units/{unitId} {
@@ -78,21 +231,34 @@ service cloud.firestore {
       allow update: if isAdmin();
       allow delete: if isAdmin();
     }
-    
+
+    // ==================== TENANTS ====================
     match /tenants/{tenantId} {
-      allow create: if isAdmin();
+      allow create: if isAdmin() || (isAuthenticated() && request.auth.uid == tenantId);
       allow read: if isAuthenticated();
-      allow update: if isAdmin();
+      allow update: if isAuthenticated() && (isAdmin() || request.auth.uid == tenantId);
       allow delete: if isAdmin();
+      
+      match /payments/{paymentId} {
+        allow create: if isAuthenticated();
+        allow read: if isAuthenticated();
+        allow update: if isAdmin() || isSystem();
+        allow delete: if isAdmin();
+      }
     }
     
-    match /notifications/{notificationId} {
-      allow create: if isAuthenticated();
-      allow read: if isAuthenticated();
-      allow update: if isAuthenticated();
-      allow delete: if isAuthenticated();
-    }
+    // ==================== NOTIFICATIONS ====================
+   match /notifications/{notificationId} {
+     allow create: if isAuthenticated() || isSystem();
+     allow read: if isAuthenticated() && 
+        (isAdmin() || request.auth.uid == resource.data.recipientId);
+     allow update: if isAuthenticated() && 
+        (isAdmin() || request.auth.uid == resource.data.recipientId);
+     allow delete: if isAuthenticated() && 
+       (isAdmin() || request.auth.uid == resource.data.recipientId);
+   }
       
+    // ==================== TENANT APPLICATIONS ====================
     match /tenantApplications/{applicationId} {
       allow create: if isAuthenticated();
       allow read: if isAuthenticated();
@@ -100,13 +266,22 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
     
+    // ==================== MAINTENANCE ====================
     match /maintenance/{requestId} {
-      allow create: if isAuthenticated();
+      allow create: if isAuthenticated() && (isTenant() || isLandlord() || isAdmin());
       allow read: if isAuthenticated();
       allow update: if isAuthenticated();
       allow delete: if isAdmin();
     }
     
+    match /maintenance_categories/{categoryId} {
+      allow create: if isAdmin();
+      allow read: if isAuthenticated();
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+    
+    // ==================== LEASES ====================
     match /leases/{leaseId} {
       allow create: if isAdmin();
       allow read: if isAuthenticated();
@@ -114,10 +289,22 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
     
+    // ==================== PAYMENTS (GENERAL COLLECTION) ====================
     match /payments/{paymentId} {
-      allow create: if isAuthenticated();
+      // MODIFIED: Changed to allow any authenticated user to read payments. 
+      // This fixes the issue where 'tenantId' is a Tenant Document ID (not an Auth UID), 
+      // which caused the previous 'resource.data.tenantId == request.auth.uid' check to fail.
       allow read: if isAuthenticated();
-      allow update: if isAdmin();
+      allow create: if isAuthenticated();
+      allow update: if isAdmin() || isSystem();
+      allow delete: if isAdmin();
+    }
+    
+    // ==================== ADMIN STATS ====================
+    match /adminStats/{statId} {
+      allow create: if isAdmin() || isSystem();
+      allow read: if isAuthenticated() && (isAdmin() || isLandlord());
+      allow update: if isAdmin() || isSystem();
       allow delete: if isAdmin();
     }
   }

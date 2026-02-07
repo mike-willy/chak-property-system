@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../../../../data/models/unit_model.dart';
-import '../../../../data/models/property_model.dart';
 
 class UnitListWidget extends StatelessWidget {
   final List<UnitModel> units;

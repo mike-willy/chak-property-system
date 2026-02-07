@@ -55,7 +55,7 @@ class PaymentHistoryList extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 10),
-        ...payments.map((payment) => _buildPaymentItem(payment)).toList(),
+        ...payments.map((payment) => _buildPaymentItem(payment)),
       ],
     );
   }

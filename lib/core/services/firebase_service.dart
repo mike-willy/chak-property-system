@@ -21,7 +21,7 @@ class FirebaseService {
       }).toList();
     } catch (e) {
       print('Error fetching properties: $e');
-      throw e;
+      rethrow;
     }
   }
 
@@ -34,7 +34,7 @@ class FirebaseService {
       });
     } catch (e) {
       print('Error updating property status: $e');
-      throw e;
+      rethrow;
     }
   }
 
@@ -48,7 +48,7 @@ class FirebaseService {
       });
     } catch (e) {
       print('Error adding property: $e');
-      throw e;
+      rethrow;
     }
   }
 
@@ -61,7 +61,7 @@ class FirebaseService {
       });
     } catch (e) {
       print('Error updating property: $e');
-      throw e;
+      rethrow;
     }
   }
 
@@ -71,7 +71,7 @@ class FirebaseService {
       await _firestore.collection('properties').doc(propertyId).delete();
     } catch (e) {
       print('Error deleting property: $e');
-      throw e;
+      rethrow;
     }
   }
 }

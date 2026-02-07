@@ -11,10 +11,10 @@ class PaymentPage extends StatefulWidget {
   final double amount;
 
   const PaymentPage({
-    Key? key,
+    super.key,
     required this.applicationId,
     required this.amount,
-  }) : super(key: key);
+  });
 
   @override
   State<PaymentPage> createState() => _PaymentPageState();
@@ -759,7 +759,7 @@ class _PaymentPageState extends State<PaymentPage> with SingleTickerProviderStat
       userId: tenant.id,
       phoneNumber: _phoneController.text.trim(),
       amount: widget.amount,
-      reference: 'RENT-${_selectedMonth}-${DateTime.now().millisecondsSinceEpoch}',
+      reference: 'RENT-$_selectedMonth-${DateTime.now().millisecondsSinceEpoch}',
     );
   }
 }
