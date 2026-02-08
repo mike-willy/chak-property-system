@@ -221,8 +221,8 @@ class _MaintenanceDetailPageState extends State<MaintenanceDetailPage> {
                           ),
                         ],
 
-                        // Status Update Section (for landlords)
-                        if (authProvider.isLandlord && 
+                        // Status Update Section (Only for Admins)
+                        if (authProvider.isAdmin && 
                             request.status != MaintenanceStatus.completed &&
                             request.status != MaintenanceStatus.canceled) ...[
                           const SizedBox(height: 24),
