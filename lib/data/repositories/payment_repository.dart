@@ -353,4 +353,31 @@ class PaymentRepository {
       }).toList();
     });
   }
+
+  // Stream all payments (for Landlord History)
+  Stream<List<PaymentModel>> getAllPaymentsStream() {
+    return _paymentsRef
+        .orderBy('createdAt', descending: true)
+        .limit(100)
+        .snapshots()
+        .map((snapshot) {
+      return snapshot.docs.map((doc) {
+        final data = doc.data() as Map<String, dynamic>;
+
+        return PaymentModel(
+          id: doc.id,
+          leaseId: data['applicationId'] ?? '',
+          tenantId: data['tenantId'] ?? '',
+          amount: (data['amount'] as num).toDouble(),
+          method: PaymentMethodExtension.fromString(data['method'] ?? 'mobile'),
+          status: PaymentStatusExtension.fromString(data['status'] ?? 'pending'),
+          transactionId: data['checkoutRequestId'],
+          dueDate: (data['initiatedAt'] as Timestamp?)?.toDate() ?? (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+          paidDate: data['completedAt'] != null
+              ? (data['completedAt'] as Timestamp).toDate()
+              : null,
+        );
+      }).toList();
+    });
+  }
 }

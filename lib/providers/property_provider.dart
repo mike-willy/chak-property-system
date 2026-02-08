@@ -133,6 +133,7 @@ class PropertyProvider with ChangeNotifier {
           debugPrint('PropertyProvider: Loaded ${properties.length} properties');
           _properties = properties;
           _applyFilters(); // Apply filters after loading properties
+          if (isLandlord) _calculateLandlordStats(); // Update stats immediately for landlord
           debugPrint('PropertyProvider: Filtered to ${_filteredProperties.length} properties');
         },
       );
@@ -146,6 +147,11 @@ class PropertyProvider with ChangeNotifier {
   }
 
   Future<void> loadStats() async {
+    if (isLandlord) {
+      _calculateLandlordStats();
+      return;
+    }
+
     try {
       final result = await _repository.getPropertiesStats();
       result.fold(
@@ -156,6 +162,21 @@ class PropertyProvider with ChangeNotifier {
       _error = 'Failed to load statistics';
     }
     if (!_disposed) notifyListeners();
+  }
+
+  void _calculateLandlordStats() {
+    final uid = _authProvider.firebaseUser?.uid;
+    if (uid == null) return;
+
+    final myProperties = _properties.where((p) => p.ownerId == uid).toList();
+    
+    _stats = {
+      'total': myProperties.length,
+      'vacant': myProperties.where((p) => p.status == PropertyStatus.vacant).length,
+      'occupied': myProperties.where((p) => p.status == PropertyStatus.occupied).length,
+      'maintenance': myProperties.where((p) => p.status == PropertyStatus.maintenance).length,
+    };
+    notifyListeners();
   }
 
   void setSearchTerm(String term) {

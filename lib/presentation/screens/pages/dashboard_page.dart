@@ -22,6 +22,7 @@ import '../../../data/models/application_model.dart';
 import '../properties/pages/property_list_page.dart';
 import '../landlord/pages/analytics_page.dart';
 import '../payments/payment_history_page.dart'; 
+import '../landlord/pages/landlord_payment_history_page.dart'; 
 import 'messages_page.dart';
 import 'maintenance_page.dart';
 import 'profile_page.dart';
@@ -129,7 +130,7 @@ class _DashboardPageState extends State<DashboardPage> {
           pages = [
             const DashboardHome(),           
             const PropertyListPage(),        
-            const PaymentHistoryPage(),  
+            isLandlordOrAdmin ? const LandlordPaymentHistoryPage() : const PaymentHistoryPage(),  
             const MaintenancePage(),    
             if (isLandlordOrAdmin) const AnalyticsPage() else const MessagesPage(), 
             const ProfilePage(),             
