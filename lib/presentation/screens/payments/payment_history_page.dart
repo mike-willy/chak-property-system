@@ -46,9 +46,8 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage> {
         elevation: 0,
         iconTheme: const IconThemeData(color: Colors.white),
         actions: [
-          // Unit Switcher in AppBar if multiple units exist
-          if (tenantProvider.userTenancies.length > 1)
-            IconButton(
+          // Unit Switcher in AppBar
+          IconButton(
               icon: const Icon(Icons.swap_horiz, color: Color(0xFF4E95FF)),
               tooltip: 'Switch Unit',
               onPressed: () => _showUnitSwitcher(context, tenantProvider),

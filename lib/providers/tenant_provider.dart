@@ -77,27 +77,31 @@ class TenantProvider with ChangeNotifier {
     notifyListeners(); // Notify start of loading
 
     try {
-      // 1. Fetch ALL Tenancies for this user
+      // 1. Fetch Tenancies for this user by UID
       _userTenancies = await _tenantRepository.getAllTenantsByUserId(user.uid);
       debugPrint("TenantProvider: Found ${_userTenancies.length} tenancies for userId: ${user.uid}");
 
-      // Fallback 1: Email (link ALL units for this email if none found by UID)
-      if (_userTenancies.isEmpty && user.email != null) {
+      // 2. ALWAYS Check for unregistered units by Email (to support new assignments)
+      if (user.email != null) {
           final tenantsByEmail = await _tenantRepository.getAllTenantsByEmail(user.email!);
-          if (tenantsByEmail.isNotEmpty) {
-             debugPrint("TenantProvider: Found ${tenantsByEmail.length} units by email: ${user.email}");
-             
-             List<TenantModel> linkedTenants = [];
-             for (var tenantRecord in tenantsByEmail) {
-                if (tenantRecord.userId != user.uid) {
-                   await _tenantRepository.updateTenant(tenantRecord.id, {'userId': user.uid});
-                   linkedTenants.add(tenantRecord.copyWith(userId: user.uid));
-                   debugPrint("TenantProvider: Linked unit ${tenantRecord.unitNumber} to UID: ${user.uid}");
-                } else {
-                   linkedTenants.add(tenantRecord);
+          
+          bool newLinksFound = false;
+          for (var tenantRecord in tenantsByEmail) {
+             // If found by email but NOT yet linked to this UID
+             if (tenantRecord.userId != user.uid) {
+                await _tenantRepository.updateTenant(tenantRecord.id, {'userId': user.uid});
+                
+                // Add to current session list if not already there (safety check)
+                if (!_userTenancies.any((t) => t.id == tenantRecord.id)) {
+                   _userTenancies.add(tenantRecord.copyWith(userId: user.uid));
                 }
+                newLinksFound = true;
+                debugPrint("TenantProvider: linked unit ${tenantRecord.unitNumber} from ${tenantRecord.propertyName} to UID: ${user.uid}");
              }
-             _userTenancies = linkedTenants;
+          }
+          
+          if (newLinksFound) {
+             debugPrint("TenantProvider: Refreshing tenancies after email linking. Total: ${_userTenancies.length}");
           }
       }
       

@@ -386,20 +386,24 @@ class _DashboardHomeState extends State<DashboardHome> {
                 ),
                 
                 // Unit Switcher Section
-                if (isTenant && tenantProvider.userTenancies.length > 1) ...[
+                if (isTenant) ...[
                   const SizedBox(height: 16),
                   Container(
                     width: double.infinity,
                     decoration: BoxDecoration(
                       color: const Color(0xFF1E2235),
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: const Color(0xFF4E95FF).withOpacity(0.3)),
+                      border: Border.all(
+                        color: tenantProvider.userTenancies.length > 1 
+                            ? const Color(0xFF4E95FF).withOpacity(0.3)
+                            : Colors.white.withOpacity(0.05)
+                      ),
                     ),
                     child: Material(
                       color: Colors.transparent,
                       child: InkWell(
                         borderRadius: BorderRadius.circular(12),
-                        onTap: () {
+                        onTap: tenantProvider.userTenancies.length > 1 ? () {
                            showModalBottomSheet(
                              context: context,
                              backgroundColor: const Color(0xFF141725),
@@ -453,10 +457,10 @@ class _DashboardHomeState extends State<DashboardHome> {
                                    )),
                                    const SizedBox(height: 20),
                                  ],
-                               ),
-                             ),
-                           );
-                        },
+                                ),
+                              ),
+                            );
+                         } : null,
                         child: Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                           child: Row(
@@ -467,9 +471,11 @@ class _DashboardHomeState extends State<DashboardHome> {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    const Text(
-                                      'Active Unit (Tap to Switch)',
-                                      style: TextStyle(
+                                    Text(
+                                      tenantProvider.userTenancies.length > 1 
+                                          ? 'Active Unit (Tap to Switch)'
+                                          : 'Active Unit',
+                                      style: const TextStyle(
                                         color: Colors.grey,
                                         fontSize: 12,
                                       ),
@@ -485,7 +491,8 @@ class _DashboardHomeState extends State<DashboardHome> {
                                   ],
                                 ),
                               ),
-                              const Icon(Icons.keyboard_arrow_down, color: Colors.grey),
+                               if (tenantProvider.userTenancies.length > 1)
+                                 const Icon(Icons.keyboard_arrow_down, color: Colors.grey),
                             ],
                           ),
                         ),

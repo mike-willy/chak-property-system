@@ -164,7 +164,7 @@ class _MaintenanceListPageState extends State<MaintenanceListPage> {
               // Action Buttons
               Row(
                 children: [
-                  if (authProvider.isTenant && tenantProvider.userTenancies.length > 1)
+                  if (authProvider.isTenant)
                     IconButton(
                       onPressed: () => _showUnitSwitcher(context, tenantProvider),
                       icon: const Icon(Icons.swap_horiz, color: Color(0xFF4E95FF)),
