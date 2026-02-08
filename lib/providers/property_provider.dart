@@ -18,6 +18,10 @@ class PropertyProvider with ChangeNotifier {
   
   void update(AuthProvider auth) {
     _authProvider = auth;
+    _applyFilters();
+    if (isLandlord) {
+      loadStats();
+    }
     notifyListeners();
   }
 
@@ -46,6 +50,33 @@ class PropertyProvider with ChangeNotifier {
   Map<String, dynamic> get stats => _stats;
   String? get error => _error;
   String? get unitsError => _unitsError;
+
+  Map<String, int> get propertyUnitStats {
+    int vacant = 0;
+    int occupied = 0;
+    int maintenance = 0;
+
+    for (var unit in _propertyUnits) {
+      switch (unit.status) {
+        case UnitStatus.vacant:
+          vacant++;
+          break;
+        case UnitStatus.occupied:
+          occupied++;
+          break;
+        case UnitStatus.maintenance:
+          maintenance++;
+          break;
+      }
+    }
+
+    return {
+      'total': _propertyUnits.length,
+      'vacant': vacant,
+      'occupied': occupied,
+      'maintenance': maintenance,
+    };
+  }
 
   Future<void> loadPropertyUnits(String propertyId) async {
     _isLoading = true;

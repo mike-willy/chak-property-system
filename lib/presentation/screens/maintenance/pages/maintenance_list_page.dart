@@ -231,7 +231,7 @@ class _MaintenanceListPageState extends State<MaintenanceListPage> {
                 provider.switchTenant(t);
                 Navigator.pop(context);
               },
-            )).toList(),
+            )),
             const SizedBox(height: 20),
           ],
         ),

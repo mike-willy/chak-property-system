@@ -39,7 +39,7 @@ class _CreateMaintenanceRequestPageState
   final List<String> _images = [];
 
   bool _isSubmitting = false;
-  bool _isLoadingUnit = false;
+  final bool _isLoadingUnit = false;
   bool _isLoadingUnits = false;
 
   List<Map<String, dynamic>> _propertyUnits = [];

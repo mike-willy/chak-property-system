@@ -40,7 +40,8 @@ class _PropertyListPageState extends State<PropertyListPage> with AutomaticKeepA
   Widget build(BuildContext context) {
     super.build(context); // Required for AutomaticKeepAliveClientMixin
     return Scaffold(
-      backgroundColor: const Color(0xFF141725), // Dark background
+      backgroundColor: const Color(0xFF141725), // Ensure solid dark background
+      extendBody: true, // Allow body to extend behind app bar if needed, but here we want solid.
       body: Consumer<PropertyProvider>(
         builder: (context, provider, child) {
           return SafeArea(
@@ -96,23 +97,7 @@ class _PropertyListPageState extends State<PropertyListPage> with AutomaticKeepA
                   ),
                 ],
               ),
-              if (provider.isLandlord)
-                IconButton(
-                  icon: const Icon(FontAwesomeIcons.plus, size: 20),
-                  style: IconButton.styleFrom(
-                    backgroundColor: const Color(0xFF4E95FF), // Brand Blue
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.all(12),
-                  ),
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => const AddEditPropertyPage(),
-                      ),
-                    );
-                  },
-                ),
+              // Add Button Removed
             ],
           ),
           if (provider.isLandlord) ...[
@@ -129,33 +114,53 @@ class _PropertyListPageState extends State<PropertyListPage> with AutomaticKeepA
     if (provider.isTenant) return const SizedBox.shrink(); // Hide stats for tenants
 
     return Container(
-      padding: const EdgeInsets.all(16),
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
       decoration: BoxDecoration(
-        color: const Color(0xFF1E2235),
-        borderRadius: BorderRadius.circular(16),
+        color: const Color(0xFF1E2235), // Dark surface
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.white.withOpacity(0.05)),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          _buildStatItem(
-            title: 'Total',
-            value: provider.stats['total']?.toString() ?? '0',
-            color: Colors.white,
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF4E95FF).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(FontAwesomeIcons.building, color: Color(0xFF4E95FF), size: 18),
+              ),
+              const SizedBox(width: 16),
+              const Text(
+                'Total Properties',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 0.3,
+                ),
+              ),
+            ],
           ),
-          _buildStatItem(
-            title: 'Occupied',
-            value: provider.stats['occupied']?.toString() ?? '0',
-            color: Colors.green.shade300,
-          ),
-          _buildStatItem(
-            title: 'Vacant',
-            value: provider.stats['vacant']?.toString() ?? '0',
-            color: Colors.orange.shade300,
-          ),
-          _buildStatItem(
-            title: 'Maint.',
-            value: provider.stats['maintenance']?.toString() ?? '0',
-            color: Colors.red.shade300,
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+            decoration: BoxDecoration(
+              color: const Color(0xFF4E95FF).withOpacity(0.1),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: const Color(0xFF4E95FF).withOpacity(0.2)),
+            ),
+            child: Text(
+              provider.stats['total']?.toString() ?? '0',
+              style: const TextStyle(
+                color: Color(0xFF4E95FF),
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ),
         ],
       ),
@@ -166,26 +171,44 @@ class _PropertyListPageState extends State<PropertyListPage> with AutomaticKeepA
     required String title,
     required String value,
     required Color color,
+    bool isMain = false,
   }) {
-    return Column(
-      children: [
-        Text(
-          value,
-          style: TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-            color: color,
+    return Container(
+      width: double.infinity,
+      alignment: Alignment.centerLeft,
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: const Color(0xFF4E95FF).withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Icon(FontAwesomeIcons.building, color: Color(0xFF4E95FF), size: 20),
           ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          title,
-          style: TextStyle(
-            fontSize: 12,
-            color: Colors.grey.shade400,
+          const SizedBox(width: 16),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                value,
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: color,
+                ),
+              ),
+              Text(
+                title,
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.grey.shade400,
+                ),
+              ),
+            ],
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
@@ -197,8 +220,19 @@ class _PropertyListPageState extends State<PropertyListPage> with AutomaticKeepA
           // Search Bar
           Container(
             decoration: BoxDecoration(
-              color: const Color(0xFF1E2235), // Dark Surface
-              borderRadius: BorderRadius.circular(16),
+              color: const Color(0xFF1E2235), // Solid dark surface for contrast
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color: Colors.white.withOpacity(0.08),
+                width: 1,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.1),
+                  blurRadius: 4,
+                  offset: const Offset(0, 2),
+                ),
+              ],
             ),
             child: TextField(
               controller: TextEditingController(text: provider.searchTerm),

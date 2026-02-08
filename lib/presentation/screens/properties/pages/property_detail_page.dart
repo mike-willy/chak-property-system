@@ -81,6 +81,9 @@ class _PropertyDetailPageState extends State<PropertyDetailPage> {
 
   @override
   Widget build(BuildContext context) {
+    final authProvider = Provider.of<AuthProvider>(context);
+    final isLandlord = authProvider.isLandlord;
+
     return Consumer<PropertyProvider>(
       builder: (context, provider, child) {
         final hasUnits = provider.propertyUnits.isNotEmpty;
@@ -238,66 +241,135 @@ class _PropertyDetailPageState extends State<PropertyDetailPage> {
                           ),
                         ],
                       ),
-                      
                       const SizedBox(height: 24),
+                      
+                      // Landlord Stats Section
+                      if (isLandlord) ...[
+                        _buildStatsCard(provider.propertyUnitStats),
+                        const SizedBox(height: 24),
+                      ],
 
-                      // Price Section (Show range if units have different prices? For now keep simple)
+                      // Fees Section
                       Container(
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
                           color: Colors.blue.shade50,
                           borderRadius: BorderRadius.circular(12),
                         ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        child: Column(
                           children: [
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
+                            // Row 1: Rent & Deposit
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                Text(
-                                  'Monthly Rent',
-                                  style: TextStyle(
-                                    fontSize: 13,
-                                    color: Colors.blue.shade800,
-                                  ),
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Monthly Rent',
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        color: Colors.blue.shade800,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      formatCurrency(widget.property.price),
+                                      style: TextStyle(
+                                        fontSize: 20,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.blue.shade900,
+                                      ),
+                                    ),
+                                  ],
                                 ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  formatCurrency(widget.property.price),
-                                  style: TextStyle(
-                                    fontSize: 22,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.blue.shade900,
-                                  ),
+                                Container(
+                                  height: 40,
+                                  width: 1,
+                                  color: Colors.blue.shade200,
+                                ),
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.end,
+                                  children: [
+                                    Text(
+                                      'Security Deposit',
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        color: Colors.blue.shade800,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      formatCurrency(widget.property.deposit),
+                                      style: TextStyle(
+                                        fontSize: 20,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.blue.shade900,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ],
                             ),
-                            Container(
-                              height: 40,
-                              width: 1,
-                              color: Colors.blue.shade200,
-                            ),
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.end,
-                              children: [
-                                Text(
-                                  'Security Deposit',
-                                  style: TextStyle(
-                                    fontSize: 13,
-                                    color: Colors.blue.shade800,
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  formatCurrency(widget.property.deposit),
-                                  style: TextStyle(
-                                    fontSize: 22,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.blue.shade900,
-                                  ),
-                                ),
-                              ],
-                            ),
+                            
+                            // Divider if optional fees exist
+                            if (widget.property.petFee > 0 || widget.property.applicationFee > 0) ...[
+                              Padding(
+                                padding: const EdgeInsets.symmetric(vertical: 12),
+                                child: Divider(color: Colors.blue.shade200),
+                              ),
+                              // Row 2: Optional Fees
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  if (widget.property.applicationFee > 0)
+                                    Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          'Application Fee',
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            color: Colors.blue.shade800,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 2),
+                                        Text(
+                                          formatCurrency(widget.property.applicationFee),
+                                          style: TextStyle(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.w600,
+                                            color: Colors.blue.shade900,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    
+                                  if (widget.property.petFee > 0)
+                                    Column(
+                                      crossAxisAlignment: CrossAxisAlignment.end,
+                                      children: [
+                                        Text(
+                                          'Pet Fee',
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            color: Colors.blue.shade800,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 2),
+                                        Text(
+                                          formatCurrency(widget.property.petFee),
+                                          style: TextStyle(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.w600,
+                                            color: Colors.blue.shade900,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                ],
+                              ),
+                            ],
                           ],
                         ),
                       ),
@@ -344,6 +416,7 @@ class _PropertyDetailPageState extends State<PropertyDetailPage> {
                         UnitListWidget(
                           units: provider.propertyUnits,
                           onApply: _handleApply,
+                          isLandlord: isLandlord,
                         ),
 
                       const SizedBox(height: 10),
@@ -497,8 +570,8 @@ class _PropertyDetailPageState extends State<PropertyDetailPage> {
             ],
           ),
           
-          // Only show bottom button if NO units act as selectors
-          bottomNavigationBar: hasUnits 
+          // Only show bottom button if NO units act as selectors AND not landlord
+          bottomNavigationBar: (hasUnits || isLandlord)
               ? null 
               : Container(
                   padding: const EdgeInsets.all(20),
@@ -625,5 +698,69 @@ class _PropertyDetailPageState extends State<PropertyDetailPage> {
     if (name == 'ac') return 'A/C';
     if (name == 'tv') return 'TV';
     return name[0].toUpperCase() + name.substring(1);
+  }
+
+  Widget _buildStatsCard(Map<String, int> stats) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.shade200),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Property Overview',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 16),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              _buildStatItem('Total Units', stats['total'] ?? 0, Colors.blue),
+              _buildStatItem('Vacant', stats['vacant'] ?? 0, Colors.green),
+              _buildStatItem('Occupied', stats['occupied'] ?? 0, Colors.orange), // Orange typically means "action needed" but here just distinct color
+              _buildStatItem('Maint.', stats['maintenance'] ?? 0, Colors.red),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatItem(String label, int value, Color color) {
+    return Column(
+      children: [
+        Text(
+          value.toString(),
+          style: TextStyle(
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
+            color: color,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w500,
+            color: Colors.grey.shade600,
+          ),
+        ),
+      ],
+    );
   }
 }

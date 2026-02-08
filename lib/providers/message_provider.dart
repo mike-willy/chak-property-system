@@ -2,8 +2,6 @@
 import 'package:flutter/foundation.dart';
 import '../data/repositories/message_repository.dart';
 import '../data/models/message_model.dart';
-import '../core/services/notification_service.dart' as service;
-import '../data/models/notification_model.dart';
 
 class MessageProvider with ChangeNotifier {
   final MessageRepository _messageRepository;

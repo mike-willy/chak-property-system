@@ -33,7 +33,9 @@ import '../widgets/tenant_home_card.dart';
 import '../widgets/upcoming_rent_card.dart';
 import '../widgets/quick_actions_grid.dart';
 import '../widgets/payment_history_list.dart';
+import '../widgets/payment_history_list.dart';
 import '../widgets/tenant_list_item.dart';
+import '../landlord/pages/property_tenants_page.dart';
 
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
@@ -64,7 +66,7 @@ class _DashboardPageState extends State<DashboardPage> {
       notificationProvider.listenToNotifications(authProvider.userId!);
       context.read<MessageProvider>().initialize(
         authProvider.userId!,
-        authProvider.userProfile?.role?.value ?? 'tenant',
+        authProvider.userProfile?.role.value ?? 'tenant',
       );
     }
     
@@ -260,7 +262,7 @@ class _DashboardHomeState extends State<DashboardHome> {
       futures.add(tenantProvider.loadTenantData());
       messageProvider.initialize(
         authProvider.userId!,
-        authProvider.userProfile?.role?.value ?? 'tenant',
+        authProvider.userProfile?.role.value ?? 'tenant',
       );
       
       if (authProvider.isLandlord) {
@@ -447,7 +449,7 @@ class _DashboardHomeState extends State<DashboardHome> {
                                        tenantProvider.switchTenant(t);
                                        Navigator.pop(context);
                                      },
-                                   )).toList(),
+                                   )),
                                    const SizedBox(height: 20),
                                  ],
                                ),
@@ -545,6 +547,16 @@ class _DashboardHomeState extends State<DashboardHome> {
 
   Widget _buildLandlordView(TenantProvider tenantProvider, ApplicationProvider applicationProvider) {
     final tenants = tenantProvider.tenantsList;
+    
+    // Group tenants by property
+    final Map<String, List<TenantModel>> tenantsByProperty = {};
+    for (var tenant in tenants) {
+      if (!tenantsByProperty.containsKey(tenant.propertyName)) {
+        tenantsByProperty[tenant.propertyName] = [];
+      }
+      tenantsByProperty[tenant.propertyName]!.add(tenant);
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -581,18 +593,158 @@ class _DashboardHomeState extends State<DashboardHome> {
           ),
           const SizedBox(height: 24),
         ],
-        const Text('Approved Tenants', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white)),
+        const Text('Properties & Tenants', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white)),
         const SizedBox(height: 16),
         if (tenants.isEmpty)
           const Text('No Tenants Yet', style: TextStyle(color: Colors.grey))
         else
-          ListView.builder(
+          ...tenantsByProperty.entries.map((entry) {
+             final propertyName = entry.key;
+             final propertyTenants = entry.value;
+             return _buildPropertyTenantGroup(propertyName, propertyTenants);
+          }).toList(),
+      ],
+    );
+  }
+
+  Widget _buildPropertyTenantGroup(String propertyName, List<TenantModel> tenants) {
+    // Show only first 3 tenants in the preview
+    final previewTenants = tenants.take(3).toList();
+    
+    return Container(
+      margin: const EdgeInsets.only(bottom: 24),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1E2235),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.white.withOpacity(0.05)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Distinct Header
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12), // Reduced vertical padding
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center, // Center vertically
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF4E95FF).withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(Icons.apartment, color: Color(0xFF4E95FF), size: 20),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min, // Compact
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              propertyName.isNotEmpty ? propertyName : 'Unknown Property',
+                              style: const TextStyle(
+                                color: Color(0xFF1E2235),
+                                fontSize: 16, // Slightly smaller
+                                fontWeight: FontWeight.w600, // Reduced boldness
+                                letterSpacing: 0.3,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        '${tenants.length} Active Tenant${tenants.length == 1 ? '' : 's'}',
+                        style: TextStyle(
+                          color: Colors.grey.shade600,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w400,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                if (tenants.length > 3)
+                  Padding(
+                    padding: const EdgeInsets.only(left: 8.0),
+                    child: TextButton(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => PropertyTenantsPage(
+                              propertyName: propertyName, 
+                              tenants: tenants,
+                            ),
+                          ),
+                        );
+                      },
+                      style: TextButton.styleFrom(
+                        foregroundColor: const Color(0xFF4E95FF),
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        backgroundColor: const Color(0xFF4E95FF).withOpacity(0.08), // Lighter bg
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                        minimumSize: Size.zero, // Compact button
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text('View All', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500)),
+                          SizedBox(width: 4),
+                          Icon(Icons.arrow_forward, size: 14),
+                        ],
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          
+          // Tenant List Preview
+          ListView.separated(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
-            itemCount: tenants.length,
-            itemBuilder: (context, index) => TenantListItem(tenant: tenants[index], onTap: () {}),
+            itemCount: previewTenants.length,
+            separatorBuilder: (context, index) => Divider(height: 1, color: Colors.white.withOpacity(0.05), indent: 16, endIndent: 16),
+            itemBuilder: (context, index) {
+              return TenantListItem(
+                tenant: previewTenants[index], 
+                showPropertyName: false,
+                showPhone: true, // Show phone number for landlords
+                onTap: () {},
+              );
+            },
           ),
-      ],
+          
+          if (tenants.length > 3)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              decoration: BoxDecoration(
+                border: Border(top: BorderSide(color: Colors.white.withOpacity(0.05))),
+              ),
+              child: Center(
+                child: Text(
+                  '+ ${tenants.length - 3} more tenants',
+                  style: TextStyle(color: Colors.grey.shade500, fontSize: 12),
+                ),
+              ),
+            ),
+          
+          const SizedBox(height: 8),
+        ],
+      ),
     );
   }
 

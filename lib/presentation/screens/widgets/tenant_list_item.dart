@@ -9,7 +9,12 @@ class TenantListItem extends StatelessWidget {
     super.key,
     required this.tenant,
     this.onTap,
+    this.showPropertyName = true,
+    this.showPhone = false,
   });
+
+  final bool showPropertyName;
+  final bool showPhone;
 
   @override
   Widget build(BuildContext context) {
@@ -43,7 +48,9 @@ class TenantListItem extends StatelessWidget {
                 const SizedBox(width: 4),
                 Expanded(
                   child: Text(
-                    '${tenant.propertyName} • Unit ${tenant.unitNumber}',
+                    showPropertyName 
+                        ? '${tenant.propertyName} • Unit ${tenant.unitNumber}'
+                        : 'Unit ${tenant.unitNumber}',
                     style: TextStyle(color: Colors.grey.shade400, fontSize: 13),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -51,6 +58,19 @@ class TenantListItem extends StatelessWidget {
                 ),
               ],
             ),
+            if (showPhone && tenant.phone.isNotEmpty) ...[
+              const SizedBox(height: 4),
+              Row(
+                children: [
+                  Icon(Icons.phone, size: 14, color: Colors.blue.shade400),
+                  const SizedBox(width: 4),
+                  Text(
+                    tenant.phone,
+                    style: TextStyle(color: Colors.blue.shade400, fontSize: 13),
+                  ),
+                ],
+              ),
+            ],
           ],
         ),
         trailing: Container(

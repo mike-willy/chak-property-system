@@ -148,7 +148,7 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage> {
                 provider.switchTenant(t);
                 Navigator.pop(context);
               },
-            )).toList(),
+            )),
             const SizedBox(height: 20),
           ],
         ),

@@ -54,6 +54,8 @@ class PropertyModel {
   final String ownerName;
   final double price;
   final double deposit;
+  final double petFee;
+  final double applicationFee;
   final int bedrooms;
   final int bathrooms;
   final double squareFeet;
@@ -73,6 +75,8 @@ class PropertyModel {
     required this.ownerName,
     required this.price,
     required this.deposit,
+    this.petFee = 0.0,
+    this.applicationFee = 0.0,
     required this.bedrooms,
     required this.bathrooms,
     required this.squareFeet,
@@ -96,6 +100,8 @@ class PropertyModel {
       'ownerName': ownerName,
       'price': price,
       'deposit': deposit,
+      'petFee': petFee,
+      'applicationFee': applicationFee,
       'bedrooms': bedrooms,
       'bathrooms': bathrooms,
       'squareFeet': squareFeet,
@@ -154,6 +160,8 @@ class PropertyModel {
       // Robustly parse price and deposit
       price: _parseNumber(map['rentAmount'] ?? map['price']),
       deposit: _parseNumber(map['securityDeposit'] ?? map['deposit']),
+      petFee: _parseNumber(map['petFee'] ?? map['petDeposit']),
+      applicationFee: _parseNumber(map['applicationFee']),
       bedrooms: map['bedrooms'] as int? ?? 0,
       bathrooms: map['bathrooms'] as int? ?? 0,
       squareFeet: sizeDouble,
@@ -184,6 +192,8 @@ class PropertyModel {
     String? ownerName,
     double? price,
     double? deposit,
+    double? petFee,
+    double? applicationFee,
     int? bedrooms,
     int? bathrooms,
     double? squareFeet,
@@ -204,6 +214,8 @@ class PropertyModel {
       ownerName: ownerName ?? this.ownerName,
       price: price ?? this.price,
       deposit: deposit ?? this.deposit,
+      petFee: petFee ?? this.petFee,
+      applicationFee: applicationFee ?? this.applicationFee,
       bedrooms: bedrooms ?? this.bedrooms,
       bathrooms: bathrooms ?? this.bathrooms,
       squareFeet: squareFeet ?? this.squareFeet,

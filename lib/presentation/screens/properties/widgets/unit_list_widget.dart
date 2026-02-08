@@ -6,10 +6,13 @@ class UnitListWidget extends StatelessWidget {
   final List<UnitModel> units;
   final Function(UnitModel) onApply;
 
+  final bool isLandlord;
+
   const UnitListWidget({
     super.key,
     required this.units,
     required this.onApply,
+    this.isLandlord = false,
   });
 
   @override
@@ -117,29 +120,30 @@ class UnitListWidget extends StatelessWidget {
             ),
 
             // Action Button
-            ElevatedButton(
-              onPressed: isAvailable ? () => onApply(unit) : null,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.blue.shade700,
-                foregroundColor: Colors.white,
-                disabledBackgroundColor: Colors.grey.shade200,
-                disabledForegroundColor: Colors.grey.shade400,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
+            if (!isLandlord)
+              ElevatedButton(
+                onPressed: isAvailable ? () => onApply(unit) : null,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.blue.shade700,
+                  foregroundColor: Colors.white,
+                  disabledBackgroundColor: Colors.grey.shade200,
+                  disabledForegroundColor: Colors.grey.shade400,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                 ),
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-              ),
-              child: FittedBox(
-                fit: BoxFit.scaleDown,
-                child: Text(
-                  isAvailable 
-                      ? 'Apply' 
-                      : unit.status == UnitStatus.maintenance
-                          ? 'Maint.'
-                          : 'Occupied',
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    isAvailable 
+                        ? 'Apply' 
+                        : unit.status == UnitStatus.maintenance
+                            ? 'Maint.'
+                            : 'Occupied',
+                  ),
                 ),
               ),
-            ),
           ],
         ),
       ),

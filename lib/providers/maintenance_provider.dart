@@ -8,7 +8,6 @@ import '../data/repositories/maintenance_repository.dart';
 import 'tenant_provider.dart'; 
 import 'auth_provider.dart';
 import '../core/services/notification_service.dart' as service;
-import '../data/models/notification_model.dart';
 
 class MaintenanceProvider with ChangeNotifier {
   final MaintenanceRepository _repository;

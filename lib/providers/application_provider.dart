@@ -3,7 +3,6 @@ import '../data/models/application_model.dart';
 import '../data/repositories/application_repository.dart';
 import '../data/repositories/tenant_repository.dart';
 import '../core/services/notification_service.dart' as service;
-import '../data/models/notification_model.dart';
 
 class ApplicationProvider extends ChangeNotifier {
   final ApplicationRepository _applicationRepo;
