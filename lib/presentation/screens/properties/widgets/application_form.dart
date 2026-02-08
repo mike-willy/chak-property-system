@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:provider/provider.dart';
@@ -42,11 +43,18 @@ class _ApplicationFormState extends State<ApplicationForm> {
   DateTime? _leaseStartDate;
   DateTime? _leaseEndDate;
   
-  // Fees from Firestore
+  // Fees from Firestore (Current effective fees)
   double _monthlyRent = 0;
   double _securityDeposit = 0;
   double _applicationFee = 0;
   double _petDeposit = 0;
+  
+  // Property Level Defaults (Authoritative Source)
+  double _propMonthlyRent = 0;
+  double _propSecurityDeposit = 0;
+  double _propApplicationFee = 0;
+  double _propPetDeposit = 0;
+
   String _otherFees = '';
   int _leaseTerm = 12;
   int _noticePeriod = 30;
@@ -65,6 +73,8 @@ class _ApplicationFormState extends State<ApplicationForm> {
   String? _selectedUnitId;
   Map<String, dynamic>? _selectedUnitData;
   List<Map<String, dynamic>> _availableUnits = [];
+  
+  StreamSubscription<DocumentSnapshot>? _propertySubscription;
   
   // Property statistics
   int _totalUnits = 0;
@@ -91,63 +101,72 @@ class _ApplicationFormState extends State<ApplicationForm> {
   }
 
   Future<void> _loadPropertyData() async {
-    try {
-      // Load property data
-      final propertyDoc = await FirebaseFirestore.instance
-          .collection('properties')
-          .doc(widget.propertyId)
-          .get();
+
+    _propertySubscription?.cancel();
+    _propertySubscription = FirebaseFirestore.instance
+        .collection('properties')
+        .doc(widget.propertyId)
+        .snapshots()
+        .listen((propertyDoc) async {
+      if (propertyDoc.exists && mounted) {
+        final data = propertyDoc.data()!;
+        
+        setState(() {
+          _propertyData = {
+            'id': propertyDoc.id,
+            ...data
+          };
           
-      if (propertyDoc.exists) {
-        _propertyData = {
-          'id': propertyDoc.id,
-          ...propertyDoc.data()!
-        };
-        
-        print('Loaded property: ${_propertyData!['name']}');
-        
-        // Load fee information from property
-        _monthlyRent = (_propertyData!['rentAmount'] ?? 0).toDouble();
-        _securityDeposit = (_propertyData!['securityDeposit'] ?? _monthlyRent).toDouble();
-        _applicationFee = (_propertyData!['applicationFee'] ?? 0).toDouble();
-        _petDeposit = (_propertyData!['petDeposit'] ?? 0).toDouble();
-        _otherFees = _propertyData!['otherFees'] ?? '';
-        _leaseTerm = _propertyData!['leaseTerm'] ?? 12;
-        _noticePeriod = _propertyData!['noticePeriod'] ?? 30;
-        _latePaymentFee = (_propertyData!['latePaymentFee'] ?? 0).toDouble();
-        _gracePeriod = _propertyData!['gracePeriod'] ?? 5;
-        _feeDetails = _propertyData!['feeDetails'] ?? {
-          'includesWater': false,
-          'includesElectricity': false,
-          'includesInternet': false,
-          'includesMaintenance': false
-        };
+          // Authoritative Property Defaults
+          _propMonthlyRent = _parseNumber(data['rentAmount'] ?? data['price']);
+          _propSecurityDeposit = _parseNumber(data['securityDeposit'] ?? data['deposit'] ?? _propMonthlyRent);
+          _propApplicationFee = _parseNumber(data['applicationFee']);
+          _propPetDeposit = _parseNumber(data['petDeposit'] ?? data['petFee']);
 
-        // Load unit statistics from property.unitDetails
-        final unitDetails = _propertyData!['unitDetails'] ?? {};
-        _totalUnits = unitDetails['totalUnits'] ?? _propertyData!['units'] ?? 1;
-        _vacantCount = unitDetails['vacantCount'] ?? _totalUnits;
-        _leasedCount = unitDetails['leasedCount'] ?? 0;
-        _maintenanceCount = unitDetails['maintenanceCount'] ?? 0;
-        
-        // Calculate occupancy rate
-        if (_totalUnits > 0) {
-          _occupancyRate = (_leasedCount / _totalUnits) * 100;
-        }
+          // Fallback initial values (will be refined by unit selection)
+          if (_selectedUnitData == null) {
+            _monthlyRent = _propMonthlyRent;
+            _securityDeposit = _propSecurityDeposit;
+            _applicationFee = _propApplicationFee;
+            _petDeposit = _propPetDeposit;
+          }
 
-        // Load available units for this property
+          _otherFees = data['otherFees'] ?? '';
+          _leaseTerm = data['leaseTerm'] ?? 12;
+          _noticePeriod = data['noticePeriod'] ?? 30;
+          _latePaymentFee = (data['latePaymentFee'] ?? 0).toDouble();
+          _gracePeriod = data['gracePeriod'] ?? 5;
+          _feeDetails = data['feeDetails'] ?? {
+            'includesWater': false,
+            'includesElectricity': false,
+            'includesInternet': false,
+            'includesMaintenance': false
+          };
+
+          // Statistics
+          final unitDetails = data['unitDetails'] ?? {};
+          _totalUnits = unitDetails['totalUnits'] ?? data['units'] ?? 1;
+          _vacantCount = unitDetails['vacantCount'] ?? _totalUnits;
+          _leasedCount = unitDetails['leasedCount'] ?? 0;
+          _maintenanceCount = unitDetails['maintenanceCount'] ?? 0;
+          
+          if (_totalUnits > 0) {
+            _occupancyRate = (_leasedCount / _totalUnits) * 100;
+          }
+          
+          _loadingData = false;
+        });
+
+        // Re-fetch or re-resolve units to ensure unit-level overrides are also current
         await _loadAvailableUnits();
+      } else if (mounted) {
+        print('DEBUG: Property Doc does not exist or widget unmounted');
+        setState(() => _loadingData = false);
       }
-
-      setState(() {
-        _loadingData = false;
-      });
-    } catch (e) {
-      print('Error loading property data: $e');
-      setState(() {
-        _loadingData = false;
-      });
-    }
+    }, onError: (e) {
+      print('DEBUG ERROR: Property Stream Error: $e');
+      if (mounted) setState(() => _loadingData = false);
+    });
   }
 
   Future<void> _loadAvailableUnits() async {
@@ -306,9 +325,9 @@ class _ApplicationFormState extends State<ApplicationForm> {
             'bedrooms': _propertyData?['bedrooms'] ?? 1,
             'bathrooms': _propertyData?['bathrooms'] ?? 1,
             'size': _propertyData?['size'],
-            'monthlyRent': _monthlyRent,
-            'securityDeposit': _securityDeposit,
-            'applicationFee': _applicationFee,
+            'monthlyRent': _propMonthlyRent,
+            'securityDeposit': _propSecurityDeposit,
+            'applicationFee': _propApplicationFee,
             'status': 'vacant',
             'description': 'Unit $unitNum - ${_propertyData?['name'] ?? 'Property'}',
             'features': [],
@@ -355,6 +374,16 @@ class _ApplicationFormState extends State<ApplicationForm> {
         _selectedUnitData = _availableUnits[0];
         _updateRentForSelectedUnit();
         print('Auto-selected first unit: ${_selectedUnitData?['unitNumber']}');
+      } else if (_selectedUnitId != null) {
+        // RE-SYNC: If a unit is already selected, update its data from the fresh list and re-resolve fees
+        final freshUnit = _availableUnits.firstWhere(
+          (u) => u['id'] == _selectedUnitId,
+          orElse: () => {},
+        );
+        if (freshUnit.isNotEmpty) {
+          _selectedUnitData = freshUnit;
+          _updateRentForSelectedUnit();
+        }
       }
 
       setState(() {
@@ -377,9 +406,10 @@ class _ApplicationFormState extends State<ApplicationForm> {
       'bedrooms': data['bedrooms'] ?? _propertyData?['bedrooms'] ?? 1,
       'bathrooms': data['bathrooms'] ?? _propertyData?['bathrooms'] ?? 1,
       'size': data['size'] ?? _propertyData?['size'],
-      'monthlyRent': data['rentAmount'] ?? data['monthlyRent'] ?? _monthlyRent,
-      'securityDeposit': data['securityDeposit'] ?? _securityDeposit,
-      'applicationFee': data['applicationFee'] ?? _applicationFee,
+      // PROPERTY MASTER: Prioritize property defaults as the "Real" price
+      'monthlyRent': _propMonthlyRent > 0 ? _propMonthlyRent : (data['rentAmount'] ?? data['monthlyRent'] ?? 0.0),
+      'securityDeposit': _propSecurityDeposit > 0 ? _propSecurityDeposit : (data['securityDeposit'] ?? 0.0),
+      'applicationFee': _propApplicationFee > 0 ? _propApplicationFee : (data['applicationFee'] ?? 0.0),
       'status': data['status'] ?? 'vacant',
       'isAvailable': data['isAvailable'] ?? true,
       'description': data['description'] ?? '',
@@ -393,17 +423,28 @@ class _ApplicationFormState extends State<ApplicationForm> {
 
   void _updateRentForSelectedUnit() {
     if (_selectedUnitData != null) {
-      // Use unit-specific rent if available, otherwise use property rent
-      final unitMonthlyRent = _selectedUnitData!['monthlyRent'] ?? _selectedUnitData!['rentAmount'] ?? _monthlyRent;
-      final unitSecurityDeposit = _selectedUnitData!['securityDeposit'] ?? _securityDeposit;
-      final unitApplicationFee = _selectedUnitData!['applicationFee'] ?? _applicationFee;
+      
+      // Fetch values from unit data
+      final double unitMonthlyRent = _parseNumber(_selectedUnitData!['rentAmount'] ?? _selectedUnitData!['monthlyRent']);
+      final double unitSecurityDeposit = _parseNumber(_selectedUnitData!['securityDeposit']);
+      final double unitApplicationFee = _parseNumber(_selectedUnitData!['applicationFee']);
       
       setState(() {
-        _monthlyRent = unitMonthlyRent.toDouble();
-        _securityDeposit = unitSecurityDeposit.toDouble();
-        _applicationFee = unitApplicationFee.toDouble();
+        _monthlyRent = _propMonthlyRent > 0 ? _propMonthlyRent : unitMonthlyRent;
+        _securityDeposit = _propSecurityDeposit > 0 ? _propSecurityDeposit : unitSecurityDeposit;
+        _applicationFee = _propApplicationFee > 0 ? _propApplicationFee : unitApplicationFee;
       });
     }
+  }
+
+  static double _parseNumber(dynamic value) {
+    if (value == null) return 0.0;
+    if (value is num) return value.toDouble();
+    if (value is String) {
+      if (value.isEmpty) return 0.0;
+      return double.tryParse(value.replaceAll(RegExp(r'[^0-9.]'), '')) ?? 0.0;
+    }
+    return 0.0;
   }
 
   Future<void> _selectStartDate(BuildContext context) async {
@@ -638,50 +679,6 @@ class _ApplicationFormState extends State<ApplicationForm> {
                       if (_isMultiUnitProperty) ...[
                         const SizedBox(height: 16),
                         _buildPropertyStatistics(),
-                      ],
-                      
-                      // Debug button (temporary - remove in production)
-                      if (kDebugMode) ...[
-                        const SizedBox(height: 16),
-                        ElevatedButton(
-                          onPressed: () async {
-                            print('=== DEBUG INFO ===');
-                            print('Property ID: ${widget.propertyId}');
-                            print('Property Name: ${_propertyData?['name']}');
-                            print('Total Units: $_totalUnits');
-                            print('Vacant Count: $_vacantCount');
-                            print('Leased Count: $_leasedCount');
-                            print('Maintenance Count: $_maintenanceCount');
-                            print('Loading Units: $_loadingUnits');
-                            print('Available Units: ${_availableUnits.length}');
-                            
-                            // Try to directly query the subcollection
-                            try {
-                              print('\n=== DIRECT FIRESTORE QUERY ===');
-                              final unitsRef = FirebaseFirestore.instance
-                                  .collection('properties')
-                                  .doc(widget.propertyId)
-                                  .collection('units');
-                              
-                              final allUnits = await unitsRef.get();
-                              print('Direct query - Total docs in subcollection: ${allUnits.docs.length}');
-                              
-                              for (var doc in allUnits.docs) {
-                                final data = doc.data();
-                                print('  Doc ID: ${doc.id}');
-                                print('  Data: $data');
-                                print('  ---');
-                              }
-                            } catch (e) {
-                              print('Direct query error: $e');
-                            }
-                            
-                            print('Selected Unit: $_selectedUnitId');
-                            print('Selected Unit Data: $_selectedUnitData');
-                            print('==================');
-                          },
-                          child: const Text('Debug Info'),
-                        ),
                       ],
                     ],
                   ),
@@ -2154,6 +2151,7 @@ class _ApplicationFormState extends State<ApplicationForm> {
 
   @override
   void dispose() {
+    _propertySubscription?.cancel();
     _nameCtrl.dispose();
     _emailCtrl.dispose();
     _phoneCtrl.dispose();
