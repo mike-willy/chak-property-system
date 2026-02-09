@@ -65,11 +65,11 @@ class AuthProvider extends ChangeNotifier {
   // ----------------------------
   // Load profile from Firestore
   // ----------------------------
-  Future<void> _loadUserProfile() async {
+  Future<void> _loadUserProfile({UserRole? role}) async {
     if (_authRepository == null || firebaseUser == null) return;
 
     try {
-      final result = await _authRepository.getUserProfile(firebaseUser!.uid);
+      final result = await _authRepository.getUserProfile(firebaseUser!.uid, role: role);
       result.fold(
         (failure) {
           debugPrint('User profile not found: ${failure.message}');
@@ -159,7 +159,7 @@ class AuthProvider extends ChangeNotifier {
   // ----------------------------
   // Email/Password Sign-In
   // ----------------------------
-  Future<String?> signInWithEmail(String email, String password) async {
+  Future<String?> signInWithEmail(String email, String password, {UserRole? requiredRole}) async {
     if (!_firebaseAvailable || _auth == null) {
       return 'Firebase Authentication is not available. Please try again later.';
     }
@@ -172,7 +172,45 @@ class AuthProvider extends ChangeNotifier {
       firebaseUser = cred.user;
 
       if (firebaseUser != null) {
-        await _loadUserProfile();
+        // Enforce role-based collection check
+        if (requiredRole != null && _authRepository != null) {
+          if (requiredRole == UserRole.tenant) {
+            // RELAXED CHECK:
+            // 1. Check if user is an existing tenant (in 'tenants' collection)
+            final isTenant = await _authRepository!.checkTenantExists(firebaseUser!.uid);
+            bool exists = isTenant.fold((l) => false, (r) => r);
+            
+            if (!exists) {
+              // 2. Fallback: Check if user is a registered user/applicant (in 'users' collection)
+              // This allows new applicants to log in before they are assigned a unit
+              try {
+                final userProfile = await _authRepository!.getUserProfile(firebaseUser!.uid, role: UserRole.tenant);
+                exists = userProfile.isRight();
+              } catch (_) {
+                exists = false;
+              }
+            }
+
+            if (!exists) {
+              await signOut();
+              return 'User not found. Please sign up first.';
+            }
+          } else if (requiredRole == UserRole.landlord) {
+            final result = await _authRepository!.checkLandlordExists(firebaseUser!.uid);
+            final exists = result.fold((l) => false, (r) => r);
+            if (!exists) {
+              await signOut();
+              return 'User not found in the landlords collection.';
+            }
+          }
+        }
+
+        await _loadUserProfile(role: requiredRole);
+        
+        if (_userProfile == null) {
+          await signOut();
+          return 'User profile not found. Please contact support.';
+        }
       }
 
       notifyListeners();
@@ -230,6 +268,42 @@ class AuthProvider extends ChangeNotifier {
           // If profile creation failed (e.g. Landlord not registered), sign out and return error
           await signOut();
           return error;
+        }
+
+        // ADDITIONAL CHECK: Enforce role-based collection check for existing users
+        // This is important if the user authenticated successfully but might not be in the 'tenants' or 'landlords' collection
+        // Note: For new users, _createOrUpdateUserProfileFromOAuth handles creation in 'users' collection,
+        // but it doesn't automatically add them to 'tenants' or 'landlords' (except maybe via Cloud Functions trigger not visible here).
+        // Since the requirement is strict "if you are not found in the respective collection it should tell you user not found",
+        // we must check here.
+        if (role != null) {
+           if (role == UserRole.tenant) {
+            // RELAXED CHECK for Google Sign-In as well:
+            final isTenant = await _authRepository!.checkTenantExists(firebaseUser!.uid);
+            bool exists = isTenant.fold((l) => false, (r) => r);
+
+            if (!exists) {
+               // Fallback: Check if user profile exists (created by _createOrUpdateUserProfileFromOAuth)
+               // Since we just called _createOrUpdate..., if it succeeded, the user IS in 'users'.
+               // So primarily we just need to ensure we don't block them here.
+               // We verify they have a profile explicitly just to be safe.
+               if (_userProfile != null) {
+                 exists = true; 
+               }
+            }
+
+            if (!exists) {
+              await signOut();
+              return 'User not found. Please sign up first.';
+            }
+          } else if (role == UserRole.landlord) {
+            final result = await _authRepository!.checkLandlordExists(firebaseUser!.uid);
+            final exists = result.fold((l) => false, (r) => r);
+            if (!exists) {
+              await signOut();
+              return 'User not found in the landlords collection.';
+            }
+          }
         }
       }
 

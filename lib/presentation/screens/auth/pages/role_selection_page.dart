@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_app/presentation/themes/theme_colors.dart';
+import 'package:mobile_app/data/models/user_model.dart';
 import 'login_page.dart';
 
 class RoleSelectionPage extends StatelessWidget {
@@ -37,8 +38,7 @@ class RoleSelectionPage extends StatelessWidget {
               ),
               const Spacer(),
               
-              // Tenant Card
-              _RoleSelectionCard(
+                _RoleSelectionCard(
                 title: 'I am a Tenant',
                 description: 'Pay rent, request maintenance, and view lease details.',
                 icon: Icons.person_outline,
@@ -46,7 +46,10 @@ class RoleSelectionPage extends StatelessWidget {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (_) => const LoginPage(allowSignup: true),
+                      builder: (_) => const LoginPage(
+                        allowSignup: true,
+                        role: UserRole.tenant,
+                      ),
                     ),
                   );
                 },
@@ -62,7 +65,10 @@ class RoleSelectionPage extends StatelessWidget {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (_) => const LoginPage(allowSignup: false),
+                      builder: (_) => const LoginPage(
+                        allowSignup: false,
+                        role: UserRole.landlord,
+                      ),
                     ),
                   );
                 },

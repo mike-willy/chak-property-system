@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:mobile_app/providers/auth_provider.dart';
 import 'package:mobile_app/core/common/validators.dart';
 import 'package:mobile_app/presentation/themes/theme_colors.dart';
+import 'package:mobile_app/data/models/user_model.dart';
 import 'signup_page.dart';
 import 'package:mobile_app/presentation/screens/properties/pages/application_page.dart';
 import '../../pages/dashboard_page.dart';
@@ -20,6 +21,7 @@ class LoginPage extends StatefulWidget {
   final String? email;
   final String? password;
   final bool allowSignup;
+  final UserRole? role;
 
   const LoginPage({
     super.key, 
@@ -28,6 +30,7 @@ class LoginPage extends StatefulWidget {
     this.email,
     this.password,
     this.allowSignup = true,
+    this.role,
   });
 
   @override
@@ -68,6 +71,7 @@ class _LoginPageState extends State<LoginPage> {
       final errorMessage = await authProvider.signInWithEmail(
         _emailController.text.trim(),
         _passwordController.text,
+        requiredRole: widget.role,
       );
 
       if (!mounted) return;
@@ -117,7 +121,7 @@ class _LoginPageState extends State<LoginPage> {
 
     try {
       final authProvider = context.read<AuthProvider>();
-      final errorMessage = await authProvider.signInWithGoogle();
+      final errorMessage = await authProvider.signInWithGoogle(role: widget.role);
 
       if (!mounted) return;
       setState(() => _isLoading = false);

@@ -121,25 +121,36 @@ class PropertyProvider with ChangeNotifier {
     notifyListeners();
 
     try {
-      // Fetch all properties - filtering by ownerId will be done in _applyFilters
-      // This handles cases where Firebase uses 'landlordId' instead of 'ownerId'
-      final result = await _repository.getProperties();
+      String? ownerId;
+      if (isLandlord) {
+        ownerId = _authProvider.firebaseUser?.uid;
+        if (ownerId == null) {
+          _error = 'User not authenticated';
+          _isLoading = false;
+          notifyListeners();
+          return;
+        }
+      }
+
+      // Fetch properties (optionally filtered by ownerId at the DB level)
+      final result = await _repository.getProperties(ownerId: ownerId);
+      
       result.fold(
         (failure) {
           _error = failure.message;
           debugPrint('PropertyProvider: Error loading properties: ${failure.message}');
         },
         (properties) {
-          debugPrint('PropertyProvider: Loaded ${properties.length} properties');
+          debugPrint('PropertyProvider: Loaded ${properties.length} properties for owner: $ownerId');
           _properties = properties;
-          _applyFilters(); // Apply filters after loading properties
+          _applyFilters(); // Apply local filters (search, status)
           if (isLandlord) _calculateLandlordStats(); // Update stats immediately for landlord
-          debugPrint('PropertyProvider: Filtered to ${_filteredProperties.length} properties');
         },
       );
-    } catch (e) {
+    } catch (e, stackTrace) {
       _error = 'An unexpected error occurred: $e';
       debugPrint('PropertyProvider: Exception loading properties: $e');
+      debugPrint('PropertyProvider: StackTrace: $stackTrace');
     } finally {
       _isLoading = false;
       if (!_disposed) notifyListeners();

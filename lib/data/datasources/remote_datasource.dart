@@ -36,7 +36,10 @@ class RemoteDataSource {
       }
 
       if (ownerId != null) {
-        query = query.where('ownerId', isEqualTo: ownerId);
+        query = query.where(Filter.or(
+          Filter('ownerId', isEqualTo: ownerId),
+          Filter('landlordId', isEqualTo: ownerId),
+        ));
       }
 
       final querySnapshot = await query.get();
@@ -206,6 +209,26 @@ class RemoteDataSource {
     }
   }
 
+  Future<UserModel> getLandlordProfile(String userId) async {
+    try {
+      final doc = await _firestore.collection('landlords').doc(userId).get();
+      if (!doc.exists) {
+        throw Exception('Landlord profile not found');
+      }
+      // Assuming landlords collection has similar structure or compatible fields
+      // If role is missing in doc, we might need to enforce it
+      var data = doc.data() as Map<String, dynamic>;
+      if (!data.containsKey('role')) {
+         data['role'] = 'landlord'; // Enforce role if missing
+      }
+      // Re-create doc snapshot with potentially modified data? 
+      // Or just map it manually. UserModel.fromMap handles it.
+      return UserModel.fromMap(doc.id, data);
+    } catch (e) {
+      throw Exception('Failed to fetch landlord profile: $e');
+    }
+  }
+
   Future<void> createUserProfile(UserModel user) async {
     try {
       await _firestore.collection('users').doc(user.id).set(user.toMap());
@@ -219,6 +242,28 @@ class RemoteDataSource {
       await _firestore.collection('users').doc(user.id).update(user.toMap());
     } catch (e) {
       throw Exception('Failed to update user profile: $e');
+    }
+  }
+
+  Future<bool> checkTenantExists(String userId) async {
+    try {
+      final querySnapshot = await _firestore
+          .collection('tenants')
+          .where('userId', isEqualTo: userId)
+          .limit(1)
+          .get();
+      return querySnapshot.docs.isNotEmpty;
+    } catch (e) {
+      throw Exception('Failed to check tenant existence: $e');
+    }
+  }
+
+  Future<bool> checkLandlordExists(String userId) async {
+    try {
+      final doc = await _firestore.collection('landlords').doc(userId).get();
+      return doc.exists;
+    } catch (e) {
+      throw Exception('Failed to check landlord existence: $e');
     }
   }
 
