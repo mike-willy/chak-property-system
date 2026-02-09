@@ -150,14 +150,18 @@ class ProfilePage extends StatelessWidget {
             const SizedBox(height: 32),
 
             // Applications Section
-            const Text(
-              'My Applications',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
-            ),
-            const SizedBox(height: 16),
-            
-            // Application Section - Show all
-            _buildApplicationsSection(context, user.id),
+            // Applications Section - Only for Tenants/Applicants
+            if (user.role != UserRole.landlord) ...[
+              const Text(
+                'My Applications',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
+              ),
+              const SizedBox(height: 16),
+              
+              // Application Section - Show all
+              _buildApplicationsSection(context, user.id),
+              const SizedBox(height: 32),
+            ],
           ],
         ),
       ),
