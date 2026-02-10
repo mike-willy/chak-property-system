@@ -11,6 +11,7 @@ import '../../../../providers/maintenance_provider.dart';
 import '../../../../presentation/themes/theme_colors.dart';
 import 'package:intl/intl.dart';
 import '../pages/property_tenants_page.dart';
+import '../services/analytics_pdf_service.dart';
 
 class AnalyticsPage extends StatefulWidget {
   const AnalyticsPage({super.key});
@@ -30,6 +31,87 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
       _loadRevenueData();
       context.read<PropertyProvider>().loadStats();
     });
+  }
+
+  Future<void> _downloadReport() async {
+    final tenantProvider = context.read<TenantProvider>();
+    final propertyProvider = context.read<PropertyProvider>();
+    final maintenanceProvider = context.read<MaintenanceProvider>();
+    final authProvider = context.read<AuthProvider>();
+
+    final userId = authProvider.userId;
+    if (userId == null) return;
+
+    // Filter Data
+    final properties = propertyProvider.properties.where((p) => p.ownerId == userId).toList();
+    final myPropertyIds = properties.map((p) => p.id).toSet();
+    final tenants = tenantProvider.tenantsList.where((t) => myPropertyIds.contains(t.propertyId)).toList();
+    
+    // Logic from build method for requests
+    final requests = maintenanceProvider.requests.where((r) {
+        if (myPropertyIds.contains(r.propertyId)) return true;
+        if (r.propertyId.isEmpty && r.propertyName.isNotEmpty) {
+            final normalizedReqName = r.propertyName.toLowerCase().trim();
+            return properties.any((p) => p.title.toLowerCase().trim() == normalizedReqName);
+        }
+        return false;
+    }).toList();
+
+    // Calculate Metrics
+    final stats = propertyProvider.stats;
+    final totalUnits = stats['total'] as int? ?? 0;
+    final vacantUnits = stats['vacant'] as int? ?? 0;
+    final occupiedUnits = stats['occupied'] as int? ?? 0;
+    final occupancyRate = (totalUnits > 0) ? (occupiedUnits / totalUnits * 100).toStringAsFixed(1) : '0.0';
+
+    double projectedRevenue = 0;
+    int activeTenantsCount = 0;
+    int expiringLeasesCount = 0;
+    final now = DateTime.now();
+    final sixtyDaysFromNow = now.add(const Duration(days: 60));
+
+    for (var t in tenants) {
+      if (t is TenantModel) {
+        if (t.status == TenantStatus.active) {
+            projectedRevenue += t.rentAmount;
+            activeTenantsCount++;
+        }
+        if (t.leaseEndDate != null && t.leaseEndDate!.isAfter(now) && t.leaseEndDate!.isBefore(sixtyDaysFromNow)) {
+            expiringLeasesCount++;
+        }
+      }
+    }
+
+    final outstandingRent = projectedRevenue - _totalCollectedRevenue;
+    
+    final openRequests = requests.where((r) => r.status == MaintenanceStatus.open || r.status == MaintenanceStatus.inProgress).length;
+    final completedRequests = requests.where((r) => r.status == MaintenanceStatus.completed).length;
+
+    final filePath = await AnalyticsPDFService.generateAnalyticsReport(
+      totalCollectedRevenue: _totalCollectedRevenue,
+      projectedRevenue: projectedRevenue,
+      outstandingRent: outstandingRent > 0 ? outstandingRent : 0,
+      activeTenantsCount: activeTenantsCount,
+      expiringLeasesCount: expiringLeasesCount,
+      totalProperties: properties.length,
+      totalUnits: totalUnits,
+      occupancyRate: occupancyRate,
+      vacantUnits: vacantUnits,
+      openRequests: openRequests,
+      completedRequests: completedRequests,
+    );
+
+    if (mounted && filePath.isNotEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Report saved to Documents: $filePath'),
+          action: SnackBarAction(
+            label: 'OK',
+            onPressed: () {},
+          ),
+        ),
+      );
+    }
   }
 
   Future<void> _loadRevenueData() async {
@@ -142,6 +224,8 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+
+
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -163,12 +247,21 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
                         ),
                       ],
                     ),
-                    IconButton(
-                      onPressed: () {
-                        _loadRevenueData();
-                        propertyProvider.loadStats(); // Refresh stats on button press
-                      },
-                      icon: const Icon(Icons.refresh, color: Colors.white70),
+                    Row(
+                      children: [
+                        IconButton(
+                          onPressed: _downloadReport,
+                          icon: const Icon(Icons.download_rounded, color: Colors.blueAccent),
+                          tooltip: 'Download Report',
+                        ),
+                        IconButton(
+                          onPressed: () {
+                            _loadRevenueData();
+                            propertyProvider.loadStats(); // Refresh stats on button press
+                          },
+                          icon: const Icon(Icons.refresh, color: Colors.white70),
+                        ),
+                      ],
                     ),
                   ],
                 ),
