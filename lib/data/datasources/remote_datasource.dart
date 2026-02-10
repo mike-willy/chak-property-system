@@ -319,6 +319,7 @@ class RemoteDataSource {
   Future<List<MaintenanceModel>> getMaintenanceRequests({
     String? tenantId,
     String? propertyId,
+    List<String>? propertyIds,
     String? statusFilter,
   }) async {
     try {
@@ -326,6 +327,16 @@ class RemoteDataSource {
 
       if (tenantId != null) {
         query = query.where('tenantId', isEqualTo: tenantId);
+      }
+
+      if (propertyId != null) {
+        query = query.where('propertyId', isEqualTo: propertyId);
+      }
+
+      if (propertyIds != null && propertyIds.isNotEmpty) {
+        // Firestore whereIn supports up to 30 items. 
+        // If there are more, we might need a different strategy, but for a landlord this is usually fine.
+        query = query.where('propertyId', whereIn: propertyIds);
       }
 
       if (statusFilter != null && statusFilter != 'all') {
@@ -431,12 +442,22 @@ class RemoteDataSource {
 
   Stream<List<MaintenanceModel>> getMaintenanceRequestsStream({
     String? tenantId,
+    String? propertyId,
+    List<String>? propertyIds,
     String? statusFilter,
   }) {
     Query query = _firestore.collection('maintenance');
 
     if (tenantId != null) {
       query = query.where('tenantId', isEqualTo: tenantId);
+    }
+
+    if (propertyId != null) {
+      query = query.where('propertyId', isEqualTo: propertyId);
+    }
+
+    if (propertyIds != null && propertyIds.isNotEmpty) {
+      query = query.where('propertyId', whereIn: propertyIds);
     }
 
     if (statusFilter != null && statusFilter != 'all') {

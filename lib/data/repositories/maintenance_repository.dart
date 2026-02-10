@@ -26,12 +26,14 @@ class MaintenanceRepository {
   Future<Either<FailureModel, List<MaintenanceModel>>> getMaintenanceRequests({
     String? tenantId,
     String? propertyId,
+    List<String>? propertyIds,
     String? statusFilter,
   }) async {
     try {
       final requests = await _remoteDataSource.getMaintenanceRequests(
         tenantId: tenantId,
         propertyId: propertyId,
+        propertyIds: propertyIds,
         statusFilter: statusFilter,
       );
       return Right(requests);
@@ -46,10 +48,13 @@ class MaintenanceRepository {
   Stream<List<MaintenanceModel>> getMaintenanceRequestsStream({
     String? tenantId,
     String? propertyId,
+    List<String>? propertyIds,
     String? statusFilter,
   }) {
     return _remoteDataSource.getMaintenanceRequestsStream(
       tenantId: tenantId,
+      propertyId: propertyId,
+      propertyIds: propertyIds,
       statusFilter: statusFilter,
     );
   }

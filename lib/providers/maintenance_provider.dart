@@ -7,22 +7,35 @@ import '../data/models/maintenance_category_model.dart';
 import '../data/repositories/maintenance_repository.dart';
 import 'tenant_provider.dart'; 
 import 'auth_provider.dart';
+import 'property_provider.dart'; // Added import
 import '../core/services/notification_service.dart' as service;
 
 class MaintenanceProvider with ChangeNotifier {
   final MaintenanceRepository _repository;
   AuthProvider _authProvider;
-  TenantProvider? _tenantProvider; // Make nullable to avoid init issues if not provided immediately
+  TenantProvider? _tenantProvider;
+  PropertyProvider? _propertyProvider; // Added PropertyProvider
 
   StreamSubscription<List<MaintenanceModel>>? _requestsSubscription;
   bool _disposed = false;
 
-  MaintenanceProvider(this._repository, this._authProvider, [this._tenantProvider]);
+  MaintenanceProvider(this._repository, this._authProvider, [this._tenantProvider, this._propertyProvider]);
 
-  void update(AuthProvider auth, TenantProvider tenant) {
+  void update(AuthProvider auth, TenantProvider tenant, PropertyProvider property) {
+    final oldPropertyIds = _propertyProvider?.properties.map((p) => p.id).toSet() ?? {};
+    final newPropertyIds = property.properties.map((p) => p.id).toSet();
+    final landlordStatusChanged = _authProvider.isLandlord != auth.isLandlord;
+    
     _authProvider = auth;
     _tenantProvider = tenant;
-    _applyFilters(); // Re-apply filters when dependencies change
+    _propertyProvider = property;
+    _applyFilters();
+    
+    // Auto-load requests for landlords if properties or status changed
+    if (isLandlord && (landlordStatusChanged || !setEquals(oldPropertyIds, newPropertyIds))) {
+      loadRequests();
+    }
+    
     notifyListeners();
   }
 
@@ -57,12 +70,32 @@ class MaintenanceProvider with ChangeNotifier {
 
     try {
       String? tenantId;
+      List<String>? propertyIds;
+      
       if (isTenant) {
         tenantId = _authProvider.firebaseUser?.uid;
+      } else if (isLandlord && _propertyProvider != null) {
+        // Temporarily disable server-side property filtering to support legacy documents
+        // propertyIds = _propertyProvider!.properties
+        //    .where((p) => p.ownerId == _authProvider.userId)
+        //    .map((p) => p.id)
+        //    .toList();
+        
+        /* 
+        if (propertyIds.isEmpty) {
+          debugPrint('MaintenanceProvider: No properties found for landlord, skipping fetch');
+          _isLoading = false;
+          _requests = [];
+          _filteredRequests = [];
+          notifyListeners();
+          return;
+        }
+        */
       }
 
       final stream = _repository.getMaintenanceRequestsStream(
         tenantId: tenantId,
+        propertyIds: propertyIds,
         statusFilter: _filterStatus != 'all' ? _filterStatus : null,
       );
 
@@ -137,18 +170,25 @@ class MaintenanceProvider with ChangeNotifier {
         return false;
       }
 
-      // 2. Strict Landlord Filter
-      if (isLandlord && _tenantProvider != null) {
-         final myTenantIds = _tenantProvider!.tenantsList.map((t) => t.userId).toSet();
-         final myTenantDocIds = _tenantProvider!.tenantsList.map((t) => t.id).toSet();
-         
-         // If tenant list is empty, we effectively hide all requests until it loads
-         if (myTenantIds.isEmpty && myTenantDocIds.isEmpty) {
-           return false; 
-         }
-
-         final matches = myTenantIds.contains(request.tenantId) || myTenantDocIds.contains(request.tenantId);
-         if (!matches) return false;
+      // 2. Strict Landlord Filter (Sealed Property Boundaries)
+      if (isLandlord) {
+        if (_propertyProvider == null) return false;
+        
+        final myProperties = _propertyProvider!.properties
+            .where((p) => p.ownerId == _authProvider.userId);
+        
+        // Match by propertyId (Modern Standard)
+        if (request.propertyId.isNotEmpty) {
+           return myProperties.any((p) => p.id == request.propertyId);
+        }
+        
+        // Fallback: Match by propertyName (Legacy support)
+        final normalizedReqName = request.propertyName.toLowerCase().trim();
+        if (normalizedReqName.isNotEmpty) {
+           return myProperties.any((p) => p.title.toLowerCase().trim() == normalizedReqName);
+        }
+        
+        return false;
       }
 
       // 3. Strict Tenant Filter (Safety Check)
@@ -177,6 +217,7 @@ class MaintenanceProvider with ChangeNotifier {
     required String tenantName,
     required String propertyName,
     required String unitName,
+    required String propertyId, // Added propertyId
     List<String> images = const [],
     String? ownerId,
   }) async {
@@ -194,6 +235,7 @@ class MaintenanceProvider with ChangeNotifier {
       final request = MaintenanceModel(
         id: '', 
         tenantId: tenantId,
+        propertyId: propertyId, // Pass propertyId
         unitId: unitId,
         tenantName: tenantName,
         propertyName: propertyName,

@@ -150,15 +150,15 @@ class MyApp extends StatelessWidget {
             return previous;
           },
         ),
-        // Maintenance Provider depends on Auth and Tenant Provider
-        ChangeNotifierProxyProvider2<AuthProvider, TenantProvider, MaintenanceProvider>(
+        ChangeNotifierProxyProvider3<AuthProvider, TenantProvider, PropertyProvider, MaintenanceProvider>(
           create: (context) => MaintenanceProvider(
             context.read<MaintenanceRepository>(),
             context.read<AuthProvider>(),
             context.read<TenantProvider>(),
+            context.read<PropertyProvider>(),
           ),
-          update: (context, auth, tenant, previous) {
-            previous!.update(auth, tenant);
+          update: (context, auth, tenant, property, previous) {
+            previous!.update(auth, tenant, property);
             return previous;
           },
         ),

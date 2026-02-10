@@ -160,9 +160,9 @@ class _CreateMaintenanceRequestPageState
 
   Future<void> _submitRequest() async {
     if (!_formKey.currentState!.validate()) return;
-    if (_selectedUnitId == null || _selectedTitle == null) {
+    if (_selectedUnitId == null || _selectedTitle == null || _selectedPropertyId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Please select unit and category')));
+          const SnackBar(content: Text('Please select building, unit and category')));
       return;
     }
 
@@ -233,6 +233,7 @@ class _CreateMaintenanceRequestPageState
       tenantName: finalTenantName,
       propertyName: finalPropertyName,
       unitName: finalUnitName,
+      propertyId: _selectedPropertyId!, // Pass selectedPropertyId
       images: _images,
       ownerId: finalOwnerId,
     );

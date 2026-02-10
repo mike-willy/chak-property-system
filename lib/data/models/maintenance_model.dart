@@ -80,6 +80,7 @@ extension MaintenanceStatusExtension on MaintenanceStatus {
 class MaintenanceModel {
   final String id;
   final String tenantId;
+  final String propertyId; // New field for server-side filtering
   final String unitId;  
   final String tenantName;
   final String propertyName;
@@ -99,6 +100,7 @@ class MaintenanceModel {
   MaintenanceModel({
     required this.id,
     required this.tenantId,
+    required this.propertyId,
     required this.unitId,
     required this.tenantName,
     required this.propertyName,
@@ -120,6 +122,7 @@ class MaintenanceModel {
   Map<String, dynamic> toMap() {
     return {
       'tenantId': tenantId,
+      'propertyId': propertyId,
       'unitId': unitId,
       'tenantName': tenantName,
       'propertyName': propertyName,
@@ -143,6 +146,7 @@ class MaintenanceModel {
     return MaintenanceModel(
       id: id,
       tenantId: map['tenantId'] as String? ?? '',
+      propertyId: map['propertyId'] as String? ?? '',
       unitId: map['unitId'] as String? ?? '',
       tenantName: map['tenantName'] as String? ?? '',
       propertyName: map['propertyName'] as String? ?? '',
@@ -175,6 +179,7 @@ class MaintenanceModel {
   MaintenanceModel copyWith({
     String? id,
     String? tenantId,
+    String? propertyId,
     String? unitId,
     String? tenantName,
     String? propertyName,
@@ -194,6 +199,7 @@ class MaintenanceModel {
     return MaintenanceModel(
       id: id ?? this.id,
       tenantId: tenantId ?? this.tenantId,
+      propertyId: propertyId ?? this.propertyId,
       unitId: unitId ?? this.unitId,
       tenantName: tenantName ?? this.tenantName,
       propertyName: propertyName ?? this.propertyName,
