@@ -96,7 +96,9 @@ class MaintenanceProvider with ChangeNotifier {
       final stream = _repository.getMaintenanceRequestsStream(
         tenantId: tenantId,
         propertyIds: propertyIds,
-        statusFilter: _filterStatus != 'all' ? _filterStatus : null,
+        // Fetch ALL requests (including Completed) so Analytics can show correct counts.
+        // We will apply local UI filtering in _applyFilters() for the list view.
+        statusFilter: null,
       );
 
       _requestsSubscription = stream.listen(

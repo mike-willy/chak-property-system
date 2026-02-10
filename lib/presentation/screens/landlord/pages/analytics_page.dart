@@ -83,7 +83,19 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
               .toList(); 
 
           final requests = maintenanceProvider.requests
-              .where((r) => myPropertyIds.contains(r.propertyId))
+              .where((r) {
+                  // 1. Strict Match by ID (Standard)
+                  if (myPropertyIds.contains(r.propertyId)) return true;
+                  
+                  // 2. Fallback Match by Name (Legacy Support)
+                  // If propertyId is missing, check if propertyName matches any of my properties
+                  if (r.propertyId.isEmpty && r.propertyName.isNotEmpty) {
+                      final normalizedReqName = r.propertyName.toLowerCase().trim();
+                      return properties.any((p) => p.title.toLowerCase().trim() == normalizedReqName);
+                  }
+                  
+                  return false;
+              })
               .toList();
 
           // Maintenance Stats
