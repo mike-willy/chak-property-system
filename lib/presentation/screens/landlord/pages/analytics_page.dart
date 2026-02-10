@@ -42,6 +42,10 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
     final userId = authProvider.userId;
     if (userId == null) return;
 
+    final user = authProvider.userProfile;
+    final landlordName = user?.name ?? authProvider.displayName ?? 'Landlord';
+    final landlordEmail = user?.email ?? authProvider.userEmail ?? '';
+
     // Filter Data
     final properties = propertyProvider.properties.where((p) => p.ownerId == userId).toList();
     final myPropertyIds = properties.map((p) => p.id).toSet();
@@ -87,7 +91,38 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
     final openRequests = requests.where((r) => r.status == MaintenanceStatus.open || r.status == MaintenanceStatus.inProgress).length;
     final completedRequests = requests.where((r) => r.status == MaintenanceStatus.completed).length;
 
+    // Prepare Active Tenants Data
+    final currency = NumberFormat.currency(symbol: 'KES ', decimalDigits: 0);
+    final activeTenantsData = <Map<String, String>>[];
+
+    for (var t in tenants) {
+      if (t is TenantModel && t.status == TenantStatus.active) {
+        String propertyName = '';
+         try {
+           final property = properties.firstWhere((p) => p.id == t.propertyId);
+           propertyName = property.title;
+         } catch (_) {
+           propertyName = 'Unknown';
+         }
+
+        final dateStr = t.leaseEndDate != null 
+            ? DateFormat('MMM d, yyyy').format(t.leaseEndDate!)
+            : 'N/A';
+
+        activeTenantsData.add({
+          'name': t.fullName,
+          'property': propertyName,
+          'unit': t.unitNumber,
+          'phone': t.phone,
+          'rent': currency.format(t.rentAmount),
+          'date': dateStr,
+        });
+      }
+    }
+
     final filePath = await AnalyticsPDFService.generateAnalyticsReport(
+      landlordName: landlordName,
+      landlordEmail: landlordEmail,
       totalCollectedRevenue: _totalCollectedRevenue,
       projectedRevenue: projectedRevenue,
       outstandingRent: outstandingRent > 0 ? outstandingRent : 0,
@@ -99,7 +134,9 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
       vacantUnits: vacantUnits,
       openRequests: openRequests,
       completedRequests: completedRequests,
+      activeTenantsData: activeTenantsData,
     );
+
 
     if (mounted && filePath.isNotEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(

@@ -8,6 +8,8 @@ import 'package:intl/intl.dart';
 
 class AnalyticsPDFService {
   static Future<String> generateAnalyticsReport({
+    required String landlordName,
+    required String landlordEmail,
     required double totalCollectedRevenue,
     required double projectedRevenue,
     required double outstandingRent,
@@ -19,11 +21,12 @@ class AnalyticsPDFService {
     required int vacantUnits,
     required int openRequests,
     required int completedRequests,
+    required List<Map<String, String>> activeTenantsData,
   }) async {
     final pdf = pw.Document();
     final currency = NumberFormat.currency(symbol: 'KES ', decimalDigits: 0);
     final now = DateTime.now();
-    final dateStr = DateFormat('MMM d, yyyy').format(now);
+    final dateStr = DateFormat('EEEE, MMMM d, yyyy').format(now);
 
     pdf.addPage(
       pw.MultiPage(
@@ -31,11 +34,32 @@ class AnalyticsPDFService {
         build: (context) => [
           pw.Header(
             level: 0,
-            child: pw.Row(
-              mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+            child: pw.Column(
               children: [
-                pw.Text('Landlord Analytics Report', style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold)),
-                pw.Text(dateStr, style: const pw.TextStyle(fontSize: 14, color: PdfColors.grey)),
+                pw.Row(
+                  mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                  children: [
+                    pw.Text('Jesma Investments', style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold, color: PdfColors.blue900)),
+                    pw.Text('Landlord Analytics', style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold, color: PdfColors.grey700)),
+                  ],
+                ),
+                pw.SizedBox(height: 10),
+                pw.Row(
+                  mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: pw.CrossAxisAlignment.end,
+                  children: [
+                    pw.Column(
+                      crossAxisAlignment: pw.CrossAxisAlignment.start,
+                      children: [
+                        pw.Text('Prepared for: $landlordName', style: const pw.TextStyle(fontSize: 11)),
+                        pw.Text(landlordEmail, style: const pw.TextStyle(fontSize: 11, color: PdfColors.grey600)),
+                      ],
+                    ),
+                    pw.Text('Date: $dateStr', style: const pw.TextStyle(fontSize: 11, fontWeight: pw.FontWeight.bold)),
+                  ],
+                ),
+                pw.SizedBox(height: 10),
+                pw.Divider(color: PdfColors.blue900, thickness: 2),
               ],
             ),
           ),
@@ -79,6 +103,31 @@ class AnalyticsPDFService {
                 _buildStatBox('Completed', completedRequests.toString(), color: PdfColors.green700),
               ]
           ),
+          
+          // Active Tenants List (New Page)
+          if (activeTenantsData.isNotEmpty) ...[
+            pw.NewPage(), // Force new page
+            _buildSectionTitle('Active Tenants List'),
+            pw.TableHelper.fromTextArray(
+              headers: ['Name', 'Property', 'Unit', 'Phone', 'Rent', 'Lease Expiry'],
+              data: activeTenantsData.map((t) => [
+                t['name'] ?? '',
+                t['property'] ?? '',
+                t['unit'] ?? '',
+                t['phone'] ?? '',
+                t['rent'] ?? '',
+                t['date'] ?? '',
+              ]).toList(),
+              headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold, color: PdfColors.white),
+              headerDecoration: const pw.BoxDecoration(color: PdfColors.blue900),
+              rowDecoration: const pw.BoxDecoration(border: pw.Border(bottom: pw.BorderSide(color: PdfColors.grey300))),
+              cellAlignment: pw.Alignment.centerLeft,
+              cellAlignments: {
+                4: pw.Alignment.centerRight,
+                5: pw.Alignment.centerRight,
+              },
+            ),
+          ],
 
           pw.Spacer(),
           pw.Center(
