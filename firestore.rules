@@ -164,16 +164,16 @@ service cloud.firestore {
     }
 
     match /users/{userId}/messages/{messageId} {
-      allow read: if isAuthenticated() && request.auth.uid == userId;
+      allow read: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
       allow create: if isAuthenticated();
-      allow update: if isAuthenticated() && request.auth.uid == userId;
+      allow update: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
       allow delete: if isAdmin();
     }
 
     match /landlords/{landlordId}/messages/{messageId} {
-      allow read: if isAuthenticated() && request.auth.uid == landlordId;
+      allow read: if isAuthenticated() && (request.auth.uid == landlordId || isAdmin());
       allow create: if isAuthenticated();
-      allow update: if isAuthenticated() && request.auth.uid == landlordId;
+      allow update: if isAuthenticated() && (request.auth.uid == landlordId || isAdmin());
       allow delete: if isAdmin();
     }
     
@@ -183,7 +183,7 @@ service cloud.firestore {
          isLandlord() || 
          request.auth.uid == tenantId);
       allow create: if isAuthenticated() && (isAdmin() || isLandlord());
-      allow update: if isAuthenticated() && request.auth.uid == tenantId;
+      allow update: if isAuthenticated() && (request.auth.uid == tenantId || isAdmin());
       allow delete: if isAdmin();
     }
 

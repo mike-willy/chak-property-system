@@ -159,7 +159,7 @@ class PropertyProvider with ChangeNotifier {
 
   Future<void> loadStats() async {
     if (isLandlord) {
-      _calculateLandlordStats();
+      await _calculateLandlordStats();
       return;
     }
 
@@ -175,17 +175,61 @@ class PropertyProvider with ChangeNotifier {
     if (!_disposed) notifyListeners();
   }
 
-  void _calculateLandlordStats() {
+  Future<void> _calculateLandlordStats() async {
     final uid = _authProvider.firebaseUser?.uid;
     if (uid == null) return;
 
     final myProperties = _properties.where((p) => p.ownerId == uid).toList();
     
+    int totalUnits = 0;
+    int vacantUnits = 0;
+    int occupiedUnits = 0;
+    int maintenanceUnits = 0;
+
+    // Iterate through all properties to fetch their units
+    // Note: In a production app with many properties, this should be a cloud function
+    // or a single optimized query.
+    for (final property in myProperties) {
+       final result = await _repository.getPropertyUnits(property.id);
+       
+       result.fold(
+         (failure) {
+           debugPrint('Failed to load units for property ${property.id}: ${failure.message}');
+           // Fallback: Use property status if unit fetch fails
+           totalUnits++; 
+           if (property.status == PropertyStatus.vacant) vacantUnits++;
+           else if (property.status == PropertyStatus.occupied) occupiedUnits++;
+           else if (property.status == PropertyStatus.maintenance) maintenanceUnits++;
+         },
+         (unitsData) {
+            final units = unitsData.map((data) => UnitModel.fromMap(data['id'] ?? '', data)).toList();
+            
+            if (units.isEmpty) {
+               // If property has no units defined, count the property itself as 1 unit
+               totalUnits++;
+               if (property.status == PropertyStatus.vacant) vacantUnits++;
+               else if (property.status == PropertyStatus.occupied) occupiedUnits++;
+               else if (property.status == PropertyStatus.maintenance) maintenanceUnits++;
+            } else {
+               // Aggregate unit stats
+               totalUnits += units.length;
+               for (final unit in units) {
+                  if (unit.status == UnitStatus.vacant) vacantUnits++;
+                  else if (unit.status == UnitStatus.occupied) occupiedUnits++;
+                  else if (unit.status == UnitStatus.maintenance) maintenanceUnits++;
+               }
+            }
+         }
+       );
+    }
+
     _stats = {
-      'total': myProperties.length,
-      'vacant': myProperties.where((p) => p.status == PropertyStatus.vacant).length,
-      'occupied': myProperties.where((p) => p.status == PropertyStatus.occupied).length,
-      'maintenance': myProperties.where((p) => p.status == PropertyStatus.maintenance).length,
+      'total': totalUnits,
+      'vacant': vacantUnits,
+      'occupied': occupiedUnits,
+      'maintenance': maintenanceUnits,
+      // Keep property count for reference if needed
+      'totalProperties': myProperties.length, 
     };
     notifyListeners();
   }

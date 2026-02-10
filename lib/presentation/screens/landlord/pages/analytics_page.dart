@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../../../providers/auth_provider.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../../../../providers/property_provider.dart';
 import '../../../../data/models/property_model.dart';
@@ -26,6 +27,7 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadRevenueData();
+      context.read<PropertyProvider>().loadStats();
     });
   }
 
@@ -47,22 +49,42 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
   Widget build(BuildContext context) {
     return Container(
       color: const Color(0xFF141725),
-      child: Consumer3<PropertyProvider, TenantProvider, MaintenanceProvider>(
-        builder: (context, propertyProvider, tenantProvider, maintenanceProvider, _) {
-          // 1. Calculate Metrics
-          final properties = propertyProvider.properties; // Already filtered for landlord
-          final tenants = tenantProvider.tenantsList; // Already filtered for landlord
-          final requests = maintenanceProvider.requests; // Already filtered for landlord
+      child: Consumer4<AuthProvider, PropertyProvider, TenantProvider, MaintenanceProvider>(
+        builder: (context, authProvider, propertyProvider, tenantProvider, maintenanceProvider, _) {
+          // 1. Calculate Metrics with STRICT Filtering & Unit-Based Stats
+          final userId = authProvider.userId;
+          if (userId == null) {
+             return const Center(child: CircularProgressIndicator());
+          }
 
-          // Property Stats
-          final totalProperties = properties.length;
-          // Calculate strictly from the local list to ensure accuracy
-          final occupiedCount = properties.where((p) => p.status == PropertyStatus.occupied).length;
-          final vacantCount = properties.where((p) => p.status == PropertyStatus.vacant).length;
+          // Trigger stats load if empty (or handled in initState/provider update)
+          if (propertyProvider.stats.isEmpty && !propertyProvider.isLoading) {
+             // propertyProvider.loadStats(); // Be careful of infinite rebuilds here
+          }
+
+          final stats = propertyProvider.stats;
+          final totalUnits = stats['total'] as int? ?? 0;
+          final vacantUnits = stats['vacant'] as int? ?? 0;
+          final occupiedUnits = stats['occupied'] as int? ?? 0;
+          // final maintenanceUnits = stats['maintenance'] as int? ?? 0;
           
-          final occupancyRate = (totalProperties > 0) 
-              ? (occupiedCount / totalProperties * 100).toStringAsFixed(1) 
+          final occupancyRate = (totalUnits > 0) 
+              ? (occupiedUnits / totalUnits * 100).toStringAsFixed(1) 
               : '0.0';
+
+          // Filter Tenants & Requests (Keep strict filtering for these lists)
+          final properties = propertyProvider.properties
+              .where((p) => p.ownerId == userId)
+              .toList(); 
+          final myPropertyIds = properties.map((p) => p.id).toSet();
+          
+          final tenants = tenantProvider.tenantsList
+              .where((t) => myPropertyIds.contains(t.propertyId))
+              .toList(); 
+
+          final requests = maintenanceProvider.requests
+              .where((r) => myPropertyIds.contains(r.propertyId))
+              .toList();
 
           // Maintenance Stats
           final openRequests = requests.where((r) => r.status == MaintenanceStatus.open || r.status == MaintenanceStatus.inProgress).length;
@@ -82,20 +104,23 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
                         Text(
                           'Report Overview',
                           style: TextStyle(
-                            fontSize: 24, // Reduced slightly
+                            fontSize: 24, 
                             fontWeight: FontWeight.bold,
                             color: Colors.white,
                           ),
                         ),
                         SizedBox(height: 8),
                         Text(
-                          'Portfolio performance',
+                          'Portfolio performance (Units)',
                           style: TextStyle(color: Colors.white54),
                         ),
                       ],
                     ),
                     IconButton(
-                      onPressed: _loadRevenueData,
+                      onPressed: () {
+                        _loadRevenueData();
+                        propertyProvider.loadStats(); // Refresh stats on button press
+                      },
                       icon: const Icon(Icons.refresh, color: Colors.white70),
                     ),
                   ],
@@ -108,14 +133,36 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
 
                 const SizedBox(height: 24),
 
-                // 2. Occupancy
-                _buildSectionTitle('Occupancy'),
+                // 2. Portfolio Overview
+                _buildSectionTitle('Portfolio Overview'),
                 Row(
                   children: [
                     Expanded(
                       child: _buildMetricCard(
-                        'Occupancy Rate',
-                        '$occupancyRate%',
+                        'Total Properties',
+                        properties.length.toString(),
+                        Icons.apartment,
+                        Colors.blueGrey,
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: _buildMetricCard(
+                        'Total Units',
+                        totalUnits.toString(),
+                        Icons.meeting_room_outlined,
+                        Colors.indigo,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildMetricCard(
+                        'Occupancy Rate', 
+                        '$occupancyRate%', 
                         Icons.pie_chart,
                         Colors.blue,
                       ),
@@ -123,9 +170,9 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
                     const SizedBox(width: 16),
                     Expanded(
                       child: _buildMetricCard(
-                        'Vacant Properties',
-                        vacantCount.toString(),
-                        Icons.home_outlined,
+                        'Vacant Units', 
+                        vacantUnits.toString(),
+                        Icons.home_outlined, 
                         Colors.orange,
                       ),
                     ),
