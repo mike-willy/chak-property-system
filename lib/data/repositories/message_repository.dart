@@ -136,9 +136,20 @@ class MessageRepository {
           .map((snapshot) =>
               snapshot.docs.map((doc) => Message.fromFirestore(doc)).toList());
 
-      // Stream for received messages (subcollection)
+      // Stream for received messages (landlord subcollection)
       final landlordMessagesStream = _firestore
           .collection('landlords')
+          .doc(landlordId)
+          .collection('messages')
+          .orderBy('receivedAt', descending: true)
+          .snapshots()
+          .map((snapshot) => snapshot.docs
+              .map((doc) => Message.fromMap(doc.data(), id: doc.id))
+              .toList());
+
+      // Stream for received messages (users subcollection - fallback/legacy)
+      final userMessagesStream = _firestore
+          .collection('users')
           .doc(landlordId)
           .collection('messages')
           .orderBy('receivedAt', descending: true)
@@ -159,6 +170,7 @@ class MessageRepository {
       return StreamGroup.merge([
         globalMessagesStream,
         landlordMessagesStream,
+        userMessagesStream,
         sentMessagesStream,
       ]).asyncMap((messages) async {
         return await _combineLandlordMessages(landlordId);
@@ -193,6 +205,22 @@ class MessageRepository {
 
       messages.addAll(landlordQuery.docs
           .map((doc) => Message.fromMap(doc.data(), id: doc.id)));
+
+      // Get received from users subcollection (fallback)
+      try {
+        final userQuery = await _firestore
+            .collection('users')
+            .doc(landlordId)
+            .collection('messages')
+            .orderBy('receivedAt', descending: true)
+            .get();
+
+        messages.addAll(userQuery.docs
+            .map((doc) => Message.fromMap(doc.data(), id: doc.id)));
+      } catch (e) {
+        // Ignore errors from users subcollection (e.g. if it doesn't exist)
+        print('Warning: Failed to fetch messages from users subcollection for landlord: $e');
+      }
 
       // Get SENT messages
       final sentQuery = await _firestore
@@ -251,6 +279,7 @@ class MessageRepository {
             .count()
             .get();
       } else if (userRole == 'landlord') {
+        // Check landlords collection
         subQuery = await _firestore
             .collection('landlords')
             .doc(userId)
@@ -258,6 +287,19 @@ class MessageRepository {
             .where('read', isEqualTo: false)
             .count()
             .get();
+        
+        // Also check users collection (fallback)
+        final userSubQuery = await _firestore
+            .collection('users')
+            .doc(userId)
+            .collection('messages')
+            .where('read', isEqualTo: false)
+            .count()
+            .get();
+        
+        if (userSubQuery.count != null) {
+          count += userSubQuery.count!;
+        }
       }
       
       if (subQuery != null) {
@@ -291,16 +333,36 @@ class MessageRepository {
               .doc(userId)
               .collection('messages')
               .doc(messageId);
+              
+          // Check if exists before updating
+          final subSnapshot = await subDoc.get();
+          if (subSnapshot.exists) {
+            await subDoc.update({'read': true});
+          }
         } else if (userRole == 'landlord') {
+          // Try landlords collection first
           subDoc = _firestore
               .collection('landlords')
               .doc(userId)
               .collection('messages')
               .doc(messageId);
-        }
-
-        if (subDoc != null) {
-          await subDoc.update({'read': true});
+              
+          final subSnapshot = await subDoc.get();
+          if (subSnapshot.exists) {
+            await subDoc.update({'read': true});
+          } else {
+            // Try users collection (fallback)
+            final userSubDoc = _firestore
+                .collection('users')
+                .doc(userId)
+                .collection('messages')
+                .doc(messageId);
+                
+            final userSubSnapshot = await userSubDoc.get();
+            if (userSubSnapshot.exists) {
+              await userSubDoc.update({'read': true});
+            }
+          }
         }
       }
     } catch (e) {

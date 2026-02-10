@@ -133,6 +133,7 @@ class _DashboardPageState extends State<DashboardPage> {
             const PropertyListPage(),
             const FinancePage(), // Combined History & Analytics
             const MaintenancePage(),
+            const MessagesPage(),
             const ProfilePage(),
           ];
 
@@ -141,6 +142,7 @@ class _DashboardPageState extends State<DashboardPage> {
             BottomNavigationBarItem(icon: Icon(Icons.apartment_outlined), activeIcon: Icon(Icons.apartment), label: 'Properties'),
             BottomNavigationBarItem(icon: Icon(Icons.account_balance_wallet_outlined), activeIcon: Icon(Icons.account_balance_wallet), label: 'Finance'),
             BottomNavigationBarItem(icon: Icon(Icons.build_outlined), activeIcon: Icon(Icons.build), label: 'Maintenance'),
+            BottomNavigationBarItem(icon: Icon(Icons.chat_bubble_outline), activeIcon: Icon(Icons.chat_bubble), label: 'Messages'),
             BottomNavigationBarItem(icon: Icon(Icons.person_outline), activeIcon: Icon(Icons.person), label: 'Profile'),
           ];
         } else {
