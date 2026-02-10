@@ -127,14 +127,14 @@ class _DashboardPageState extends State<DashboardPage> {
               BottomNavigationBarItem(icon: Icon(Icons.person_outline), activeIcon: Icon(Icons.person), label: 'Profile'),
           ];
         } else if (isLandlordOrAdmin) {
-          // Landlord Navigation: Home, Properties, Finance, Maintenance, Profile
+          // Landlord Navigation: Home, Properties, Finance, Maintenance, Messages
+          // Profile is removed from bottom nav and moved to header
           pages = [
             const DashboardHome(),
             const PropertyListPage(),
             const FinancePage(), // Combined History & Analytics
             const MaintenancePage(),
             const MessagesPage(),
-            const ProfilePage(),
           ];
 
           navItems = const [
@@ -143,7 +143,6 @@ class _DashboardPageState extends State<DashboardPage> {
             BottomNavigationBarItem(icon: Icon(Icons.account_balance_wallet_outlined), activeIcon: Icon(Icons.account_balance_wallet), label: 'Finance'),
             BottomNavigationBarItem(icon: Icon(Icons.build_outlined), activeIcon: Icon(Icons.build), label: 'Maintenance'),
             BottomNavigationBarItem(icon: Icon(Icons.chat_bubble_outline), activeIcon: Icon(Icons.chat_bubble), label: 'Messages'),
-            BottomNavigationBarItem(icon: Icon(Icons.person_outline), activeIcon: Icon(Icons.person), label: 'Profile'),
           ];
         } else {
           // Tenant Navigation: Home, Payments, Maintenance, Messages, Profile
@@ -398,6 +397,18 @@ class _DashboardHomeState extends State<DashboardHome> {
                   userRole: authProvider.isTenant ? 'Tenant' : (authProvider.isLandlord ? 'Landlord' : (authProvider.isAdmin ? 'Admin' : 'Guest')),
                   tenantId: isTenant ? tenantProvider.tenant!.id.substring(0, 6) : null,
                   onNotificationTap: () {},
+                  onProfileTap: () {
+                     // For Landlords, navigate to ProfilePage when Avatar is tapped
+                     if (authProvider.isLandlord || authProvider.isAdmin) {
+                       Navigator.push(
+                         context,
+                         MaterialPageRoute(builder: (context) => const ProfilePage()),
+                       );
+                     } else {
+                       // For Tenants, switch to Profile tab (Index 4)
+                        _navigateToPage(4);
+                     }
+                  },
                 ),
                 
                 // Unit Switcher Section

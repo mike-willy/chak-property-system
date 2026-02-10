@@ -8,6 +8,7 @@ class HeaderSection extends StatefulWidget {
   final String userRole;
   final String? tenantId;
   final VoidCallback onNotificationTap;
+  final VoidCallback? onProfileTap;
 
   const HeaderSection({
     super.key,
@@ -15,6 +16,7 @@ class HeaderSection extends StatefulWidget {
     required this.userRole,
     this.tenantId,
     required this.onNotificationTap,
+    this.onProfileTap,
   });
 
   @override
@@ -31,21 +33,23 @@ class _HeaderSectionState extends State<HeaderSection> {
         return Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Row(
-              children: [
-                CircleAvatar(
-                  radius: 22,
-                  backgroundColor: const Color(0xFF4E95FF).withOpacity(0.1),
-                  child: Text(
-                    widget.userName[0].toUpperCase(),
-                    style: const TextStyle(
-                      color: Color(0xFF4E95FF),
-                      fontWeight: FontWeight.bold,
-                      fontSize: 18,
+            GestureDetector(
+              onTap: widget.onProfileTap,
+              child: Row(
+                children: [
+                  CircleAvatar(
+                    radius: 22,
+                    backgroundColor: const Color(0xFF4E95FF).withOpacity(0.1),
+                    child: Text(
+                      widget.userName[0].toUpperCase(),
+                      style: const TextStyle(
+                        color: Color(0xFF4E95FF),
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(width: 12),
+                  const SizedBox(width: 12),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -88,7 +92,8 @@ class _HeaderSectionState extends State<HeaderSection> {
                     ),
                   ],
                 ),
-              ],
+                  ],
+              ),
             ),
             Stack(
               clipBehavior: Clip.none,
