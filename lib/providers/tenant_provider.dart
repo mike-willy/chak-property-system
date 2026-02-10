@@ -198,7 +198,28 @@ class TenantProvider with ChangeNotifier {
 
     try {
       final allTenants = await _tenantRepository.getAllTenants();
-      _tenantsList = allTenants.where((t) => propertyIds.contains(t.propertyId)).toList();
+      final filteredTenants = allTenants.where((t) => propertyIds.contains(t.propertyId)).toList();
+      
+      // Populate rentAmount from Property if missing
+      List<TenantModel> enrichedTenants = [];
+      for (var tenant in filteredTenants) {
+         if (tenant.rentAmount == 0 && tenant.propertyId.isNotEmpty) {
+            try {
+               final propertyResult = await _propertyRepository.getPropertyById(tenant.propertyId);
+               final enrichedTenant = propertyResult.fold(
+                 (failure) => tenant, // Keep original if fetch fails
+                 (property) => tenant.copyWith(rentAmount: property.price),
+               );
+               enrichedTenants.add(enrichedTenant);
+            } catch (e) {
+               enrichedTenants.add(tenant);
+            }
+         } else {
+            enrichedTenants.add(tenant);
+         }
+      }
+      
+      _tenantsList = enrichedTenants;
     } catch (e) {
       _error = e.toString();
       debugPrint("TenantProvider: Error loading landlord tenants: $e");

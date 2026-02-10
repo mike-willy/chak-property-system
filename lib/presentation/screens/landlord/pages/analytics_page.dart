@@ -10,6 +10,7 @@ import '../../../../providers/tenant_provider.dart';
 import '../../../../providers/maintenance_provider.dart';
 import '../../../../presentation/themes/theme_colors.dart';
 import 'package:intl/intl.dart';
+import '../pages/property_tenants_page.dart';
 
 class AnalyticsPage extends StatefulWidget {
   const AnalyticsPage({super.key});
@@ -32,16 +33,50 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
   }
 
   Future<void> _loadRevenueData() async {
+    if (!mounted) return;
+    
+    final propertyProvider = context.read<PropertyProvider>();
     final tenantProvider = context.read<TenantProvider>();
+    final authProvider = context.read<AuthProvider>();
+    
     setState(() => _isLoadingRevenue = true);
-    
-    final total = await tenantProvider.calculateTotalCollectedRevenue();
-    
-    if (mounted) {
-      setState(() {
-        _totalCollectedRevenue = total;
-        _isLoadingRevenue = false;
-      });
+
+    try {
+      // 1. Ensure properties are loaded
+      if (propertyProvider.properties.isEmpty) {
+         await propertyProvider.loadProperties();
+      }
+
+      // 2. Get Landlord Property IDs
+      final userId = authProvider.userId;
+      final myProperties = propertyProvider.properties
+          .where((p) => userId != null && p.ownerId == userId)
+          .toList();
+      
+      final propertyIds = myProperties.map((p) => p.id).toList();
+
+      // 3. Load Tenants (This also fixes rentAmount via the provider update)
+      if (propertyIds.isNotEmpty) {
+        await tenantProvider.loadLandlordTenants(propertyIds);
+      } else {
+        // If no properties, clear tenants to be safe
+        tenantProvider.clearData();
+      }
+
+      // 4. Calculate Revenue
+      final total = await tenantProvider.calculateTotalCollectedRevenue();
+      
+      if (mounted) {
+        setState(() {
+          _totalCollectedRevenue = total;
+          _isLoadingRevenue = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+         setState(() => _isLoadingRevenue = false);
+      }
+      debugPrint("Error loading analytics data: $e");
     }
   }
 
@@ -142,10 +177,21 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
                 // 1. Financial Overview
                 _buildSectionTitle('Financials'),
                 _buildFinancialCard(tenants), 
+                
+                const SizedBox(height: 24),
+
+                // 2. Lease Health
+                _buildSectionTitle('Lease Health'), 
+                _buildLeaseHealthCard(tenants),
 
                 const SizedBox(height: 24),
 
-                // 2. Portfolio Overview
+                // 2b. Active Tenants
+                _buildActiveTenantsCard(tenants),
+
+                const SizedBox(height: 24),
+
+                // 3. Portfolio Overview
                 _buildSectionTitle('Portfolio Overview'),
                 Row(
                   children: [
@@ -224,6 +270,80 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
     );
   }
 
+
+
+  Widget _buildActiveTenantsCard(List<dynamic> tenants) {
+    // Filter active tenants
+    final activeTenants = tenants
+        .where((t) => t is TenantModel && t.status == TenantStatus.active)
+        .cast<TenantModel>()
+        .toList();
+    final count = activeTenants.length;
+
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => PropertyTenantsPage(
+              propertyName: 'Active Tenants',
+              tenants: activeTenants,
+              showPropertyName: true,
+            ),
+          ),
+        );
+      },
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: const Color(0xFF1E2235),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.white.withOpacity(0.05)),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.blue.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(Icons.people_outline, color: Colors.blue, size: 24),
+                ),
+                const SizedBox(width: 16),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      count.toString(),
+                      style: const TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    const Text(
+                      'Active Tenants',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: Colors.grey,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            const Icon(Icons.arrow_forward_ios, color: Colors.white54, size: 16),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildSectionTitle(String title) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
@@ -281,6 +401,7 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
       }
     }
 
+    final outstandingRent = projectedRevenue - _totalCollectedRevenue;
     final currency = NumberFormat.currency(symbol: 'KES ', decimalDigits: 0);
 
     return Container(
@@ -361,18 +482,81 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
                   ),
                 ],
               ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text(
-                  '${tenants.length} Active Tenants',
-                  style: const TextStyle(color: Colors.white, fontSize: 12),
-                ),
+              Column( // OUTSTANDING RENT ADDED HERE
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  const Text('Outstanding', style: TextStyle(color: Colors.white60, fontSize: 12)),
+                  const SizedBox(height: 4),
+                  Text(
+                    currency.format(outstandingRent > 0 ? outstandingRent : 0),
+                    style: TextStyle(
+                      color: outstandingRent > 0 ? Colors.orangeAccent : Colors.white, 
+                      fontWeight: FontWeight.bold, 
+                      fontSize: 16
+                    ),
+                  ),
+                ],
               ),
             ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLeaseHealthCard(List<dynamic> tenants) {
+    int expiringSoon = 0;
+    final now = DateTime.now();
+    final sixtyDaysFromNow = now.add(const Duration(days: 60));
+
+    for (var t in tenants) {
+      if (t is TenantModel && t.leaseEndDate != null) {
+        if (t.leaseEndDate!.isAfter(now) && t.leaseEndDate!.isBefore(sixtyDaysFromNow)) {
+          expiringSoon++;
+        }
+      }
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1E2235),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white.withOpacity(0.05)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.orange.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Icon(Icons.warning_amber_rounded, color: Colors.orange, size: 24),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  expiringSoon.toString(),
+                  style: const TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                const Text(
+                  'Leases Expiring Soon (60 Days)',
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: Colors.grey,
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),

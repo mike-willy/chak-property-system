@@ -5,11 +5,13 @@ import '../../widgets/tenant_list_item.dart';
 class PropertyTenantsPage extends StatelessWidget {
   final String propertyName;
   final List<TenantModel> tenants;
+  final bool showPropertyName; // Added
 
   const PropertyTenantsPage({
     super.key,
     required this.propertyName,
     required this.tenants,
+    this.showPropertyName = false, // Default to false
   });
 
   @override
@@ -50,7 +52,7 @@ class PropertyTenantsPage extends StatelessWidget {
               itemBuilder: (context, index) {
                 return TenantListItem(
                   tenant: tenants[index],
-                  showPropertyName: false,
+                  showPropertyName: showPropertyName, // Use parameter
                   showPhone: true,
                   onTap: () {
                     // Navigate to tenant details if needed
