@@ -45,124 +45,122 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFF141725),
-      body: SafeArea(
-        child: Consumer3<PropertyProvider, TenantProvider, MaintenanceProvider>(
-          builder: (context, propertyProvider, tenantProvider, maintenanceProvider, _) {
-            // 1. Calculate Metrics
-            final properties = propertyProvider.properties; // Already filtered for landlord
-            final tenants = tenantProvider.tenantsList; // Already filtered for landlord
-            final requests = maintenanceProvider.requests; // Already filtered for landlord
+    return Container(
+      color: const Color(0xFF141725),
+      child: Consumer3<PropertyProvider, TenantProvider, MaintenanceProvider>(
+        builder: (context, propertyProvider, tenantProvider, maintenanceProvider, _) {
+          // 1. Calculate Metrics
+          final properties = propertyProvider.properties; // Already filtered for landlord
+          final tenants = tenantProvider.tenantsList; // Already filtered for landlord
+          final requests = maintenanceProvider.requests; // Already filtered for landlord
 
-            // Property Stats
-            final totalProperties = properties.length;
-            // Calculate strictly from the local list to ensure accuracy
-            final occupiedCount = properties.where((p) => p.status == PropertyStatus.occupied).length;
-            final vacantCount = properties.where((p) => p.status == PropertyStatus.vacant).length;
-            
-            final occupancyRate = (totalProperties > 0) 
-                ? (occupiedCount / totalProperties * 100).toStringAsFixed(1) 
-                : '0.0';
+          // Property Stats
+          final totalProperties = properties.length;
+          // Calculate strictly from the local list to ensure accuracy
+          final occupiedCount = properties.where((p) => p.status == PropertyStatus.occupied).length;
+          final vacantCount = properties.where((p) => p.status == PropertyStatus.vacant).length;
+          
+          final occupancyRate = (totalProperties > 0) 
+              ? (occupiedCount / totalProperties * 100).toStringAsFixed(1) 
+              : '0.0';
 
-            // Maintenance Stats
-            final openRequests = requests.where((r) => r.status == MaintenanceStatus.open || r.status == MaintenanceStatus.inProgress).length;
-            final completedRequests = requests.where((r) => r.status == MaintenanceStatus.completed).length;
+          // Maintenance Stats
+          final openRequests = requests.where((r) => r.status == MaintenanceStatus.open || r.status == MaintenanceStatus.inProgress).length;
+          final completedRequests = requests.where((r) => r.status == MaintenanceStatus.completed).length;
 
-            return SingleChildScrollView(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Analytics & Reports',
-                            style: TextStyle(
-                              fontSize: 28,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                            ),
+          return SingleChildScrollView(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Report Overview',
+                          style: TextStyle(
+                            fontSize: 24, // Reduced slightly
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
                           ),
-                          SizedBox(height: 8),
-                          Text(
-                            'Overview of your portfolio performance',
-                            style: TextStyle(color: Colors.white54),
-                          ),
-                        ],
-                      ),
-                      IconButton(
-                        onPressed: _loadRevenueData,
-                        icon: const Icon(Icons.refresh, color: Colors.white70),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 24),
-
-                  // 1. Financial Overview
-                  _buildSectionTitle('Financials'),
-                  _buildFinancialCard(tenants), 
-
-                  const SizedBox(height: 24),
-
-                  // 2. Occupancy
-                  _buildSectionTitle('Occupancy'),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _buildMetricCard(
-                          'Occupancy Rate',
-                          '$occupancyRate%',
-                          Icons.pie_chart,
-                          Colors.blue,
                         ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: _buildMetricCard(
-                          'Vacant Properties',
-                          vacantCount.toString(),
-                          Icons.home_outlined,
-                          Colors.orange,
+                        SizedBox(height: 8),
+                        Text(
+                          'Portfolio performance',
+                          style: TextStyle(color: Colors.white54),
                         ),
-                      ),
-                    ],
-                  ),
+                      ],
+                    ),
+                    IconButton(
+                      onPressed: _loadRevenueData,
+                      icon: const Icon(Icons.refresh, color: Colors.white70),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 24),
 
-                  const SizedBox(height: 24),
+                // 1. Financial Overview
+                _buildSectionTitle('Financials'),
+                _buildFinancialCard(tenants), 
 
-                  // 3. Maintenance
-                  _buildSectionTitle('Maintenance Health'),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _buildMetricCard(
-                          'Open Requests',
-                          openRequests.toString(),
-                          Icons.build_circle_outlined,
-                          Colors.redAccent,
-                        ),
+                const SizedBox(height: 24),
+
+                // 2. Occupancy
+                _buildSectionTitle('Occupancy'),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildMetricCard(
+                        'Occupancy Rate',
+                        '$occupancyRate%',
+                        Icons.pie_chart,
+                        Colors.blue,
                       ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: _buildMetricCard(
-                          'Completed',
-                          completedRequests.toString(),
-                          Icons.check_circle_outline,
-                          Colors.green,
-                        ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: _buildMetricCard(
+                        'Vacant Properties',
+                        vacantCount.toString(),
+                        Icons.home_outlined,
+                        Colors.orange,
                       ),
-                    ],
-                  ),
-                ],
-              ),
-            );
-          },
-        ),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 24),
+
+                // 3. Maintenance
+                _buildSectionTitle('Maintenance Health'),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildMetricCard(
+                        'Open Requests',
+                        openRequests.toString(),
+                        Icons.build_circle_outlined,
+                        Colors.redAccent,
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: _buildMetricCard(
+                        'Completed',
+                        completedRequests.toString(),
+                        Icons.check_circle_outline,
+                        Colors.green,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          );
+        },
       ),
     );
   }

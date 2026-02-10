@@ -83,16 +83,9 @@ class _LandlordPaymentHistoryPageState extends State<LandlordPaymentHistoryPage>
     final tenantProvider = context.watch<TenantProvider>();
     final tenants = tenantProvider.tenantsList; 
 
-    return Scaffold(
-      backgroundColor: const Color(0xFF141725),
-      appBar: AppBar(
-        title: const Text('Payment History',
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-        backgroundColor: const Color(0xFF141725),
-        elevation: 0,
-        iconTheme: const IconThemeData(color: Colors.white),
-      ),
-      body: _isLoading 
+    return Container(
+      color: const Color(0xFF141725),
+      child: _isLoading 
         ? const Center(child: CircularProgressIndicator(color: Color(0xFF4E95FF)))
         : _error != null
           ? _buildErrorState(_error!)

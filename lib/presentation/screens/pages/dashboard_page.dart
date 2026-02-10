@@ -23,6 +23,7 @@ import '../properties/pages/property_list_page.dart';
 import '../landlord/pages/analytics_page.dart';
 import '../payments/payment_history_page.dart'; 
 import '../landlord/pages/landlord_payment_history_page.dart'; 
+import '../landlord/pages/finance_page.dart'; 
 import 'messages_page.dart';
 import 'maintenance_page.dart';
 import 'profile_page.dart';
@@ -125,27 +126,39 @@ class _DashboardPageState extends State<DashboardPage> {
               BottomNavigationBarItem(icon: Icon(Icons.home_outlined), activeIcon: Icon(Icons.home), label: 'Status'),
               BottomNavigationBarItem(icon: Icon(Icons.person_outline), activeIcon: Icon(Icons.person), label: 'Profile'),
           ];
-        } else {
-          // FIX: Removed 'const' from this list to resolve the build error
+        } else if (isLandlordOrAdmin) {
+          // Landlord Navigation: Home, Properties, Finance, Maintenance, Profile
           pages = [
-            const DashboardHome(),           
-            const PropertyListPage(),        
-            isLandlordOrAdmin ? const LandlordPaymentHistoryPage() : const PaymentHistoryPage(),  
-            const MaintenancePage(),    
-            if (isLandlordOrAdmin) const AnalyticsPage() else const MessagesPage(), 
-            const ProfilePage(),             
+            const DashboardHome(),
+            const PropertyListPage(),
+            const FinancePage(), // Combined History & Analytics
+            const MaintenancePage(),
+            const ProfilePage(),
           ];
 
-          navItems = [
-            const BottomNavigationBarItem(icon: Icon(Icons.home_filled), label: 'Home'),
-            BottomNavigationBarItem(icon: const Icon(Icons.search), label: isLandlordOrAdmin ? 'Properties' : 'Rentals'),
-            const BottomNavigationBarItem(icon: Icon(Icons.receipt_long), label: 'History'),
-            const BottomNavigationBarItem(icon: Icon(Icons.build_outlined), activeIcon: Icon(Icons.build), label: 'Maintenance'),
-            if (isLandlordOrAdmin)
-              const BottomNavigationBarItem(icon: Icon(Icons.analytics_outlined), activeIcon: Icon(Icons.analytics), label: 'Analytics')
-            else
-              const BottomNavigationBarItem(icon: Icon(Icons.chat_bubble_outline), activeIcon: Icon(Icons.chat_bubble), label: 'Messages'),
-            const BottomNavigationBarItem(icon: Icon(Icons.person_outline), activeIcon: Icon(Icons.person), label: 'Profile'),
+          navItems = const [
+            BottomNavigationBarItem(icon: Icon(Icons.home_outlined), activeIcon: Icon(Icons.home_filled), label: 'Home'),
+            BottomNavigationBarItem(icon: Icon(Icons.apartment_outlined), activeIcon: Icon(Icons.apartment), label: 'Properties'),
+            BottomNavigationBarItem(icon: Icon(Icons.account_balance_wallet_outlined), activeIcon: Icon(Icons.account_balance_wallet), label: 'Finance'),
+            BottomNavigationBarItem(icon: Icon(Icons.build_outlined), activeIcon: Icon(Icons.build), label: 'Maintenance'),
+            BottomNavigationBarItem(icon: Icon(Icons.person_outline), activeIcon: Icon(Icons.person), label: 'Profile'),
+          ];
+        } else {
+          // Tenant Navigation: Home, Payments, Maintenance, Messages, Profile
+          pages = [
+            const DashboardHome(),
+            const PaymentHistoryPage(),
+            const MaintenancePage(),
+            const MessagesPage(),
+            const ProfilePage(),
+          ];
+
+          navItems = const [
+            BottomNavigationBarItem(icon: Icon(Icons.home_outlined), activeIcon: Icon(Icons.home_filled), label: 'Home'),
+            BottomNavigationBarItem(icon: Icon(Icons.receipt_long_outlined), activeIcon: Icon(Icons.receipt_long), label: 'Payments'),
+            BottomNavigationBarItem(icon: Icon(Icons.build_outlined), activeIcon: Icon(Icons.build), label: 'Maintenance'),
+            BottomNavigationBarItem(icon: Icon(Icons.chat_bubble_outline), activeIcon: Icon(Icons.chat_bubble), label: 'Messages'),
+            BottomNavigationBarItem(icon: Icon(Icons.person_outline), activeIcon: Icon(Icons.person), label: 'Profile'),
           ];
         }
 
@@ -180,8 +193,8 @@ class _DashboardPageState extends State<DashboardPage> {
               selectedItemColor: const Color(0xFF4E95FF),
               unselectedItemColor: Colors.grey.shade600,
               showUnselectedLabels: true,
-              selectedLabelStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12),
-              unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w400, fontSize: 12),
+              selectedLabelStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 11), // Reduced font size
+              unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w400, fontSize: 11),
               onTap: (index) {
                 setState(() {
                   _currentIndex = index;
@@ -521,8 +534,8 @@ class _DashboardHomeState extends State<DashboardHome> {
                   const SizedBox(height: 20),
                   QuickActionsGrid(
                     onPayRent: () {}, 
-                    onRequestMaintenance: () => _navigateToPage(3), 
-                    onViewMessages: () => _navigateToPage(4),    
+                    onRequestMaintenance: () => _navigateToPage(2), 
+                    onViewMessages: () => _navigateToPage(3),    
                     onViewLease: () {
                       Navigator.push(
                         context,
@@ -530,6 +543,9 @@ class _DashboardHomeState extends State<DashboardHome> {
                       );
                     },   
                   ),
+                  const SizedBox(height: 20),
+                  _buildFindHomeBanner(),
+                  const SizedBox(height: 5),
                   const SizedBox(height: 25),
                   PaymentHistoryList(
                     payments: tenantProvider.payments,
@@ -795,6 +811,67 @@ class _DashboardHomeState extends State<DashboardHome> {
           const SizedBox(height: 20),
           ElevatedButton(onPressed: () => _navigateToPage(1), child: const Text('Browse Properties')),
         ],
+      ),
+    );
+  }
+
+  Widget _buildFindHomeBanner() {
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const PropertyListPage()),
+        );
+      },
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [const Color(0xFF4E95FF).withOpacity(0.15), const Color(0xFF4E95FF).withOpacity(0.05)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0xFF4E95FF).withOpacity(0.2)),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: const Color(0xFF4E95FF),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Icon(Icons.search, color: Colors.white, size: 20),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Find a New Home',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 15,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    'Browse available properties in your area',
+                    style: TextStyle(
+                      color: Colors.grey.shade400,
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(Icons.arrow_forward_ios, color: Colors.white, size: 14),
+          ],
+        ),
       ),
     );
   }
