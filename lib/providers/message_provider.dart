@@ -96,6 +96,68 @@ class MessageProvider with ChangeNotifier {
     }
   }
 
+  Future<void> deleteMessageForMe(String messageId, String userId) async {
+    try {
+      await _messageRepository.deleteMessageForMe(messageId, userId);
+      _messages.removeWhere((msg) => msg.id == messageId);
+      _unreadCount = _messages.where((msg) => !msg.read).length;
+      notifyListeners();
+    } catch (e) {
+      _error = e.toString();
+      notifyListeners();
+    }
+  }
+
+  Future<void> deleteMessageForAll(String messageId) async {
+    try {
+      await _messageRepository.deleteMessageForAll(messageId);
+      // Local update to avoid waiting for stream
+      final index = _messages.indexWhere((msg) => msg.id == messageId);
+      if (index != -1) {
+        _messages[index] = _messages[index].copyWith(
+          isDeletedForAll: true,
+          message: 'This message was deleted'
+        );
+        notifyListeners();
+      }
+    } catch (e) {
+      _error = e.toString();
+      notifyListeners();
+    }
+  }
+
+  Future<void> deleteMessagesForMe(List<String> messageIds, String userId) async {
+    try {
+      await _messageRepository.deleteMessagesForMe(messageIds, userId);
+      _messages.removeWhere((msg) => messageIds.contains(msg.id));
+      _unreadCount = _messages.where((msg) => !msg.read).length;
+      notifyListeners();
+    } catch (e) {
+      _error = e.toString();
+      notifyListeners();
+    }
+  }
+
+  Future<void> deleteMessagesForAll(List<String> messageIds) async {
+    try {
+      await _messageRepository.deleteMessagesForAll(messageIds);
+      // Local update
+      for (var id in messageIds) {
+        final index = _messages.indexWhere((msg) => msg.id == id);
+        if (index != -1) {
+          _messages[index] = _messages[index].copyWith(
+            isDeletedForAll: true,
+            message: 'This message was deleted'
+          );
+        }
+      }
+      notifyListeners();
+    } catch (e) {
+      _error = e.toString();
+      notifyListeners();
+    }
+  }
+
   void clearError() {
     _error = null;
     notifyListeners();

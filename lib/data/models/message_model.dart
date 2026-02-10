@@ -17,6 +17,8 @@ class Message {
   final bool read;
   final Timestamp? receivedAt;
   final String? messageId;
+  final List<String> deletedBy; // Users who deleted this for themselves
+  final bool isDeletedForAll; // Whether the message was unsent
 
   Message({
     this.id,
@@ -34,6 +36,8 @@ class Message {
     required this.read,
     this.receivedAt,
     this.messageId,
+    this.deletedBy = const [],
+    this.isDeletedForAll = false,
   });
 
   factory Message.fromFirestore(DocumentSnapshot doc) {
@@ -54,6 +58,8 @@ class Message {
       read: data['read'] ?? false,
       receivedAt: data['receivedAt'],
       messageId: data['messageId'],
+      deletedBy: List<String>.from(data['deletedBy'] ?? []),
+      isDeletedForAll: data['isDeletedForAll'] ?? false,
     );
   }
 
@@ -74,6 +80,8 @@ class Message {
       read: data['read'] ?? false,
       receivedAt: data['receivedAt'],
       messageId: data['messageId'],
+      deletedBy: List<String>.from(data['deletedBy'] ?? []),
+      isDeletedForAll: data['isDeletedForAll'] ?? false,
     );
   }
 
@@ -93,6 +101,8 @@ class Message {
       'read': read,
       if (receivedAt != null) 'receivedAt': receivedAt,
       if (messageId != null) 'messageId': messageId,
+      'deletedBy': deletedBy,
+      'isDeletedForAll': isDeletedForAll,
     };
   }
 
@@ -112,6 +122,8 @@ class Message {
     bool? read,
     Timestamp? receivedAt,
     String? messageId,
+    List<String>? deletedBy,
+    bool? isDeletedForAll,
   }) {
     return Message(
       id: id ?? this.id,
@@ -129,6 +141,8 @@ class Message {
       read: read ?? this.read,
       receivedAt: receivedAt ?? this.receivedAt,
       messageId: messageId ?? this.messageId,
+      deletedBy: deletedBy ?? this.deletedBy,
+      isDeletedForAll: isDeletedForAll ?? this.isDeletedForAll,
     );
   }
 }

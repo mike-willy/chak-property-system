@@ -103,7 +103,13 @@ class MessageRepository {
       // Remove duplicates based on messageId or docId
       final seenIds = <String>{};
       final uniqueMessages = messages.where((message) {
-        // Use messageId if available (for subcollection messages), otherwise doc ID
+
+        // 1. Filter out if deleted by THIS user
+        if (message.deletedBy.contains(userId)) {
+          return false;
+        }
+
+        // 2. Remove duplicates based on messageId or docId
         final id = message.messageId ?? message.id;
         if (id != null) {
           if (seenIds.contains(id)) {
@@ -234,6 +240,11 @@ class MessageRepository {
       // Remove duplicates
       final seenIds = <String>{};
       final uniqueMessages = messages.where((message) {
+        // 1. Filter out if deleted by THIS user
+        if (message.deletedBy.contains(landlordId)) {
+          return false;
+        }
+
         final id = message.messageId ?? message.id;
         if (id != null) {
           if (seenIds.contains(id)) {
@@ -436,5 +447,88 @@ class MessageRepository {
       print('Error sending message to admin: $e');
       rethrow;
     }
+  }
+
+  Future<void> deleteMessageForMe(String messageId, String userId) async {
+    try {
+      final refs = await _findMessageReferences(messageId, userId);
+      final futures = refs.map((ref) => ref.update({
+        'deletedBy': FieldValue.arrayUnion([userId])
+      }));
+      await Future.wait(futures);
+    } catch (e) {
+      print('Error deleting message for self: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> deleteMessageForAll(String messageId) async {
+    try {
+      final user = _auth.currentUser;
+      if (user == null) return;
+      final refs = await _findMessageReferences(messageId, user.uid);
+      final futures = refs.map((ref) => ref.update({
+        'isDeletedForAll': true,
+        'message': 'This message was deleted',
+        'status': 'deleted'
+      }));
+      await Future.wait(futures);
+    } catch (e) {
+      print('Error deleting message for all: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> deleteMessagesForMe(List<String> messageIds, String userId) async {
+    try {
+      final futures = messageIds.map((id) => deleteMessageForMe(id, userId));
+      await Future.wait(futures);
+    } catch (e) {
+      print('Error deleting batch messages for self: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> deleteMessagesForAll(List<String> messageIds) async {
+    try {
+      final futures = messageIds.map((id) => deleteMessageForAll(id));
+      await Future.wait(futures);
+    } catch (e) {
+      print('Error deleting batch messages for all: $e');
+      rethrow;
+    }
+  }
+
+  Future<List<DocumentReference>> _findMessageReferences(String messageId, String userId) async {
+    List<DocumentReference> refs = [];
+    
+    // 1. Check global messages collection
+    try {
+      final globalDoc = _firestore.collection('messages').doc(messageId);
+      final globalSnapshot = await globalDoc.get();
+      if (globalSnapshot.exists) refs.add(globalDoc);
+    } catch (e) {
+      print('Warning: Failed to check global message reference: $e');
+    }
+
+    // 2. Check user's subcollection (for tenant)
+    try {
+      final tenantDoc = _firestore.collection('users').doc(userId).collection('messages').doc(messageId);
+      final tenantSnapshot = await tenantDoc.get();
+      if (tenantSnapshot.exists) refs.add(tenantDoc);
+    } catch (e) {
+      print('Warning: Failed to check user subcollection message reference: $e');
+    }
+
+    // 3. Check landlord's subcollection (for landlord)
+    try {
+      final landlordDoc = _firestore.collection('landlords').doc(userId).collection('messages').doc(messageId);
+      final landlordSnapshot = await landlordDoc.get();
+      if (landlordSnapshot.exists) refs.add(landlordDoc);
+    } catch (e) {
+      print('Warning: Failed to check landlord subcollection message reference: $e');
+    }
+
+    return refs;
   }
 }
