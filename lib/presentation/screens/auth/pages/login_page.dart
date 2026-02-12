@@ -263,7 +263,9 @@ class _LoginPageState extends State<LoginPage> {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'Please sign in to continue managing your properties.',
+                      isLandlord 
+                          ? 'Please sign in to continue managing your properties.'
+                          : 'Please sign in to access your dashboard and manage your stay.',
                       style: theme.textTheme.bodyMedium?.copyWith(
                         color: AppColors.onSurfaceVariant,
                       ),
