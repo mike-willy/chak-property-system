@@ -380,6 +380,31 @@ class AuthProvider extends ChangeNotifier {
   }
 
   // ----------------------------
+  // Password Reset
+  // ----------------------------
+  Future<String?> sendPasswordResetEmail(String email) async {
+    if (!_firebaseAvailable || _auth == null) {
+      return 'Firebase Authentication is not available.';
+    }
+
+    try {
+      await _auth!.sendPasswordResetEmail(email: email);
+      return null; // success
+    } on fb.FirebaseAuthException catch (e) {
+      switch (e.code) {
+        case 'user-not-found':
+          return 'No user found for that email.';
+        case 'invalid-email':
+          return 'The email address is invalid.';
+        default:
+          return e.message ?? 'An error occurred sending reset email.';
+      }
+    } catch (e) {
+      return 'An unexpected error occurred.';
+    }
+  }
+
+  // ----------------------------
   // Sign-Out
   // ----------------------------
   Future<void> signOut() async {
