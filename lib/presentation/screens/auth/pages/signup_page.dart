@@ -7,7 +7,12 @@ import 'package:mobile_app/presentation/themes/theme_colors.dart';
 import 'login_page.dart';
 
 class SignupPage extends StatefulWidget {
-  const SignupPage({super.key});
+  final UserRole? role;
+
+  const SignupPage({
+    super.key,
+    this.role,
+  });
 
   @override
   State<SignupPage> createState() => _SignupPageState();
@@ -28,6 +33,12 @@ class _SignupPageState extends State<SignupPage> {
   bool _acceptedTerms = false;
   bool _isLoading = false;
   final bool _isSignUpMode = true; // true for Sign Up, false for Log In
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedRole = widget.role;
+  }
 
   @override
   void dispose() {
@@ -92,6 +103,7 @@ class _SignupPageState extends State<SignupPage> {
             builder: (_) => LoginPage(
               email: _emailController.text.trim(),
               password: _passwordController.text,
+              role: widget.role,
             ),
           ),
         );
@@ -226,7 +238,7 @@ class _SignupPageState extends State<SignupPage> {
                           onTap: () {
                             Navigator.pushReplacement(
                               context,
-                              MaterialPageRoute(builder: (_) => const LoginPage()),
+                              MaterialPageRoute(builder: (_) => LoginPage(role: widget.role)),
                             );
                           },
                           child: Container(
@@ -274,39 +286,39 @@ class _SignupPageState extends State<SignupPage> {
                 ),
                 const SizedBox(height: 32),
 
-                // Role Selection
-                Text(
-                  'I am a...',
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.onSurface,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Row(
-                  children: [
-                    Expanded(
-                      child: _RoleCard(
-                        role: UserRole.tenant,
-                        label: 'Tenant',
-                        icon: Icons.person,
-                        isSelected: _selectedRole == UserRole.tenant,
-                        onTap: () => setState(() => _selectedRole = UserRole.tenant),
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    // Expanded(
-                    //   child: _RoleCard(
-                    //     role: UserRole.landlord,
-                    //     label: 'Landlord',
-                    //     icon: Icons.business,
-                    //     isSelected: _selectedRole == UserRole.landlord,
-                    //     onTap: () => setState(() => _selectedRole = UserRole.landlord),
-                    //   ),
-                    // ),
-                  ],
-                ),
-                const SizedBox(height: 32),
+                // Role Selection (Hidden)
+                // Text(
+                //   'I am a...',
+                //   style: theme.textTheme.titleMedium?.copyWith(
+                //     fontWeight: FontWeight.w600,
+                //     color: AppColors.onSurface,
+                //   ),
+                // ),
+                // const SizedBox(height: 16),
+                // Row(
+                //   children: [
+                //     Expanded(
+                //       child: _RoleCard(
+                //         role: UserRole.tenant,
+                //         label: 'Tenant',
+                //         icon: Icons.person,
+                //         isSelected: _selectedRole == UserRole.tenant,
+                //         onTap: () => setState(() => _selectedRole = UserRole.tenant),
+                //       ),
+                //     ),
+                //     const SizedBox(width: 16),
+                //     // Expanded(
+                //     //   child: _RoleCard(
+                //     //     role: UserRole.landlord,
+                //     //     label: 'Landlord',
+                //     //     icon: Icons.business,
+                //     //     isSelected: _selectedRole == UserRole.landlord,
+                //     //     onTap: () => setState(() => _selectedRole = UserRole.landlord),
+                //     //   ),
+                //     // ),
+                //   ],
+                // ),
+                // const SizedBox(height: 32),
 
                 // Full Name Field
                 TextFormField(

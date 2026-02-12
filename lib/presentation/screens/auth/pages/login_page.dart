@@ -313,7 +313,7 @@ class _LoginPageState extends State<LoginPage> {
                                 onTap: () {
                                   Navigator.pushReplacement(
                                     context,
-                                    MaterialPageRoute(builder: (_) => const SignupPage()),
+                                    MaterialPageRoute(builder: (_) => SignupPage(role: widget.role)),
                                   );
                                 },
                                 child: Container(
@@ -489,7 +489,7 @@ class _LoginPageState extends State<LoginPage> {
                           onPressed: () {
                             Navigator.pushReplacement(
                               context,
-                              MaterialPageRoute(builder: (_) => const SignupPage()),
+                              MaterialPageRoute(builder: (_) => SignupPage(role: widget.role)),
                             );
                           },
                           child: RichText(
