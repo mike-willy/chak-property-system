@@ -118,6 +118,17 @@ class TenantRepository {
     }
   }
 
+  // Get active tenants stream (for real-time dashboard updates)
+  Stream<List<TenantModel>> getActiveTenantsStream() {
+    return _firestore
+        .collection(_collection)
+        .where('status', isEqualTo: 'active')
+        .snapshots()
+        .map((snapshot) => snapshot.docs
+            .map((doc) => TenantModel.fromFirestore(doc))
+            .toList());
+  }
+
   // Get only active tenants (for landlord dashboard)
   Future<List<TenantModel>> getActiveTenants() async {
     try {

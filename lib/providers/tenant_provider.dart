@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 import '../data/models/tenant_model.dart';
 import '../data/models/payment_model.dart';
@@ -25,6 +26,7 @@ class TenantProvider with ChangeNotifier {
   String? _error;
 
   bool _disposed = false;
+  StreamSubscription? _landlordTenantsSubscription;
 
   TenantProvider(
     this._tenantRepository, 
@@ -50,6 +52,7 @@ class TenantProvider with ChangeNotifier {
   @override
   void dispose() {
     _disposed = true;
+    _landlordTenantsSubscription?.cancel();
     super.dispose();
   }
 
@@ -231,6 +234,53 @@ class TenantProvider with ChangeNotifier {
     }
   }
 
+  // Listen to active tenants in real-time
+  void listenToLandlordTenants(List<String> propertyIds) {
+    debugPrint("TenantProvider: listenToLandlordTenants for ${propertyIds.length} properties");
+    if (propertyIds.isEmpty) {
+      _tenantsList = [];
+      notifyListeners();
+      return;
+    }
+
+    _landlordTenantsSubscription?.cancel();
+    _isLoading = true;
+    notifyListeners();
+
+    _landlordTenantsSubscription = _tenantRepository.getActiveTenantsStream().listen((activeTenants) async {
+      debugPrint("TenantProvider: Received ${activeTenants.length} active tenants from stream");
+      final filteredTenants = activeTenants.where((t) => propertyIds.contains(t.propertyId)).toList();
+      
+      // Enriched tenants logic
+      List<TenantModel> enrichedTenants = [];
+      for (var tenant in filteredTenants) {
+        if (tenant.rentAmount == 0 && tenant.propertyId.isNotEmpty) {
+          try {
+            final propertyResult = await _propertyRepository.getPropertyById(tenant.propertyId);
+            final enrichedTenant = propertyResult.fold(
+              (failure) => tenant,
+              (property) => tenant.copyWith(rentAmount: property.price),
+            );
+            enrichedTenants.add(enrichedTenant);
+          } catch (e) {
+            enrichedTenants.add(tenant);
+          }
+        } else {
+          enrichedTenants.add(tenant);
+        }
+      }
+      
+      _tenantsList = enrichedTenants;
+      _isLoading = false;
+      notifyListeners();
+    }, onError: (e) {
+      _error = e.toString();
+      _isLoading = false;
+      debugPrint("TenantProvider: Error in landlord tenants stream: $e");
+      notifyListeners();
+    });
+  }
+
   Future<double> calculateTotalCollectedRevenue() async {
     if (_tenantsList.isEmpty) return 0.0;
 
@@ -254,9 +304,11 @@ class TenantProvider with ChangeNotifier {
 
   void clearData() {
     _tenant = null;
+    _userTenancies = [];
     _payments = [];
     _tenantsList = [];
     _error = null;
+    _landlordTenantsSubscription?.cancel();
     notifyListeners();
   }
 }

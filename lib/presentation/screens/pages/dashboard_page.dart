@@ -83,7 +83,7 @@ class _DashboardPageState extends State<DashboardPage> {
           .where((p) => p.ownerId == authProvider.userId)
           .map((p) => p.id)
           .toList();
-      await tenantProvider.loadLandlordTenants(myPropertyIds);
+      tenantProvider.listenToLandlordTenants(myPropertyIds);
       await context.read<ApplicationProvider>().loadLandlordApplications(myPropertyIds);
     } else if (authProvider.isAdmin && authProvider.firebaseUser != null) {
       await tenantProvider.loadAllTenants();
@@ -268,7 +268,7 @@ class _DashboardHomeState extends State<DashboardHome> {
           .where((p) => p.ownerId == authProvider.userId)
           .map((p) => p.id)
           .toList();
-      await tenantProvider.loadLandlordTenants(myPropertyIds);
+      tenantProvider.listenToLandlordTenants(myPropertyIds);
       await context.read<ApplicationProvider>().loadLandlordApplications(myPropertyIds);
     } else if (authProvider.isAdmin && authProvider.firebaseUser != null) {
       await tenantProvider.loadAllTenants();
@@ -311,6 +311,7 @@ class _DashboardHomeState extends State<DashboardHome> {
             .where((p) => p.ownerId == authProvider.userId)
             .map((p) => p.id)
             .toList();
+        tenantProvider.listenToLandlordTenants(myPropertyIds);
         futures.add(applicationProvider.loadLandlordApplications(myPropertyIds));
       } else if (authProvider.isAdmin) {
         futures.add(applicationProvider.loadPending());
