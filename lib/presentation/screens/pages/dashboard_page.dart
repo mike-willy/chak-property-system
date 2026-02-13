@@ -210,6 +210,30 @@ class _DashboardPageState extends State<DashboardPage> {
   }
 }
 
+Widget _buildDetailRow(String label, String value) {
+  return Padding(
+    padding: const EdgeInsets.only(bottom: 8.0),
+    child: Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          width: 100,
+          child: Text(
+            '$label:',
+            style: const TextStyle(color: Colors.grey, fontSize: 13),
+          ),
+        ),
+        Expanded(
+          child: Text(
+            value,
+            style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w500),
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
 class DashboardHome extends StatefulWidget {
   const DashboardHome({super.key});
 
@@ -568,7 +592,7 @@ class _DashboardHomeState extends State<DashboardHome> {
                 ] else if (authProvider.isTenant) ...[
                   _buildTenantApplicationStatus(authProvider, applicationProvider),
                 ] else if (authProvider.isLandlord || authProvider.isAdmin) ...[
-                   _buildLandlordView(tenantProvider, applicationProvider),
+                   _buildLandlordView(tenantProvider, applicationProvider, authProvider),
                 ] else ...[
                    _buildGuestView(),
                 ],
@@ -582,7 +606,7 @@ class _DashboardHomeState extends State<DashboardHome> {
   );
 }
 
-  Widget _buildLandlordView(TenantProvider tenantProvider, ApplicationProvider applicationProvider) {
+  Widget _buildLandlordView(TenantProvider tenantProvider, ApplicationProvider applicationProvider, AuthProvider authProvider) {
     final tenants = tenantProvider.tenantsList;
     
     // Group tenants by property
@@ -620,9 +644,12 @@ class _DashboardHomeState extends State<DashboardHome> {
                   title: Text(app.propertyName ?? 'New Application', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                   subtitle: Text('Applicant: ${app.fullName}', style: const TextStyle(color: Colors.grey, fontSize: 12)),
                   trailing: ElevatedButton(
-                    onPressed: () => _showApprovalDialog(context, app),
-                    style: ElevatedButton.styleFrom(backgroundColor: Colors.green, foregroundColor: Colors.white),
-                    child: const Text('Review', style: TextStyle(fontSize: 12)),
+                    onPressed: () => _showApprovalDialog(context, app, authProvider.isAdmin),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: authProvider.isAdmin ? Colors.green : Colors.blue, 
+                      foregroundColor: Colors.white
+                    ),
+                    child: Text(authProvider.isAdmin ? 'Review' : 'View', style: const TextStyle(fontSize: 12)),
                   ),
                 ),
               );
@@ -889,43 +916,64 @@ class _DashboardHomeState extends State<DashboardHome> {
     );
   }
 
-  void _showApprovalDialog(BuildContext context, ApplicationModel application) {
+  void _showApprovalDialog(BuildContext context, ApplicationModel application, bool isAdmin) {
     showDialog(
       context: context,
       builder: (dialogContext) => AlertDialog(
         backgroundColor: const Color(0xFF1E2235),
-        title: const Text('Approve Application', style: TextStyle(color: Colors.white)),
-        content: Text('Approve ${application.fullName} for ${application.propertyName}?'),
+        title: Text(isAdmin ? 'Review Application' : 'Application Details', style: const TextStyle(color: Colors.white)),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildDetailRow('Applicant', application.fullName ?? 'N/A'),
+              _buildDetailRow('Email', application.email ?? 'N/A'),
+              _buildDetailRow('Phone', application.phone ?? 'N/A'),
+              _buildDetailRow('Property', application.propertyName ?? 'N/A'),
+              _buildDetailRow('Unit', application.unitNumber ?? 'N/A'),
+              _buildDetailRow('Monthly Rent', 'KSh ${application.monthlyRent?.toStringAsFixed(0) ?? '0'}'),
+              const SizedBox(height: 16),
+              if (isAdmin) 
+                Text('Approve ${application.fullName ?? 'Applicant'} for ${application.propertyName ?? 'Property'}?', 
+                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)
+                ),
+            ],
+          ),
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('Cancel')),
-          TextButton(
-            onPressed: () async {
-              Navigator.pop(dialogContext);
-              _showRejectionReasonDialog(context, application);
-            },
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('Reject'),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
-            onPressed: () async {
-              Navigator.pop(dialogContext);
-              final tenantData = {
-                'userId': application.tenantId,
-                'fullName': application.fullName,
-                'email': application.email,
-                'propertyId': application.propertyId,
-                'propertyName': application.propertyName,
-                'unitId': application.unitId,
-                'unitNumber': application.unitNumber,
-                'rentAmount': application.monthlyRent,
-                'status': 'active',
-                'createdAt': firestore.Timestamp.now(),
-              };
-              await context.read<ApplicationProvider>().convertToTenant(application: application, tenantData: tenantData);
-            },
-            child: const Text('Approve & Convert'),
-          ),
+          TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('Close')),
+          if (isAdmin) ...[
+            TextButton(
+              onPressed: () async {
+                Navigator.pop(dialogContext);
+                _showRejectionReasonDialog(context, application);
+              },
+              style: TextButton.styleFrom(foregroundColor: Colors.red),
+              child: const Text('Reject'),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+              onPressed: () async {
+                Navigator.pop(dialogContext);
+                final tenantData = {
+                  'userId': application.tenantId,
+                  'fullName': application.fullName,
+                  'email': application.email,
+                  'propertyId': application.propertyId,
+                  'propertyName': application.propertyName,
+                  'unitId': application.unitId,
+                  'unitNumber': application.unitNumber,
+                  'rentAmount': application.monthlyRent,
+                  'status': 'approved_pending_payment',
+                  'paymentStatus': 'initial_fees_pending',
+                  'createdAt': firestore.Timestamp.now(),
+                };
+                await context.read<ApplicationProvider>().convertToTenant(application: application, tenantData: tenantData);
+              },
+              child: const Text('Approve & Convert'),
+            ),
+          ],
         ],
       ),
     );

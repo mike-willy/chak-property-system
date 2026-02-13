@@ -118,6 +118,21 @@ class TenantRepository {
     }
   }
 
+  // Get only active tenants (for landlord dashboard)
+  Future<List<TenantModel>> getActiveTenants() async {
+    try {
+      final querySnapshot = await _firestore
+          .collection(_collection)
+          .where('status', isEqualTo: 'active')
+          .get();
+      return querySnapshot.docs
+          .map((doc) => TenantModel.fromFirestore(doc))
+          .toList();
+    } catch (e) {
+      throw Exception('Failed to fetch active tenants: $e');
+    }
+  }
+
   // Delete tenant (optional)
   Future<void> deleteTenant(String tenantId) async {
     try {

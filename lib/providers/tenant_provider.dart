@@ -197,8 +197,8 @@ class TenantProvider with ChangeNotifier {
     notifyListeners();
 
     try {
-      final allTenants = await _tenantRepository.getAllTenants();
-      final filteredTenants = allTenants.where((t) => propertyIds.contains(t.propertyId)).toList();
+      final activeTenants = await _tenantRepository.getActiveTenants();
+      final filteredTenants = activeTenants.where((t) => propertyIds.contains(t.propertyId)).toList();
       
       // Populate rentAmount from Property if missing
       List<TenantModel> enrichedTenants = [];
