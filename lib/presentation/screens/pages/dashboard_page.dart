@@ -457,12 +457,16 @@ class _DashboardHomeState extends State<DashboardHome> {
                         onTap: tenantProvider.userTenancies.length > 1 ? () {
                            showModalBottomSheet(
                              context: context,
+                             isScrollControlled: true,
                              backgroundColor: const Color(0xFF141725),
                              shape: const RoundedRectangleBorder(
                                borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
                              ),
                              builder: (context) => Container(
                                padding: const EdgeInsets.all(20),
+                               constraints: BoxConstraints(
+                                 maxHeight: MediaQuery.of(context).size.height * 0.7,
+                               ),
                                child: Column(
                                  mainAxisSize: MainAxisSize.min,
                                  crossAxisAlignment: CrossAxisAlignment.start,
@@ -470,47 +474,53 @@ class _DashboardHomeState extends State<DashboardHome> {
                                    const Text(
                                      'Select Your Unit',
                                      style: TextStyle(
-                                       fontSize: 18, 
-                                       fontWeight: FontWeight.bold, 
-                                       color: Colors.white
+                                       fontSize: 18,
+                                       fontWeight: FontWeight.bold,
+                                       color: Colors.white,
                                      ),
                                    ),
                                    const SizedBox(height: 16),
-                                   ...tenantProvider.userTenancies.map((t) => ListTile(
-                                     leading: Icon(
-                                       Icons.home, 
-                                       color: t.id == tenantProvider.tenant?.id 
-                                           ? const Color(0xFF4E95FF) 
-                                           : Colors.grey
-                                     ),
-                                     title: Text(
-                                       t.propertyName,
-                                       style: TextStyle(
-                                         color: t.id == tenantProvider.tenant?.id 
-                                             ? Colors.white 
-                                             : Colors.grey.shade400,
-                                         fontWeight: FontWeight.bold,
+                                   Flexible(
+                                     child: SingleChildScrollView(
+                                       child: Column(
+                                         children: tenantProvider.userTenancies.map((t) => ListTile(
+                                           leading: Icon(
+                                             Icons.home,
+                                             color: t.id == tenantProvider.tenant?.id
+                                                 ? const Color(0xFF4E95FF)
+                                                 : Colors.grey,
+                                           ),
+                                           title: Text(
+                                             t.propertyName,
+                                             style: TextStyle(
+                                               color: t.id == tenantProvider.tenant?.id
+                                                   ? Colors.white
+                                                   : Colors.grey.shade400,
+                                               fontWeight: FontWeight.bold,
+                                             ),
+                                           ),
+                                           subtitle: Text(
+                                             'Unit ${t.unitNumber}',
+                                             style: TextStyle(
+                                               color: Colors.grey.shade500,
+                                             ),
+                                           ),
+                                           trailing: t.id == tenantProvider.tenant?.id
+                                               ? const Icon(Icons.check_circle, color: Color(0xFF4E95FF))
+                                               : null,
+                                           onTap: () {
+                                             tenantProvider.switchTenant(t);
+                                             Navigator.pop(context);
+                                           },
+                                         )).toList(),
                                        ),
                                      ),
-                                     subtitle: Text(
-                                       'Unit ${t.unitNumber}',
-                                       style: TextStyle(
-                                         color: Colors.grey.shade500
-                                       ),
-                                     ),
-                                     trailing: t.id == tenantProvider.tenant?.id 
-                                         ? const Icon(Icons.check_circle, color: Color(0xFF4E95FF))
-                                         : null,
-                                     onTap: () {
-                                       tenantProvider.switchTenant(t);
-                                       Navigator.pop(context);
-                                     },
-                                   )),
+                                   ),
                                    const SizedBox(height: 20),
                                  ],
-                                ),
-                              ),
-                            );
+                               ),
+                             ),
+                           );
                          } : null,
                         child: Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
