@@ -417,6 +417,8 @@ class _PropertyDetailPageState extends State<PropertyDetailPage> {
                           units: provider.propertyUnits,
                           onApply: _handleApply,
                           isLandlord: isLandlord,
+                          propertyId: widget.property.id, // Pass ID
+                          propertyName: widget.property.title, // Pass Name
                         ),
 
                       const SizedBox(height: 10),

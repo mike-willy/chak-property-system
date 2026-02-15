@@ -1,18 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../../../../data/models/unit_model.dart';
+import '../pages/unit_detail_page.dart'; // Import the new page
 
 class UnitListWidget extends StatelessWidget {
   final List<UnitModel> units;
   final Function(UnitModel) onApply;
 
   final bool isLandlord;
+  final String propertyId; // Need for navigation
+  final String propertyName; // Need for navigation
 
   const UnitListWidget({
     super.key,
     required this.units,
     required this.onApply,
     this.isLandlord = false,
+    this.propertyId = '', // Default empty if not passed (should be)
+    this.propertyName = '',
   });
 
   @override
@@ -53,108 +58,123 @@ class UnitListWidget extends StatelessWidget {
   Widget _buildUnitCard(BuildContext context, UnitModel unit) {
     final bool isAvailable = unit.status == UnitStatus.vacant;
     
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade200),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.03),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
+    return InkWell( // Make card clickable
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => UnitDetailPage(
+              unit: unit,
+              propertyId: propertyId,
+              propertyName: propertyName,
+            ),
           ),
-        ],
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Row(
-          children: [
-            // Unit Icon or Image
-            Container(
-              width: 60,
-              height: 60,
-              decoration: BoxDecoration(
-                color: isAvailable ? Colors.blue.shade50 : Colors.grey.shade100,
-                borderRadius: BorderRadius.circular(8),
-                image: unit.images.isNotEmpty
-                    ? DecorationImage(
-                        image: NetworkImage(unit.images.first),
-                        fit: BoxFit.cover,
+        );
+      },
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.grey.shade200),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.03),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              // Unit Icon or Image
+              Container(
+                width: 60,
+                height: 60,
+                decoration: BoxDecoration(
+                  color: isAvailable ? Colors.blue.shade50 : Colors.grey.shade100,
+                  borderRadius: BorderRadius.circular(8),
+                  image: unit.images.isNotEmpty
+                      ? DecorationImage(
+                          image: NetworkImage(unit.images.first),
+                          fit: BoxFit.cover,
+                        )
+                      : null,
+                ),
+                alignment: Alignment.center,
+                child: unit.images.isEmpty
+                    ? Icon(
+                        FontAwesomeIcons.doorOpen,
+                        size: 24,
+                        color: isAvailable ? Colors.blue : Colors.grey,
                       )
                     : null,
               ),
-              alignment: Alignment.center,
-              child: unit.images.isEmpty
-                  ? Icon(
-                      FontAwesomeIcons.doorOpen,
-                      size: 24,
-                      color: isAvailable ? Colors.blue : Colors.grey,
-                    )
-                  : null,
-            ),
-            const SizedBox(width: 16),
-            
-            // Unit Details
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Unit ${unit.unitNumber}',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: isAvailable ? Colors.black87 : Colors.grey,
+              const SizedBox(width: 16),
+              
+              // Unit Details
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Unit ${unit.unitNumber}',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: isAvailable ? Colors.black87 : Colors.grey,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Wrap(
+                      spacing: 8.0,
+                      runSpacing: 4.0,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [
+                        _buildStatusChip(unit.status),
+                        if (unit.floor > 0)
+                          Text(
+                            'Floor ${unit.floor}',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey.shade600,
+                            ),
+                          ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+  
+              // Action Button
+              if (!isLandlord)
+                ElevatedButton(
+                  onPressed: isAvailable ? () => onApply(unit) : null,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.blue.shade700,
+                    foregroundColor: Colors.white,
+                    disabledBackgroundColor: Colors.grey.shade200,
+                    disabledForegroundColor: Colors.grey.shade400,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                  ),
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      isAvailable 
+                          ? 'Apply' 
+                          : unit.status == UnitStatus.maintenance
+                              ? 'Maint.'
+                              : 'Occupied',
                     ),
                   ),
-                  const SizedBox(height: 4),
-                  Wrap(
-                    spacing: 8.0,
-                    runSpacing: 4.0,
-                    crossAxisAlignment: WrapCrossAlignment.center,
-                    children: [
-                      _buildStatusChip(unit.status),
-                      if (unit.floor > 0)
-                        Text(
-                          'Floor ${unit.floor}',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey.shade600,
-                          ),
-                        ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-
-            // Action Button
-            if (!isLandlord)
-              ElevatedButton(
-                onPressed: isAvailable ? () => onApply(unit) : null,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blue.shade700,
-                  foregroundColor: Colors.white,
-                  disabledBackgroundColor: Colors.grey.shade200,
-                  disabledForegroundColor: Colors.grey.shade400,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                 ),
-                child: FittedBox(
-                  fit: BoxFit.scaleDown,
-                  child: Text(
-                    isAvailable 
-                        ? 'Apply' 
-                        : unit.status == UnitStatus.maintenance
-                            ? 'Maint.'
-                            : 'Occupied',
-                  ),
-                ),
-              ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -195,12 +215,15 @@ class UnitListWidget extends StatelessWidget {
         children: [
           Icon(icon, size: 10, color: color),
           const SizedBox(width: 4),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-              color: color,
+          Flexible(
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: color,
+              ),
+              overflow: TextOverflow.ellipsis,
             ),
           ),
         ],
