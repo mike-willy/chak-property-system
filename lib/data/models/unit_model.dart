@@ -43,6 +43,8 @@ class UnitModel {
   final UnitStatus status;
   final DateTime? availabilityDate;
 
+  final List<String> images;
+
   UnitModel({
     required this.id,
     required this.propertyId,
@@ -51,6 +53,7 @@ class UnitModel {
     required this.features,
     required this.status,
     this.availabilityDate,
+    this.images = const [],
   });
 
   // Convert to Firestore document
@@ -61,6 +64,7 @@ class UnitModel {
       'floor': floor,
       'features': features,
       'status': status.value,
+      'images': images,
       if (availabilityDate != null)
         'availabilityDate': Timestamp.fromDate(availabilityDate!),
     };
@@ -78,6 +82,7 @@ class UnitModel {
         map['status'] as String? ?? 'vacant',
       ),
       availabilityDate: (map['availabilityDate'] as Timestamp?)?.toDate(),
+      images: List<String>.from(map['images'] as List? ?? []),
     );
   }
 
@@ -96,6 +101,7 @@ class UnitModel {
     List<String>? features,
     UnitStatus? status,
     DateTime? availabilityDate,
+    List<String>? images,
   }) {
     return UnitModel(
       id: id ?? this.id,
@@ -105,6 +111,7 @@ class UnitModel {
       features: features ?? this.features,
       status: status ?? this.status,
       availabilityDate: availabilityDate ?? this.availabilityDate,
+      images: images ?? this.images,
     );
   }
 }

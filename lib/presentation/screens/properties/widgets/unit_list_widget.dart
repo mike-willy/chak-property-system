@@ -70,18 +70,28 @@ class UnitListWidget extends StatelessWidget {
         padding: const EdgeInsets.all(16),
         child: Row(
           children: [
-            // Unit Icon
+            // Unit Icon or Image
             Container(
-              padding: const EdgeInsets.all(12),
+              width: 60,
+              height: 60,
               decoration: BoxDecoration(
                 color: isAvailable ? Colors.blue.shade50 : Colors.grey.shade100,
-                shape: BoxShape.circle,
+                borderRadius: BorderRadius.circular(8),
+                image: unit.images.isNotEmpty
+                    ? DecorationImage(
+                        image: NetworkImage(unit.images.first),
+                        fit: BoxFit.cover,
+                      )
+                    : null,
               ),
-              child: Icon(
-                FontAwesomeIcons.doorOpen,
-                size: 20,
-                color: isAvailable ? Colors.blue : Colors.grey,
-              ),
+              alignment: Alignment.center,
+              child: unit.images.isEmpty
+                  ? Icon(
+                      FontAwesomeIcons.doorOpen,
+                      size: 24,
+                      color: isAvailable ? Colors.blue : Colors.grey,
+                    )
+                  : null,
             ),
             const SizedBox(width: 16),
             
