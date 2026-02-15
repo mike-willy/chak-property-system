@@ -149,29 +149,18 @@ class UnitListWidget extends StatelessWidget {
               ),
   
               // Action Button
-              if (!isLandlord)
+              if (!isLandlord && isAvailable)
                 ElevatedButton(
-                  onPressed: isAvailable ? () => onApply(unit) : null,
+                  onPressed: () => onApply(unit),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.blue.shade700,
                     foregroundColor: Colors.white,
-                    disabledBackgroundColor: Colors.grey.shade200,
-                    disabledForegroundColor: Colors.grey.shade400,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),
                     ),
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                   ),
-                  child: FittedBox(
-                    fit: BoxFit.scaleDown,
-                    child: Text(
-                      isAvailable 
-                          ? 'Apply' 
-                          : unit.status == UnitStatus.maintenance
-                              ? 'Maint.'
-                              : 'Occupied',
-                    ),
-                  ),
+                  child: const Text('Apply'),
                 ),
             ],
           ),
