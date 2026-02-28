@@ -413,6 +413,36 @@ class MessageRepository {
       };
 
       await _firestore.collection('messages').add(messageData);
+
+      // Determine user role (check if landlord exists)
+      bool isLandlord = false;
+      try {
+        final landlordDoc = await _firestore.collection('landlords').doc(user.uid).get();
+        isLandlord = landlordDoc.exists;
+      } catch (e) {
+        print('Error checking landlord status: $e');
+      }
+
+      final String notificationType = isLandlord ? 'landlord_message' : 'tenant_message';
+      final String roleStr = isLandlord ? 'Landlord' : 'Tenant';
+
+      // Create a notification for the admin
+      await _firestore.collection('notifications').add({
+        'type': notificationType,
+        'title': 'New Message from $roleStr (${user.displayName ?? user.email ?? 'User'})',
+        'message': replyMessage,
+        'recipientId': 'admin',
+        'recipientType': 'admin',
+        'read': false,
+        'priority': 'medium',
+        'metadata': {
+            'senderId': user.uid,
+            'senderName': user.displayName ?? user.email ?? 'User',
+            'subject': 'Reply to message'
+        },
+        'createdAt': FieldValue.serverTimestamp(),
+        'expiresAt': Timestamp.fromDate(DateTime.now().add(const Duration(days: 30))),
+      });
       
     } catch (e) {
       print('Error sending reply: $e');
@@ -443,6 +473,36 @@ class MessageRepository {
       };
 
       await _firestore.collection('messages').add(messageData);
+
+      // Determine user role (check if landlord exists)
+      bool isLandlord = false;
+      try {
+        final landlordDoc = await _firestore.collection('landlords').doc(user.uid).get();
+        isLandlord = landlordDoc.exists;
+      } catch (e) {
+        print('Error checking landlord status: $e');
+      }
+
+      final String notificationType = isLandlord ? 'landlord_message' : 'tenant_message';
+      final String roleStr = isLandlord ? 'Landlord' : 'Tenant';
+
+      // Create a notification for the admin
+      await _firestore.collection('notifications').add({
+        'type': notificationType,
+        'title': 'New Message from $roleStr (${user.displayName ?? user.email ?? 'User'})',
+        'message': message,
+        'recipientId': 'admin',
+        'recipientType': 'admin',
+        'read': false,
+        'priority': 'medium',
+        'metadata': {
+            'senderId': user.uid,
+            'senderName': user.displayName ?? user.email ?? 'User',
+            'subject': subject
+        },
+        'createdAt': FieldValue.serverTimestamp(),
+        'expiresAt': Timestamp.fromDate(DateTime.now().add(const Duration(days: 30))),
+      });
     } catch (e) {
       print('Error sending message to admin: $e');
       rethrow;
