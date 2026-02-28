@@ -123,6 +123,37 @@ class PaymentRepository {
 
       if (status == 'completed') {
         updateData['completedAt'] = FieldValue.serverTimestamp();
+        
+        // Fetch payment details to include in the notification
+        final paymentDoc = await _paymentsRef.doc(paymentId).get();
+        if (paymentDoc.exists) {
+            final paymentData = paymentDoc.data() as Map<String, dynamic>;
+            final amount = paymentData['amount']?.toString() ?? 'unknown';
+            final desc = paymentData['description'] ?? 'Rent payment';
+            final phone = paymentData['phoneNumber'] ?? '';
+            final tenantId = paymentData['tenantId'] ?? 'unknown';
+            
+            final receiptText = mpesaReceiptNumber != null ? ' Receipt: $mpesaReceiptNumber.' : '';
+            final message = 'KES $amount received for $desc. Phone: $phone.$receiptText';
+            
+            // Create a notification for the admin
+            await _db.collection('notifications').add({
+              'type': 'rent_payment',
+              'title': 'Payment Received (KES $amount)',
+              'message': message,
+              'recipientId': 'admin',
+              'recipientType': 'admin',
+              'read': false,
+              'priority': 'high',
+              'metadata': {
+                  'paymentId': paymentId,
+                  'tenantId': tenantId,
+                  'amount': paymentData['amount'],
+              },
+              'createdAt': FieldValue.serverTimestamp(),
+              'expiresAt': Timestamp.fromDate(DateTime.now().add(const Duration(days: 30))),
+            });
+        }
       }
 
       await _paymentsRef.doc(paymentId).update(updateData);
