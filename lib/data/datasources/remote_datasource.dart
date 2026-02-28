@@ -382,6 +382,26 @@ class RemoteDataSource {
           updatedAt: DateTime.now(),
         ).toMap(),
       );
+
+      // Create a notification for the admin
+      await _firestore.collection('notifications').add({
+        'type': 'maintenance_request',
+        'title': 'New Maintenance Request',
+        'message': "[${request.propertyName.isNotEmpty ? request.propertyName : 'Property'} - ${request.unitName.isNotEmpty ? request.unitName : 'Unit'}] Tenant reported: ${request.title}",
+        'recipientId': 'admin',
+        'recipientType': 'admin',
+        'read': false,
+        'priority': request.priority.name == 'emergency' || request.priority.name == 'high' ? 'high' : 'medium',
+        'metadata': {
+          'requestId': docRef.id,
+          'propertyId': request.propertyId,
+          'unitId': request.unitId,
+          'issue': request.title,
+        },
+        'createdAt': Timestamp.now(),
+        'expiresAt': Timestamp.fromDate(DateTime.now().add(const Duration(days: 14))),
+      });
+
       return docRef.id;
     } catch (e) {
       throw Exception('Failed to create maintenance request: $e');

@@ -582,6 +582,26 @@ class _ApplicationFormState extends State<ApplicationForm> {
 
 
 
+      // Create a notification for the admin
+      await FirebaseFirestore.instance.collection('notifications').add({
+        'type': 'tenant_application',
+        'title': 'New Tenant Application',
+        'message': '${_nameCtrl.text.trim()} applied for ${_selectedUnitData?['unitName'] ?? 'a unit'} at ${_propertyData?['name'] ?? 'a property'}',
+        'recipientId': 'admin',
+        'recipientType': 'admin',
+        'read': false,
+        'priority': 'high',
+        'metadata': {
+          'applicationId': doc.id,
+          'propertyId': widget.propertyId,
+          'unitId': _selectedUnitId,
+          'applicantName': _nameCtrl.text.trim(),
+          'applicantEmail': _emailCtrl.text.trim(),
+        },
+        'createdAt': Timestamp.now(),
+        'expiresAt': Timestamp.fromDate(DateTime.now().add(const Duration(days: 30))),
+      });
+
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
