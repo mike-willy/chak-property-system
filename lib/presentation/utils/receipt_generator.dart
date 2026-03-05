@@ -13,8 +13,8 @@ class ReceiptGenerator {
     final formattedTime = DateFormat('hh:mm a').format(date);
     
     // Company Details
-    const companyName = "Jesma Investments";
-    const companyAddress = "Nairobi, Kenya"; // Placeholder address
+    const companyName = "Chak Property";
+    const companyAddress = "Nyeri, Kenya"; // Updated location
     const companyPhone = "+254 700 000 000"; // Placeholder phone
 
     pdf.addPage(

@@ -39,7 +39,13 @@ class AnalyticsPDFService {
                 pw.Row(
                   mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                   children: [
-                    pw.Text('Jesma Investments', style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold, color: PdfColors.blue900)),
+                    pw.Column(
+                      crossAxisAlignment: pw.CrossAxisAlignment.start,
+                      children: [
+                        pw.Text('Chak Property', style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold, color: PdfColors.blue900)),
+                        pw.Text('Nyeri, Kenya', style: const pw.TextStyle(fontSize: 12, color: PdfColors.grey700)),
+                      ],
+                    ),
                     pw.Text('Landlord Analytics', style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold, color: PdfColors.grey700)),
                   ],
                 ),
